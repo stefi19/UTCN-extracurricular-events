@@ -4,6 +4,7 @@ import com.example.model.EventRequest
 import com.example.service.EventService
 import com.example.view.toView
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.call
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -60,4 +61,3 @@ class EventController(private val service: EventService) {
         }
     }
 }
-

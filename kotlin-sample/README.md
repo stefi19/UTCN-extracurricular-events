@@ -1,13 +1,15 @@
 # Kotlin MVC backend sample (Ktor)
 
-This module is now a minimal Kotlin backend for UTCN extracurricular events.
+This module is a minimal Kotlin backend for UTCN extracurricular events.
 
 Architecture used
 - `model`: domain/request models (`Event`, `EventRequest`)
 - `view`: API response DTO (`EventView`)
 - `controller`: HTTP routes (`EventController`)
 - `service`: business logic/validation (`EventService`)
-- `repository`: in-memory and PostgreSQL implementations (`InMemoryEventRepository`, `PostgresEventRepository`)
+- `repository`: storage abstraction (`EventRepository`, `PostgresEventRepository`)
+- `dao`: JDBC data access objects (`EventDao`, `JdbcEventDao`)
+- `db/migration`: Flyway SQL migrations
 
 ## 1) Local environment setup (macOS)
 
@@ -22,42 +24,41 @@ export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
 java -version
 ```
 
-Install Gradle if you do not already have it:
+> This project includes Gradle Wrapper, so you can use `./gradlew` without installing Gradle globally.
+
+## 2) Start PostgreSQL with one command
+
+From `kotlin-sample`:
 
 ```zsh
-brew install gradle
+docker compose up -d
 ```
 
-## 2) Start PostgreSQL (Docker quick start)
+Stop DB when needed:
 
 ```zsh
-docker run --name utcnevents-postgres \
-  -e POSTGRES_DB=utcnevents \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -p 5432:5432 \
-  -d postgres:16
+docker compose down
 ```
 
-## 3) Build and run with PostgreSQL
+## 3) Build and run with PostgreSQL + Flyway
 
-From this folder (`kotlin-sample`):
+From `kotlin-sample`:
 
 ```zsh
 export EVENTS_STORAGE=postgres
 export DATABASE_URL="jdbc:postgresql://localhost:5432/utcnevents"
 export DATABASE_USER="postgres"
 export DATABASE_PASSWORD="postgres"
-gradle build
-gradle run
+./gradlew build
+./gradlew run
 ```
 
-Server starts on `http://localhost:8080` and auto-creates table `events`.
+On startup, Flyway runs migrations from `src/main/resources/db/migration`.
 
 If you want to run without PostgreSQL, skip env vars and run normally:
 
 ```zsh
-gradle run
+./gradlew run
 ```
 
 ## 4) Quick API checks

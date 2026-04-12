@@ -2,6 +2,7 @@ package com.example.db
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import org.flywaydb.core.Flyway
 import javax.sql.DataSource
 
 object DatabaseFactory {
@@ -19,17 +20,12 @@ object DatabaseFactory {
         return HikariDataSource(config)
     }
 
-    fun initializeSchema(dataSource: DataSource) {
-        val schemaSql = this::class.java.classLoader
-            .getResource("db/schema.sql")
-            ?.readText()
-            ?: error("Missing db/schema.sql resource")
-
-        dataSource.connection.use { connection ->
-            connection.createStatement().use { statement ->
-                statement.execute(schemaSql)
-            }
-        }
+    fun runMigrations(dataSource: DataSource) {
+        Flyway.configure()
+            .dataSource(dataSource)
+            .locations("classpath:db/migration")
+            .baselineOnMigrate(true)
+            .load()
+            .migrate()
     }
 }
-

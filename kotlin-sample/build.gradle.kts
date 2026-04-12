@@ -17,6 +17,8 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.5.6")
     implementation("com.zaxxer:HikariCP:5.1.0")
     implementation("org.postgresql:postgresql:42.7.4")
+    implementation("org.flywaydb:flyway-core:10.17.3")
+    implementation("org.flywaydb:flyway-database-postgresql:10.17.3")
 
     testImplementation(kotlin("test"))
     testImplementation("io.ktor:ktor-server-test-host-jvm:2.3.12")

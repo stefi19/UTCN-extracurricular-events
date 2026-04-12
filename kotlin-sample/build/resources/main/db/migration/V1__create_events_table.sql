@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS events (
+    id BIGSERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    date VARCHAR(32) NOT NULL,
+    category VARCHAR(120) NOT NULL,
+    department VARCHAR(120) NOT NULL
+);
+

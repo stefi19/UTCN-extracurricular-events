@@ -2,12 +2,14 @@ package com.example
 
 import com.example.controller.EventController
 import com.example.db.DatabaseFactory
+import com.example.db.dao.JdbcEventDao
 import com.example.repository.EventRepository
 import com.example.repository.InMemoryEventRepository
 import com.example.repository.PostgresEventRepository
 import com.example.service.EventService
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
+import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.statuspages.StatusPages
@@ -29,8 +31,9 @@ fun Application.module() {
     val repository: EventRepository = when ((System.getenv("EVENTS_STORAGE") ?: "memory").lowercase()) {
         "postgres", "postgresql" -> {
             val dataSource = DatabaseFactory.createPostgresDataSource()
-            DatabaseFactory.initializeSchema(dataSource)
-            PostgresEventRepository(dataSource)
+            DatabaseFactory.runMigrations(dataSource)
+            val eventDao = JdbcEventDao(dataSource)
+            PostgresEventRepository(eventDao)
         }
         else -> InMemoryEventRepository()
     }
