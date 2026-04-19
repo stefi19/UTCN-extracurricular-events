@@ -18,23 +18,15 @@ class AuthController(private val authService: AuthService) {
     fun register(routing: Route) {
         routing.route("/auth") {
             post("/register") {
-                try {
-                    val request = call.receive<RegisterRequest>()
-                    val response = authService.register(request)
-                    call.respond(HttpStatusCode.Created, response)
-                } catch (e: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to e.message.orEmpty()))
-                }
+                val request = call.receive<RegisterRequest>()
+                val response = authService.register(request)
+                call.respond(HttpStatusCode.Created, response)
             }
 
             post("/login") {
-                try {
-                    val request = call.receive<LoginRequest>()
-                    val response = authService.login(request)
-                    call.respond(response)
-                } catch (e: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.Unauthorized, mapOf("error" to e.message.orEmpty()))
-                }
+                val request = call.receive<LoginRequest>()
+                val response = authService.login(request)
+                call.respond(response)
             }
         }
     }
@@ -44,18 +36,12 @@ class AuthController(private val authService: AuthService) {
             get("/me") {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal?.subject?.toLongOrNull()
-
-                if (userId == null) {
-                    call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Invalid token"))
-                    return@get
-                }
+                    ?: throw IllegalArgumentException("Invalid token")
 
                 val userResponse = authService.getUserById(userId)
-                if (userResponse != null) {
-                    call.respond(userResponse)
-                } else {
-                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "User not found"))
-                }
+                    ?: throw IllegalArgumentException("User not found")
+
+                call.respond(userResponse)
             }
         }
     }

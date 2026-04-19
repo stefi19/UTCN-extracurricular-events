@@ -12,6 +12,7 @@ import com.example.db.dao.JdbcDepartmentDao
 import com.example.db.dao.JdbcEventDao
 import com.example.db.dao.JdbcRegistrationDao
 import com.example.db.dao.JdbcUserDao
+import com.example.dto.ErrorResponse
 import com.example.security.JwtManager
 import com.example.service.AuthService
 import com.example.service.CategoryService
@@ -19,6 +20,7 @@ import com.example.service.DepartmentService
 import com.example.service.EventService
 import com.example.service.RegistrationService
 import com.example.service.UserService
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
@@ -32,15 +34,28 @@ import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import org.slf4j.LoggerFactory
 
 fun Application.module() {
+    val logger = LoggerFactory.getLogger("Application")
+
     install(ContentNegotiation) {
         json()
     }
 
     install(StatusPages) {
         exception<IllegalArgumentException> { call, cause ->
-            call.respond(mapOf("error" to cause.message.orEmpty()))
+            val status = HttpStatusCode.BadRequest
+            call.respond(status, ErrorResponse(cause.message.orEmpty(), status.value))
+        }
+        exception<IllegalStateException> { call, cause ->
+            val status = HttpStatusCode.Conflict
+            call.respond(status, ErrorResponse(cause.message.orEmpty(), status.value))
+        }
+        exception<Exception> { call, cause ->
+            logger.error("Unhandled exception", cause)
+            val status = HttpStatusCode.InternalServerError
+            call.respond(status, ErrorResponse("Internal server error", status.value))
         }
     }
 
@@ -52,6 +67,12 @@ fun Application.module() {
             verifier(jwtManager.verifier)
             validate { jwtCredential ->
                 JWTPrincipal(jwtCredential.payload)
+            }
+            challenge { _, _ ->
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    ErrorResponse("Token is invalid or expired", HttpStatusCode.Unauthorized.value)
+                )
             }
         }
     }
@@ -101,4 +122,6 @@ fun Application.module() {
             departmentController.register(this)
         }
     }
+
+    logger.info("Application started")
 }
