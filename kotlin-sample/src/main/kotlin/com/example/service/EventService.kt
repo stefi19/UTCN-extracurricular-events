@@ -21,7 +21,13 @@ class EventService(private val eventDao: EventDao) {
             description = request.description.trim(),
             date = request.date.trim(),
             category = request.category.trim(),
-            department = request.department.trim()
+            department = request.department.trim(),
+            organizerId = request.organizerId,
+            categoryId = request.categoryId,
+            location = request.location?.trim(),
+            startTime = request.startTime?.trim(),
+            endTime = request.endTime?.trim(),
+            maxParticipants = request.maxParticipants
         )
         return eventDao.create(event).toResponse()
     }
@@ -34,7 +40,13 @@ class EventService(private val eventDao: EventDao) {
             description = request.description.trim(),
             date = request.date.trim(),
             category = request.category.trim(),
-            department = request.department.trim()
+            department = request.department.trim(),
+            organizerId = request.organizerId,
+            categoryId = request.categoryId,
+            location = request.location?.trim(),
+            startTime = request.startTime?.trim(),
+            endTime = request.endTime?.trim(),
+            maxParticipants = request.maxParticipants
         )
         return eventDao.update(id, event)?.toResponse()
     }
@@ -46,6 +58,9 @@ class EventService(private val eventDao: EventDao) {
         require(request.date.isNotBlank()) { "date must not be blank" }
         require(request.category.isNotBlank()) { "category must not be blank" }
         require(request.department.isNotBlank()) { "department must not be blank" }
+        request.maxParticipants?.let {
+            require(it > 0) { "maxParticipants must be positive" }
+        }
     }
 
     private fun Event.toResponse() = EventResponse(
@@ -54,6 +69,12 @@ class EventService(private val eventDao: EventDao) {
         description = description,
         date = date,
         category = category,
-        department = department
+        department = department,
+        organizerId = organizerId,
+        categoryId = categoryId,
+        location = location,
+        startTime = startTime,
+        endTime = endTime,
+        maxParticipants = maxParticipants
     )
 }

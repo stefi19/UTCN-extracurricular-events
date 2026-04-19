@@ -8,7 +8,13 @@ data class EventRequest(
     val description: String,
     val date: String,
     val category: String,
-    val department: String
+    val department: String,
+    val organizerId: Long? = null,
+    val categoryId: Long? = null,
+    val location: String? = null,
+    val startTime: String? = null,
+    val endTime: String? = null,
+    val maxParticipants: Int? = null
 )
 
 @Serializable
@@ -18,5 +24,11 @@ data class EventResponse(
     val description: String,
     val date: String,
     val category: String,
-    val department: String
+    val department: String,
+    val organizerId: Long? = null,
+    val categoryId: Long? = null,
+    val location: String? = null,
+    val startTime: String? = null,
+    val endTime: String? = null,
+    val maxParticipants: Int? = null
 )
