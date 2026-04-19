@@ -3,6 +3,14 @@
   <component name="CopilotDiffPersistence">
     <option name="pendingDiffs">
       <map>
+        <entry key="$PROJECT_DIR$/.gitignore">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/.gitignore" />
+              <option name="updatedContent" value="# Build artifacts&#10;build/&#10;.gradle/&#10;dist/&#10;target/&#10;&#10;# IDE&#10;.idea/&#10;*.iml&#10;*.iws&#10;*.ipr&#10;.DS_Store&#10;&#10;# Environment&#10;.env&#10;.env.local&#10;&#10;# OS&#10;.DS_Store&#10;Thumbs.db&#10;&#10;# Logs&#10;*.log&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
         <entry key="$PROJECT_DIR$/DEPLOYMENT_READY.md">
           <value>
             <PendingDiffInfo>
