@@ -1,8 +1,7 @@
 package com.example.controller
 
-import com.example.model.EventRequest
+import com.example.dto.EventRequest
 import com.example.service.EventService
-import com.example.view.toView
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.request.receive
@@ -14,45 +13,45 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 
-class EventController(private val service: EventService) {
+class EventController(private val eventService: EventService) {
     fun register(route: Route) {
         route.route("/api/events") {
             get {
-                call.respond(service.listEvents().map { it.toView() })
+                call.respond(eventService.listEvents())
             }
 
             get("/{id}") {
-                val id = call.parameters["id"]?.toLongOrNull()
+                val eventId = call.parameters["id"]?.toLongOrNull()
                     ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "invalid event id"))
 
-                val event = service.getEvent(id)
+                val event = eventService.getEvent(eventId)
                     ?: return@get call.respond(HttpStatusCode.NotFound, mapOf("error" to "event not found"))
 
-                call.respond(event.toView())
+                call.respond(event)
             }
 
             post {
                 val request = call.receive<EventRequest>()
-                val created = service.createEvent(request)
-                call.respond(HttpStatusCode.Created, created.toView())
+                val created = eventService.createEvent(request)
+                call.respond(HttpStatusCode.Created, created)
             }
 
             put("/{id}") {
-                val id = call.parameters["id"]?.toLongOrNull()
+                val eventId = call.parameters["id"]?.toLongOrNull()
                     ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "invalid event id"))
 
                 val request = call.receive<EventRequest>()
-                val updated = service.updateEvent(id, request)
+                val updated = eventService.updateEvent(eventId, request)
                     ?: return@put call.respond(HttpStatusCode.NotFound, mapOf("error" to "event not found"))
 
-                call.respond(updated.toView())
+                call.respond(updated)
             }
 
             delete("/{id}") {
-                val id = call.parameters["id"]?.toLongOrNull()
+                val eventId = call.parameters["id"]?.toLongOrNull()
                     ?: return@delete call.respond(HttpStatusCode.BadRequest, mapOf("error" to "invalid event id"))
 
-                if (!service.deleteEvent(id)) {
+                if (!eventService.deleteEvent(eventId)) {
                     return@delete call.respond(HttpStatusCode.NotFound, mapOf("error" to "event not found"))
                 }
 

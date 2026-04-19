@@ -8,8 +8,3 @@ data class Registration(
     val registeredAt: String? = null,
     val cancelledAt: String? = null
 )
-
-data class RegistrationRequest(
-    val eventId: Long
-)
-

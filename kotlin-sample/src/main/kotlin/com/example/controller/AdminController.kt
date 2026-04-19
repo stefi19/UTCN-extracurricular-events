@@ -3,9 +3,9 @@ package com.example.controller
 import com.example.db.dao.CategoryDao
 import com.example.db.dao.DepartmentDao
 import com.example.model.Category
-import com.example.model.CategoryRequest
+import com.example.dto.CategoryRequest
 import com.example.model.Department
-import com.example.model.DepartmentRequest
+import com.example.dto.DepartmentRequest
 import com.example.security.AuthorizationUtil
 import com.example.model.UserRole
 import io.ktor.http.HttpStatusCode

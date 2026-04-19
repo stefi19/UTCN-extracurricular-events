@@ -1,25 +1,45 @@
 package com.example.service
 
+import com.example.db.dao.EventDao
+import com.example.dto.EventRequest
+import com.example.dto.EventResponse
 import com.example.model.Event
-import com.example.model.EventRequest
-import com.example.repository.EventRepository
 
-class EventService(private val repository: EventRepository) {
-    fun listEvents(): List<Event> = repository.findAll()
+class EventService(private val eventDao: EventDao) {
 
-    fun getEvent(id: Long): Event? = repository.findById(id)
+    fun listEvents(): List<EventResponse> =
+        eventDao.findAll().map { it.toResponse() }
 
-    fun createEvent(request: EventRequest): Event {
+    fun getEvent(id: Long): EventResponse? =
+        eventDao.findById(id)?.toResponse()
+
+    fun createEvent(request: EventRequest): EventResponse {
         validate(request)
-        return repository.create(request.toEvent(id = 0L))
+        val event = Event(
+            id = 0,
+            title = request.title.trim(),
+            description = request.description.trim(),
+            date = request.date.trim(),
+            category = request.category.trim(),
+            department = request.department.trim()
+        )
+        return eventDao.create(event).toResponse()
     }
 
-    fun updateEvent(id: Long, request: EventRequest): Event? {
+    fun updateEvent(id: Long, request: EventRequest): EventResponse? {
         validate(request)
-        return repository.update(id, request.toEvent(id))
+        val event = Event(
+            id = id,
+            title = request.title.trim(),
+            description = request.description.trim(),
+            date = request.date.trim(),
+            category = request.category.trim(),
+            department = request.department.trim()
+        )
+        return eventDao.update(id, event)?.toResponse()
     }
 
-    fun deleteEvent(id: Long): Boolean = repository.delete(id)
+    fun deleteEvent(id: Long): Boolean = eventDao.delete(id)
 
     private fun validate(request: EventRequest) {
         require(request.title.isNotBlank()) { "title must not be blank" }
@@ -28,12 +48,12 @@ class EventService(private val repository: EventRepository) {
         require(request.department.isNotBlank()) { "department must not be blank" }
     }
 
-    private fun EventRequest.toEvent(id: Long): Event = Event(
+    private fun Event.toResponse() = EventResponse(
         id = id,
-        title = title.trim(),
-        description = description.trim(),
-        date = date.trim(),
-        category = category.trim(),
-        department = department.trim()
+        title = title,
+        description = description,
+        date = date,
+        category = category,
+        department = department
     )
 }

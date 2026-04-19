@@ -3,14 +3,19 @@ package com.example.security
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.JWTVerificationException
-import com.example.model.JwtClaims
 import com.example.model.UserRole
 import java.util.*
+
+data class JwtClaims(
+    val userId: Long,
+    val email: String,
+    val role: UserRole
+)
 
 class JwtManager(private val secret: String = System.getenv("JWT_SECRET") ?: "your-secret-key-change-this-in-production") {
     private val algorithm = Algorithm.HMAC256(secret)
     private val issuer = "utcn-events-api"
-    private val expirationTimeMs = 24 * 60 * 60 * 1000L // 24 hours
+    private val expirationTimeMs = 24 * 60 * 60 * 1000L
 
     fun generateToken(userId: Long, email: String, role: UserRole): String {
         return JWT.create()
@@ -39,4 +44,3 @@ class JwtManager(private val secret: String = System.getenv("JWT_SECRET") ?: "yo
         }
     }
 }
-
