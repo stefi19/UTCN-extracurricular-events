@@ -19,8 +19,6 @@ import com.example.service.DepartmentService
 import com.example.service.EventService
 import com.example.service.RegistrationService
 import com.example.service.UserService
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
@@ -47,14 +45,11 @@ fun Application.module() {
     }
 
     val jwtManager = JwtManager()
-    val secret = System.getenv("JWT_SECRET") ?: "your-secret-key-change-this-in-production"
 
     install(Authentication) {
         jwt {
-            realm = "ktor sample app"
-            verifier(JWT.require(Algorithm.HMAC256(secret))
-                .withIssuer("utcn-events-api")
-                .build())
+            realm = jwtManager.realm
+            verifier(jwtManager.verifier)
             validate { jwtCredential ->
                 JWTPrincipal(jwtCredential.payload)
             }
