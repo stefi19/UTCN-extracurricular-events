@@ -4,10 +4,13 @@ import com.example.controller.EventController
 import com.example.controller.AuthController
 import com.example.controller.UserController
 import com.example.controller.RegistrationController
+import com.example.controller.AdminController
 import com.example.db.DatabaseFactory
 import com.example.db.dao.JdbcEventDao
 import com.example.db.dao.JdbcUserDao
 import com.example.db.dao.JdbcRegistrationDao
+import com.example.db.dao.JdbcCategoryDao
+import com.example.db.dao.JdbcDepartmentDao
 import com.example.service.RegistrationService
 import com.example.repository.EventRepository
 import com.example.repository.InMemoryEventRepository
@@ -73,6 +76,8 @@ fun Application.module() {
     val userDao = JdbcUserDao(dataSource)
     val eventDao = JdbcEventDao(dataSource)
     val registrationDao = JdbcRegistrationDao(dataSource)
+    val categoryDao = JdbcCategoryDao(dataSource)
+    val departmentDao = JdbcDepartmentDao(dataSource)
     
     val eventService = EventService(repository)
     val authService = AuthService(userDao, jwtManager)
@@ -82,6 +87,7 @@ fun Application.module() {
     val authController = AuthController(authService)
     val userController = UserController(authService)
     val registrationController = RegistrationController(registrationService)
+    val adminController = AdminController(categoryDao, departmentDao)
 
     routing {
         get("/health") {
@@ -96,6 +102,7 @@ fun Application.module() {
             eventController.register(this)
             userController.register(this)
             registrationController.register(this)
+            adminController.register(this)
         }
     }
 }
