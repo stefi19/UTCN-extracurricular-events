@@ -1,8 +1,10 @@
 # Build artifacts
 build/
+bin/
 .gradle/
 dist/
 target/
+out/
 
 # IDE
 .idea/
