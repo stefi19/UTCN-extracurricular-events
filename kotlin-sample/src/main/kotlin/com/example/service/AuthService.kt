@@ -59,6 +59,9 @@ class AuthService(
     fun login(request: LoginRequest): AuthResponse {
         logger.info("Login attempt email={}", request.email)
 
+        require(request.email.isNotBlank()) { "Email must not be blank" }
+        require(request.password.isNotBlank()) { "Password must not be blank" }
+
         val user = userDao.findByEmail(request.email)
             ?: throw IllegalArgumentException("Invalid email or password")
 

@@ -74,11 +74,16 @@ class EventService(private val eventDao: EventDao) {
 
     private fun validate(request: EventRequest) {
         require(request.title.isNotBlank()) { "title must not be blank" }
+        require(request.title.length <= 255) { "title must not exceed 255 characters" }
+        require(request.description.isNotBlank()) { "description must not be blank" }
         require(request.date.isNotBlank()) { "date must not be blank" }
         require(request.category.isNotBlank()) { "category must not be blank" }
         require(request.department.isNotBlank()) { "department must not be blank" }
         request.maxParticipants?.let {
             require(it > 0) { "maxParticipants must be positive" }
+        }
+        request.location?.let {
+            require(it.length <= 255) { "location must not exceed 255 characters" }
         }
     }
 

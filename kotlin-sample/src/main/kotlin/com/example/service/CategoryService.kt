@@ -22,6 +22,7 @@ class CategoryService(private val categoryDao: CategoryDao) {
     fun create(request: CategoryRequest): CategoryResponse {
         logger.info("Creating category name={}", request.name)
         require(request.name.isNotBlank()) { "Category name cannot be empty" }
+        require(request.name.length <= 255) { "Category name must not exceed 255 characters" }
 
         val existing = categoryDao.findByName(request.name)
         if (existing != null) {

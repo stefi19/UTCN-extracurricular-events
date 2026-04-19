@@ -22,6 +22,7 @@ class DepartmentService(private val departmentDao: DepartmentDao) {
     fun create(request: DepartmentRequest): DepartmentResponse {
         logger.info("Creating department name={}", request.name)
         require(request.name.isNotBlank()) { "Department name cannot be empty" }
+        require(request.name.length <= 255) { "Department name must not exceed 255 characters" }
 
         val existing = departmentDao.findByName(request.name)
         if (existing != null) {
