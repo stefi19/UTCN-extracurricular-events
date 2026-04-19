@@ -1,0 +1,1 @@
+-- Deprecated: schema initialization is handled by Flyway migrations in db/migration.
