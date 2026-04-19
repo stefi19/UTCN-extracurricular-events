@@ -1,8 +1,9 @@
 package com.example
 
 import com.example.controller.AuthController
+import com.example.controller.CategoryController
+import com.example.controller.DepartmentController
 import com.example.controller.EventController
-import com.example.controller.AdminController
 import com.example.controller.RegistrationController
 import com.example.controller.UserController
 import com.example.db.DatabaseFactory
@@ -13,8 +14,11 @@ import com.example.db.dao.JdbcRegistrationDao
 import com.example.db.dao.JdbcUserDao
 import com.example.security.JwtManager
 import com.example.service.AuthService
+import com.example.service.CategoryService
+import com.example.service.DepartmentService
 import com.example.service.EventService
 import com.example.service.RegistrationService
+import com.example.service.UserService
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.serialization.kotlinx.json.json
@@ -70,15 +74,19 @@ fun Application.module() {
 
     // Services
     val authService = AuthService(userDao, jwtManager)
+    val userService = UserService(userDao)
     val eventService = EventService(eventDao)
     val registrationService = RegistrationService(registrationDao, eventDao)
+    val categoryService = CategoryService(categoryDao)
+    val departmentService = DepartmentService(departmentDao)
 
     // Controllers
     val authController = AuthController(authService)
+    val userController = UserController(userService)
     val eventController = EventController(eventService)
-    val userController = UserController(authService)
     val registrationController = RegistrationController(registrationService)
-    val adminController = AdminController(categoryDao, departmentDao)
+    val categoryController = CategoryController(categoryService)
+    val departmentController = DepartmentController(departmentService)
 
     routing {
         get("/health") {
@@ -94,7 +102,8 @@ fun Application.module() {
             eventController.register(this)
             userController.register(this)
             registrationController.register(this)
-            adminController.register(this)
+            categoryController.register(this)
+            departmentController.register(this)
         }
     }
 }
