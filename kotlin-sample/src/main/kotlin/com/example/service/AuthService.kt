@@ -9,27 +9,31 @@ import com.example.model.User
 import com.example.model.UserRole
 import com.example.security.JwtManager
 import com.example.security.PasswordUtil
+import org.slf4j.LoggerFactory
 
 class AuthService(
     private val userDao: UserDao,
     private val jwtManager: JwtManager
 ) {
+    private val logger = LoggerFactory.getLogger(AuthService::class.java)
+
     fun register(request: RegisterRequest): AuthResponse {
-        val existingUser = userDao.findByEmail(request.email)
-        if (existingUser != null) {
-            throw IllegalArgumentException("User with email ${request.email} already exists")
-        }
+        logger.info("Registering user email={}", request.email)
 
         if (!isValidEmail(request.email)) {
             throw IllegalArgumentException("Invalid email format")
         }
-
         if (!isValidPassword(request.password)) {
             throw IllegalArgumentException("Password must be at least 8 characters with uppercase, lowercase, digit, and special character")
         }
-
         if (request.firstName.isBlank() || request.lastName.isBlank()) {
             throw IllegalArgumentException("First name and last name cannot be empty")
+        }
+
+        val existingUser = userDao.findByEmail(request.email)
+        if (existingUser != null) {
+            logger.warn("Registration failed: email={} already exists", request.email)
+            throw IllegalArgumentException("User with email ${request.email} already exists")
         }
 
         val role = try {
@@ -39,52 +43,47 @@ class AuthService(
         }
 
         val passwordHash = PasswordUtil.hashPassword(request.password)
-
         val user = User(
-            id = 0,
-            email = request.email,
-            passwordHash = passwordHash,
-            firstName = request.firstName,
-            lastName = request.lastName,
-            role = role,
-            departmentId = request.departmentId,
-            isActive = true
+            id = 0, email = request.email, passwordHash = passwordHash,
+            firstName = request.firstName, lastName = request.lastName,
+            role = role, departmentId = request.departmentId, isActive = true
         )
 
         val createdUser = userDao.create(user)
         val token = jwtManager.generateToken(createdUser.id, createdUser.email, createdUser.role)
+        logger.info("Registered user id={} role={}", createdUser.id, createdUser.role)
 
-        return AuthResponse(
-            token = token,
-            user = createdUser.toResponse()
-        )
+        return AuthResponse(token = token, user = createdUser.toResponse())
     }
 
     fun login(request: LoginRequest): AuthResponse {
+        logger.info("Login attempt email={}", request.email)
+
         val user = userDao.findByEmail(request.email)
             ?: throw IllegalArgumentException("Invalid email or password")
 
         if (!user.isActive) {
+            logger.warn("Login failed: inactive user email={}", request.email)
             throw IllegalArgumentException("User account is inactive")
         }
 
         if (!PasswordUtil.verifyPassword(request.password, user.passwordHash)) {
+            logger.warn("Login failed: bad password for email={}", request.email)
             throw IllegalArgumentException("Invalid email or password")
         }
 
         val token = jwtManager.generateToken(user.id, user.email, user.role)
-
-        return AuthResponse(
-            token = token,
-            user = user.toResponse()
-        )
+        logger.info("Login successful userId={}", user.id)
+        return AuthResponse(token = token, user = user.toResponse())
     }
 
     fun getUserById(id: Long): UserResponse? {
+        logger.info("Getting user id={}", id)
         return userDao.findById(id)?.toResponse()
     }
 
     fun getUsersByRole(role: UserRole): List<UserResponse> {
+        logger.info("Getting users by role={}", role)
         return userDao.findByRole(role).map { it.toResponse() }
     }
 
@@ -103,11 +102,7 @@ class AuthService(
     }
 
     private fun User.toResponse() = UserResponse(
-        id = id,
-        email = email,
-        firstName = firstName,
-        lastName = lastName,
-        role = role.name,
-        departmentId = departmentId
+        id = id, email = email, firstName = firstName,
+        lastName = lastName, role = role.name, departmentId = departmentId
     )
 }

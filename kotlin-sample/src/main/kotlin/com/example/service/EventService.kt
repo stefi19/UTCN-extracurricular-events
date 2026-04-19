@@ -4,16 +4,23 @@ import com.example.db.dao.EventDao
 import com.example.dto.EventRequest
 import com.example.dto.EventResponse
 import com.example.model.Event
+import org.slf4j.LoggerFactory
 
 class EventService(private val eventDao: EventDao) {
+    private val logger = LoggerFactory.getLogger(EventService::class.java)
 
-    fun listEvents(): List<EventResponse> =
-        eventDao.findAll().map { it.toResponse() }
+    fun listEvents(): List<EventResponse> {
+        logger.info("Listing all events")
+        return eventDao.findAll().map { it.toResponse() }
+    }
 
-    fun getEvent(id: Long): EventResponse? =
-        eventDao.findById(id)?.toResponse()
+    fun getEvent(id: Long): EventResponse? {
+        logger.info("Getting event id={}", id)
+        return eventDao.findById(id)?.toResponse()
+    }
 
     fun createEvent(request: EventRequest): EventResponse {
+        logger.info("Creating event title={}", request.title)
         validate(request)
         val event = Event(
             id = 0,
@@ -29,10 +36,13 @@ class EventService(private val eventDao: EventDao) {
             endTime = request.endTime?.trim(),
             maxParticipants = request.maxParticipants
         )
-        return eventDao.create(event).toResponse()
+        val created = eventDao.create(event).toResponse()
+        logger.info("Created event id={}", created.id)
+        return created
     }
 
     fun updateEvent(id: Long, request: EventRequest): EventResponse? {
+        logger.info("Updating event id={}", id)
         validate(request)
         val event = Event(
             id = id,
@@ -48,10 +58,19 @@ class EventService(private val eventDao: EventDao) {
             endTime = request.endTime?.trim(),
             maxParticipants = request.maxParticipants
         )
-        return eventDao.update(id, event)?.toResponse()
+        val updated = eventDao.update(id, event)?.toResponse()
+        if (updated != null) logger.info("Updated event id={}", id)
+        else logger.warn("Event id={} not found for update", id)
+        return updated
     }
 
-    fun deleteEvent(id: Long): Boolean = eventDao.delete(id)
+    fun deleteEvent(id: Long): Boolean {
+        logger.info("Deleting event id={}", id)
+        val deleted = eventDao.delete(id)
+        if (deleted) logger.info("Deleted event id={}", id)
+        else logger.warn("Event id={} not found for delete", id)
+        return deleted
+    }
 
     private fun validate(request: EventRequest) {
         require(request.title.isNotBlank()) { "title must not be blank" }
@@ -64,17 +83,9 @@ class EventService(private val eventDao: EventDao) {
     }
 
     private fun Event.toResponse() = EventResponse(
-        id = id,
-        title = title,
-        description = description,
-        date = date,
-        category = category,
-        department = department,
-        organizerId = organizerId,
-        categoryId = categoryId,
-        location = location,
-        startTime = startTime,
-        endTime = endTime,
-        maxParticipants = maxParticipants
+        id = id, title = title, description = description, date = date,
+        category = category, department = department, organizerId = organizerId,
+        categoryId = categoryId, location = location, startTime = startTime,
+        endTime = endTime, maxParticipants = maxParticipants
     )
 }
