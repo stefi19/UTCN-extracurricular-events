@@ -567,13 +567,13 @@ The following screenshots demonstrate the main API flows tested in Postman.
 
 ## Environment Variables
 
-| Variable    | Default    | Description                     |
-|-------------|------------|---------------------------------|
-| PORT        | 8080       | Server port                     |
-| DB_URL      | jdbc:postgresql://localhost:5432/events_db | Database URL |
-| DB_USER     | postgres   | Database username               |
-| DB_PASSWORD | postgres   | Database password               |
-| JWT_SECRET  | (hardcoded)| Secret key for signing tokens   |
+| Variable          | Default                                      | Description             |
+|-------------------|----------------------------------------------|-------------------------|
+| PORT              | 8080                                         | Server port             |
+| DATABASE_URL      | jdbc:postgresql://localhost:5432/utcnevents   | JDBC connection URL     |
+| DATABASE_USER     | postgres                                     | Database username       |
+| DATABASE_PASSWORD | postgres                                     | Database password       |
+| JWT_SECRET        | (hardcoded)                                  | Secret for signing JWTs |
 
 ## Docker Services
 
@@ -582,5 +582,5 @@ docker-compose up -d    # start PostgreSQL + pgAdmin
 docker-compose down     # stop all
 ```
 
-- PostgreSQL: localhost:5432 (user: postgres, password: postgres, database: events_db)
+- PostgreSQL: localhost:5432 (user: postgres, password: postgres, database: utcnevents)
 - pgAdmin: localhost:5050 (email: admin@example.com, password: admin)
