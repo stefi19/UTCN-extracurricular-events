@@ -77,18 +77,15 @@ fun Application.module() {
         }
     }
 
-    // Database
     val dataSource = DatabaseFactory.createPostgresDataSource()
     DatabaseFactory.runMigrations(dataSource)
 
-    // DAOs
     val userDao = JdbcUserDao(dataSource)
     val eventDao = JdbcEventDao(dataSource)
     val registrationDao = JdbcRegistrationDao(dataSource)
     val categoryDao = JdbcCategoryDao(dataSource)
     val departmentDao = JdbcDepartmentDao(dataSource)
 
-    // Services
     val authService = AuthService(userDao, jwtManager)
     val userService = UserService(userDao)
     val eventService = EventService(eventDao)
@@ -96,7 +93,6 @@ fun Application.module() {
     val categoryService = CategoryService(categoryDao)
     val departmentService = DepartmentService(departmentDao)
 
-    // Controllers
     val authController = AuthController(authService)
     val userController = UserController(userService)
     val eventController = EventController(eventService)
@@ -109,10 +105,8 @@ fun Application.module() {
             call.respond(mapOf("status" to "ok"))
         }
 
-        // Public auth endpoints
         authController.register(this)
 
-        // Protected endpoints
         authenticate {
             authController.registerProtected(this)
             eventController.register(this)

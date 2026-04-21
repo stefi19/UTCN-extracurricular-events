@@ -17,7 +17,6 @@ class RegistrationServiceTest {
     fun setUp() {
         eventDao = FakeEventDao()
         service = RegistrationService(FakeRegistrationDao(), eventDao)
-        // Seed an event
         eventDao.create(Event(id = 0, title = "Event", description = "Desc", date = "2026-06-01", category = "C", department = "D"))
     }
 

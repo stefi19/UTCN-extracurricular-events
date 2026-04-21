@@ -1,4 +1,3 @@
--- Update events table to include organizer and category relationship
 ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_id BIGINT REFERENCES users(id);
 ALTER TABLE events ADD COLUMN IF NOT EXISTS category_id BIGINT REFERENCES categories(id);
 ALTER TABLE events ADD COLUMN IF NOT EXISTS location VARCHAR(255);
@@ -8,7 +7,6 @@ ALTER TABLE events ADD COLUMN IF NOT EXISTS max_participants INT;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
--- Create registrations table
 CREATE TABLE IF NOT EXISTS registrations (
     id BIGSERIAL PRIMARY KEY,
     student_id BIGINT NOT NULL REFERENCES users(id),
