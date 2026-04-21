@@ -503,50 +503,77 @@ All errors return a consistent JSON shape:
 
 The following screenshots demonstrate the main API flows tested in Postman.
 
-### 1. User Registration
-![Register](screenshots/01-register.png)
+### Health Check
+![Health](screenshots/health.png)
 
-### 2. User Login
-![Login](screenshots/02-login.png)
+### Register Student
+![Register Student](screenshots/register_student.png)
 
-### 3. Access Protected Endpoint with Token
-![Auth Me](screenshots/03-auth-me.png)
+### Register Organiser
+![Register Organiser](screenshots/register_organiser.png)
 
-### 4. Unauthorized Access (no token)
-![401 Error](screenshots/04-unauthorized.png)
+### Create Admin
+![Create Admin](screenshots/create_admin.png)
 
-### 5. Create Event
-![Create Event](screenshots/05-create-event.png)
+### Login
+![Login](screenshots/login.png)
 
-### 6. List Events
-![List Events](screenshots/06-list-events.png)
+### Get Current User
+![Get Current User](screenshots/get_current_user.png)
 
-### 7. Update Event
-![Update Event](screenshots/07-update-event.png)
+### Validation Error - Weak Password
+![Weak Password](screenshots/weak_password.png)
 
-### 8. Delete Event
-![Delete Event](screenshots/08-delete-event.png)
+### Create Department (admin token)
+![Create Department](screenshots/create_department_admintoken.png)
 
-### 9. Register for Event
-![Register for Event](screenshots/09-register-event.png)
+### Create Department - Insufficient Permissions
+![Insufficient Permissions](screenshots/create_department_invalidpermissions.png)
 
-### 10. List My Registrations
-![My Registrations](screenshots/10-my-registrations.png)
+### List Departments
+![List Departments](screenshots/list_departments.png)
 
-### 11. Cancel Registration
-![Cancel Registration](screenshots/11-cancel-registration.png)
+### Create Category
+![Create Category](screenshots/create_category.png)
 
-### 12. Create Category (admin)
-![Create Category](screenshots/12-create-category.png)
+### List Categories
+![List Categories](screenshots/list_categories.png)
 
-### 13. Create Department (admin)
-![Create Department](screenshots/13-create-department.png)
+### Create Event
+![Create Event](screenshots/create_event.png)
 
-### 14. Validation Error (weak password)
-![Validation Error](screenshots/14-validation-error.png)
+### List All Events
+![List All Events](screenshots/list_all_events.png)
 
-### 15. Duplicate Registration (409)
-![Conflict Error](screenshots/15-conflict-error.png)
+### Get Event by ID
+![Get Event by ID](screenshots/get_event_byID.png)
+
+### Update Event
+![Update Event](screenshots/update_event.png)
+
+### Delete Event
+![Delete Event](screenshots/delete_event.png)
+
+### Register for Event
+![Register for Event](screenshots/register_for_event.png)
+
+### List My Registrations
+![List My Registrations](screenshots/list_MY_registrations.png)
+
+### List Participants for an Event
+![List Participants](screenshots/list_participants_for_an_event.png)
+
+### Try to Double Register (409 Conflict)
+![Double Register](screenshots/try_to_double_reister.png)
+
+### Cancel Registration
+![Cancel Registration](screenshots/cancel_registrations.png)
+
+### List All Users
+![List All Users](screenshots/list_all_users.png)
+
+### List Users by Role
+![List Users by Role](screenshots/list_users_byRole.png)
 
 ## Tech Stack
 
