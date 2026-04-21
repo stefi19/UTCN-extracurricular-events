@@ -21,11 +21,12 @@ object DatabaseFactory {
     }
 
     fun runMigrations(dataSource: DataSource) {
-        Flyway.configure()
+        val flyway = Flyway.configure()
             .dataSource(dataSource)
             .locations("classpath:db/migration")
             .baselineOnMigrate(true)
             .load()
-            .migrate()
+        flyway.repair()
+        flyway.migrate()
     }
 }
