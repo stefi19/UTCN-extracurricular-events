@@ -42,7 +42,7 @@ class JdbcUserDao(private val dataSource: DataSource) : UserDao {
             """
             INSERT INTO users(email, password_hash, first_name, last_name, role, 
                             department_id, is_active)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?::user_role, ?, ?)
             RETURNING id, email, password_hash, first_name, last_name, role, 
                       department_id, is_active, created_at, updated_at
             """.trimIndent()
@@ -70,7 +70,7 @@ class JdbcUserDao(private val dataSource: DataSource) : UserDao {
             """
             UPDATE users
             SET email = ?, password_hash = ?, first_name = ?, last_name = ?, 
-                role = ?, department_id = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
+                role = ?::user_role, department_id = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
             RETURNING id, email, password_hash, first_name, last_name, role, 
                       department_id, is_active, created_at, updated_at
@@ -107,7 +107,7 @@ class JdbcUserDao(private val dataSource: DataSource) : UserDao {
             SELECT id, email, password_hash, first_name, last_name, role, 
                    department_id, is_active, created_at, updated_at
             FROM users
-            WHERE role = ?
+            WHERE role = ?::user_role
             ORDER BY id
             """.trimIndent()
         ).use { statement ->
