@@ -1,0 +1,109 @@
+.page-container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+.back-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.back-link:hover { opacity: 0.75; }
+
+.role-section {
+  margin-bottom: 2rem;
+}
+
+.role-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.role-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.role-student { background: #dbeafe; color: #1d4ed8; }
+.role-organizer { background: #fef3c7; color: #92400e; }
+.role-admin { background: #fee2e2; color: #b91c1c; }
+
+.role-count {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.user-list {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 48, 135, 0.08);
+  border: 1.5px solid var(--color-border);
+  overflow: hidden;
+}
+
+.user-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+  animation: fadeIn 0.25s ease;
+}
+
+.user-row:last-child { border-bottom: none; }
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.user-name {
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+}
+
+.user-email {
+  font-size: 0.825rem;
+  color: var(--color-text-secondary);
+}
+
+.user-id {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.empty-group {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  padding: 0.5rem 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
