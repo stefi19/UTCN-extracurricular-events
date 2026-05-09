@@ -6,10 +6,9 @@ import com.example.controller.RegistrationController
 import com.example.dto.ErrorResponse
 import com.example.fake.FakeCategoryDao
 import com.example.fake.FakeEventDao
+import com.example.fake.FakeNotificationPublisher
 import com.example.fake.FakeRegistrationDao
 import com.example.fake.FakeUserDao
-import com.example.messaging.NotificationMessage
-import com.example.messaging.NotificationPublisher
 import com.example.security.JwtManager
 import com.example.service.AuthService
 import com.example.service.EventService
@@ -28,14 +27,6 @@ import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
 
 private const val TEST_JWT_SECRET = "test-secret-key-for-tests"
-
-/** No-op publisher used in integration tests — avoids RabbitMQ dependency. */
-class FakeNotificationPublisher : NotificationPublisher {
-    val published = mutableListOf<NotificationMessage>()
-    override suspend fun publish(message: NotificationMessage) {
-        published.add(message)
-    }
-}
 
 fun ApplicationTestBuilder.setupTestApplication(
     userDao: FakeUserDao = FakeUserDao(),
