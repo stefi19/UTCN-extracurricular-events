@@ -24,3 +24,6 @@ Thumbs.db
 # Logs
 *.log
 
+# Dev guidance (not for version control)
+.claude-guidance.md
+
