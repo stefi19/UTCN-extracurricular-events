@@ -5,15 +5,19 @@ import com.example.dto.AuthResponse
 import com.example.dto.LoginRequest
 import com.example.dto.RegisterRequest
 import com.example.dto.UserResponse
+import com.example.messaging.NotificationMessage
+import com.example.messaging.NotificationPublisher
 import com.example.model.User
 import com.example.model.UserRole
 import com.example.security.JwtManager
 import com.example.security.PasswordUtil
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 
 class AuthService(
     private val userDao: UserDao,
-    private val jwtManager: JwtManager
+    private val jwtManager: JwtManager,
+    private val notificationPublisher: NotificationPublisher? = null
 ) {
     private val logger = LoggerFactory.getLogger(AuthService::class.java)
 
@@ -52,6 +56,17 @@ class AuthService(
         val createdUser = userDao.create(user)
         val token = jwtManager.generateToken(createdUser.id, createdUser.email, createdUser.role)
         logger.info("Registered user id={} role={}", createdUser.id, createdUser.role)
+
+        runBlocking {
+            notificationPublisher?.publish(
+                NotificationMessage(
+                    eventType = "USER_REGISTERED",
+                    userId = createdUser.id,
+                    userEmail = createdUser.email,
+                    payload = mapOf("firstName" to createdUser.firstName, "lastName" to createdUser.lastName)
+                )
+            )
+        }
 
         return AuthResponse(token = token, user = createdUser.toResponse())
     }

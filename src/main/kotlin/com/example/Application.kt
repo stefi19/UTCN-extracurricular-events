@@ -13,6 +13,8 @@ import com.example.db.dao.JdbcEventDao
 import com.example.db.dao.JdbcRegistrationDao
 import com.example.db.dao.JdbcUserDao
 import com.example.dto.ErrorResponse
+import com.example.messaging.LogNotificationPublisher
+import com.example.messaging.RabbitMQNotificationPublisher
 import com.example.security.JwtManager
 import com.example.service.AuthService
 import com.example.service.CategoryService
@@ -20,6 +22,8 @@ import com.example.service.DepartmentService
 import com.example.service.EventService
 import com.example.service.RegistrationService
 import com.example.service.UserService
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -30,10 +34,12 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import kotlinx.coroutines.GlobalScope
 import org.slf4j.LoggerFactory
 
 fun Application.module() {
@@ -41,6 +47,18 @@ fun Application.module() {
 
     install(ContentNegotiation) {
         json()
+    }
+
+    install(CORS) {
+        allowHost("localhost:4200")
+        allowHost("127.0.0.1:4200")
+        allowHeader(HttpHeaders.ContentType)
+        allowHeader(HttpHeaders.Authorization)
+        allowMethod(HttpMethod.Get)
+        allowMethod(HttpMethod.Post)
+        allowMethod(HttpMethod.Put)
+        allowMethod(HttpMethod.Delete)
+        allowMethod(HttpMethod.Options)
     }
 
     install(StatusPages) {
@@ -86,10 +104,17 @@ fun Application.module() {
     val categoryDao = JdbcCategoryDao(dataSource)
     val departmentDao = JdbcDepartmentDao(dataSource)
 
-    val authService = AuthService(userDao, jwtManager)
+    val notificationPublisher = try {
+        RabbitMQNotificationPublisher(GlobalScope)
+    } catch (exception: Exception) {
+        logger.warn("RabbitMQ unavailable, falling back to log publisher: {}", exception.message)
+        LogNotificationPublisher()
+    }
+
+    val authService = AuthService(userDao, jwtManager, notificationPublisher)
     val userService = UserService(userDao)
     val eventService = EventService(eventDao)
-    val registrationService = RegistrationService(registrationDao, eventDao)
+    val registrationService = RegistrationService(registrationDao, eventDao, notificationPublisher)
     val categoryService = CategoryService(categoryDao)
     val departmentService = DepartmentService(departmentDao)
 

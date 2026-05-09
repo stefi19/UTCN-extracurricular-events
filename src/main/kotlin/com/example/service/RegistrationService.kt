@@ -3,12 +3,16 @@ package com.example.service
 import com.example.db.dao.EventDao
 import com.example.db.dao.RegistrationDao
 import com.example.dto.RegistrationResponse
+import com.example.messaging.NotificationMessage
+import com.example.messaging.NotificationPublisher
 import com.example.model.Registration
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 
 class RegistrationService(
     private val registrationDao: RegistrationDao,
-    private val eventDao: EventDao
+    private val eventDao: EventDao,
+    private val notificationPublisher: NotificationPublisher? = null
 ) {
     private val logger = LoggerFactory.getLogger(RegistrationService::class.java)
 
@@ -27,6 +31,18 @@ class RegistrationService(
         val registration = Registration(id = 0, studentId = studentId, eventId = eventId, status = "REGISTERED")
         val created = registrationDao.create(registration).toResponse()
         logger.info("Created registration id={}", created.id)
+
+        runBlocking {
+            notificationPublisher?.publish(
+                NotificationMessage(
+                    eventType = "EVENT_REGISTRATION",
+                    userId = studentId,
+                    userEmail = "",
+                    payload = mapOf("eventId" to eventId.toString(), "registrationId" to created.id.toString())
+                )
+            )
+        }
+
         return created
     }
 
@@ -56,6 +72,20 @@ class RegistrationService(
 
         val result = registrationDao.updateStatus(registrationId, "CANCELLED")
         logger.info("Cancelled registration={}", registrationId)
+
+        if (result) {
+            runBlocking {
+                notificationPublisher?.publish(
+                    NotificationMessage(
+                        eventType = "REGISTRATION_CANCELLED",
+                        userId = studentId,
+                        userEmail = "",
+                        payload = mapOf("registrationId" to registrationId.toString())
+                    )
+                )
+            }
+        }
+
         return result
     }
 

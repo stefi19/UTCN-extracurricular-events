@@ -1,6 +1,6 @@
 plugins {
-    kotlin("jvm") version "1.9.10"
-    kotlin("plugin.serialization") version "1.9.10"
+    kotlin("jvm") version "2.1.0"
+    kotlin("plugin.serialization") version "2.1.0"
     application
 }
 
@@ -8,7 +8,7 @@ repositories {
     mavenCentral()
 }
 
-val ktorVersion = "2.3.12"
+val ktorVersion = "3.1.3"
 
 dependencies {
     // Ktor server
@@ -32,6 +32,13 @@ dependencies {
     // Security
     implementation("com.auth0:java-jwt:4.4.0")
     implementation("org.mindrot:jbcrypt:0.4")
+
+    // Messaging
+    implementation("dev.kourier:amqp-client:0.4.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+
+    // CORS
+    implementation("io.ktor:ktor-server-cors-jvm:$ktorVersion")
 
     // Testing
     testImplementation(kotlin("test"))
