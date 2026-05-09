@@ -1,0 +1,38 @@
+/* UTCN Events Platform — Global Styles */
+
+:root {
+  --color-primary: #003087;
+  --color-primary-dark: #00205c;
+  --color-primary-light: #e8eef7;
+  --color-danger: #dc2626;
+  --color-border: #e2e8f0;
+  --color-background: #f8fafc;
+  --color-text-primary: #1e293b;
+  --color-text-secondary: #64748b;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.main-content {
+  min-height: calc(100vh - 60px);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+}
+
+p { margin: 0; }
+
+button { font-family: inherit; }
