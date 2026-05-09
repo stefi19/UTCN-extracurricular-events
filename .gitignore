@@ -1,0 +1,26 @@
+# Build artifacts
+build/
+bin/
+.gradle/
+dist/
+target/
+out/
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
