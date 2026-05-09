@@ -11,15 +11,17 @@ Built with Kotlin and Ktor, backed by PostgreSQL.
 3. [Running Tests](#running-tests)
 4. [Project Structure](#project-structure)
 5. [Architecture](#architecture)
-6. [Database Schema](#database-schema)
-7. [API Endpoints](#api-endpoints)
-8. [Authentication](#authentication)
-9. [Request and Response Examples](#request-and-response-examples)
-10. [Validation Rules](#validation-rules)
-11. [Error Handling](#error-handling)
-12. [Postman Screenshots](#postman-screenshots)
-13. [Tech Stack](#tech-stack)
-14. [Environment Variables](#environment-variables)
+6. [Microservices](#microservices)
+7. [Design Patterns](#design-patterns)
+8. [Database Schema](#database-schema)
+9. [API Endpoints](#api-endpoints)
+10. [Authentication](#authentication)
+11. [Request and Response Examples](#request-and-response-examples)
+12. [Validation Rules](#validation-rules)
+13. [Error Handling](#error-handling)
+14. [Postman Screenshots](#postman-screenshots)
+15. [Tech Stack](#tech-stack)
+16. [Environment Variables](#environment-variables)
 
 ---
 
@@ -62,8 +64,9 @@ docker-compose down
 ./gradlew test
 ```
 
-The test suite includes 80 unit tests covering all service classes, JWT token handling, and password hashing.
-Tests use in-memory fake DAOs so they run without a database connection.
+The test suite includes unit tests covering all service classes, JWT token handling, password hashing, and notification publishing.
+It also includes HTTP integration tests using Ktor's `testApplication` for auth and event routes.
+Tests use in-memory fake DAOs and a `FakeNotificationPublisher` so they run without any external dependencies.
 
 ## Project Structure
 
@@ -86,66 +89,118 @@ src/
       CategoryService.kt        Category CRUD with validation
       DepartmentService.kt      Department CRUD with validation
       UserService.kt            User listing by role
+    messaging/                  Notification port + adapters
+      NotificationPublisher.kt  Port (interface)
+      NotificationMessage.kt    Message DTO
+      RabbitMQConnectionFactory.kt  Singleton config (env vars)
+      RabbitMQNotificationPublisher.kt  Real adapter (AMQP)
+      LogNotificationPublisher.kt       Fallback adapter (logs only)
     db/
       DatabaseFactory.kt        HikariCP pool + Flyway migrations
       dao/
-        EventDao.kt             Interface
-        JdbcEventDao.kt         JDBC implementation
+        EventDao.kt / JdbcEventDao.kt
         UserDao.kt / JdbcUserDao.kt
         RegistrationDao.kt / JdbcRegistrationDao.kt
         CategoryDao.kt / JdbcCategoryDao.kt
         DepartmentDao.kt / JdbcDepartmentDao.kt
     model/
-      Event.kt                  Event data class
-      User.kt                   User data class + UserRole enum
-      Registration.kt           Registration data class
-      Category.kt               Category data class
-      Department.kt             Department data class
+      Event.kt, User.kt, Registration.kt, Category.kt, Department.kt
     dto/
-      AuthDtos.kt               RegisterRequest, LoginRequest, AuthResponse
-      EventDtos.kt              EventRequest, EventResponse
-      RegistrationDtos.kt       RegistrationRequest, RegistrationResponse
-      AdminDtos.kt              CategoryRequest/Response, DepartmentRequest/Response
-      UserDtos.kt               UserResponse
-      ErrorResponse.kt          Standard error JSON shape
+      AuthDtos.kt, EventDtos.kt, RegistrationDtos.kt, AdminDtos.kt, UserDtos.kt
+      ErrorResponse.kt
     security/
-      JwtManager.kt             Token generation and verification
-      PasswordUtil.kt           BCrypt hashing
-      AuthorizationUtil.kt      Role checking helpers
-  main/resources/db/
-    migration/
-      V1__create_events_table.sql
-      V2__create_users_table.sql
-      V3__create_registrations_table.sql
-    schema.sql                  Full schema reference
+      JwtManager.kt, PasswordUtil.kt, AuthorizationUtil.kt
+  main/resources/db/migration/
+    V1__create_events_table.sql
+    V2__create_users_table.sql
+    V3__create_registrations_table.sql
+    V4__add_cascade_delete_registrations.sql
   test/kotlin/com/example/
-    fake/                       In-memory DAO stubs (no DB needed)
-    service/                    Unit tests for all 6 services
+    fake/                       In-memory DAO + publisher stubs (no external deps)
+    service/                    Unit tests for all services + publisher
     security/                   Unit tests for JwtManager and PasswordUtil
+    integration/                HTTP integration tests using testApplication
+notification-service/           Standalone microservice (separate Gradle project)
+  src/main/kotlin/com/example/notification/
+    Main.kt                     Entry point
+    NotificationConsumer.kt     Abstract base (Template Method pattern)
+    UserNotificationConsumer.kt     Handles USER_REGISTERED events
+    RegistrationNotificationConsumer.kt  Handles registration events
+    NotificationMessage.kt      Shared DTO
+  Dockerfile
+  build.gradle.kts
 build.gradle.kts
-docker-compose.yml
-docs/
-  README.md                     This file
-  UTCN_Extracurricular_Events.pdf
+docker-compose.yml              postgres + rabbitmq + pgadmin + notification-service
+docs/README.md
 ```
 
 ## Architecture
 
+The backend follows **Hexagonal Architecture** (Ports and Adapters):
+
 ```
-Client (Postman / frontend)
-         |
-    HTTP requests
-         |
-    Controllers         Parse request, extract JWT claims, delegate to service
-         |
-    Services            Validate input, enforce business rules, call DAO
-         |
-    DAOs (JDBC)         Execute SQL with prepared statements
-         |
-    PostgreSQL           Stores all data, enforces constraints
+┌─────────────────────────────────────────────────────────────────┐
+│                        Ktor HTTP Server                         │
+│                                                                 │
+│  Angular / Postman                                              │
+│       │                                                         │
+│  Controllers  ──────────────────────────────────────────────►  │
+│  (HTTP Adapter)          Services (Domain Core)                 │
+│                          - AuthService                          │
+│                          - EventService                         │
+│                          - RegistrationService                  │
+│                               │               │                 │
+│                      DAO Port │    Notification Port            │
+│                       (Interface)    (Interface)                │
+│                          │               │                      │
+│                    JdbcDao          RabbitMQPublisher           │
+│                   (Adapter)      or LogPublisher (fallback)     │
+│                          │               │                      │
+│                     PostgreSQL       RabbitMQ ──► notification- │
+│                                                   service       │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-StatusPages plugin intercepts exceptions thrown by services and returns consistent JSON error responses.
+**Ports** are Kotlin interfaces (`UserDao`, `EventDao`, `NotificationPublisher`) that the domain core depends on.  
+**Adapters** are concrete implementations (`JdbcUserDao`, `RabbitMQNotificationPublisher`) that are wired at startup in `Application.kt`.  
+**Fake adapters** (`FakeUserDao`, `FakeNotificationPublisher`) are used exclusively in tests with no external dependencies.
+
+StatusPages intercepts all service exceptions and maps them to consistent JSON error responses.
+
+## Microservices
+
+The platform consists of two independently deployable services:
+
+| Service | Language | Responsibility |
+|---|---|---|
+| `utcn-events-api` | Kotlin / Ktor | REST API — auth, events, registrations |
+| `notification-service` | Kotlin | Async consumer — processes notification events from RabbitMQ |
+
+**Message flow:**
+
+```
+utcn-events-api  ──(publish)──►  RabbitMQ  ──(consume)──►  notification-service
+                                queue: notifications
+```
+
+Events published to the `notifications` queue:
+
+| Event type | Published when |
+|---|---|
+| `USER_REGISTERED` | A new user registers |
+| `EVENT_REGISTRATION` | A student registers for an event |
+| `REGISTRATION_CANCELLED` | A student cancels a registration |
+
+Both services connect to RabbitMQ using environment variables `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USER`, `RABBITMQ_PASS`.
+
+## Design Patterns
+
+| Pattern | Where | Purpose |
+|---|---|---|
+| **Hexagonal / Ports & Adapters** | `dao/` interfaces + `Jdbc*Dao` implementations | Decouple domain logic from persistence; swap real DAO for fake in tests |
+| **Singleton** | `RabbitMQConnectionFactory` | Single point of RabbitMQ config; reads env vars once |
+| **Strategy** | `NotificationPublisher` interface | Swap `RabbitMQNotificationPublisher` for `LogNotificationPublisher` (fallback) or `FakeNotificationPublisher` (tests) without changing service code |
+| **Template Method** | `NotificationConsumer` (abstract) | Fixed consume loop; subclasses (`UserNotificationConsumer`, `RegistrationNotificationConsumer`) override `handleMessage()` |
 
 ## Database Schema
 
