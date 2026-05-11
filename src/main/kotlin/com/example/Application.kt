@@ -284,16 +284,14 @@ fun Application.module() {
                                     }
                                     div(classes = "error-message") {
                                         id = "error-message"
-                                        style = "display: none; color: #c9302c; margin-bottom: 15px; padding: 10px; background: #f2dede; border-radius: 4px;"
+                                        style = "display: none;"
                                     }
                                     button(type = ButtonType.submit, classes = "btn btn-primary") {
                                         +"Sign In"
                                     }
                                     p(classes = "login-footer") {
-                                        style = "margin-top: 20px; text-align: center; color: #666;"
                                         +"Don't have an account? "
                                         a(href = "/signup") {
-                                            style = "color: var(--utcn-navy);"
                                             +"Register here"
                                         }
                                     }
@@ -399,16 +397,14 @@ fun Application.module() {
                                     }
                                     div(classes = "error-message") {
                                         id = "error-message"
-                                        style = "display: none; color: #c9302c; margin-bottom: 15px; padding: 10px; background: #f2dede; border-radius: 4px;"
+                                        style = "display: none;"
                                     }
                                     button(type = ButtonType.submit, classes = "btn btn-primary") {
                                         +"Create Account"
                                     }
                                     p(classes = "login-footer") {
-                                        style = "margin-top: 20px; text-align: center; color: #666;"
                                         +"Already have an account? "
                                         a(href = "/login") {
-                                            style = "color: var(--utcn-navy);"
                                             +"Login here"
                                         }
                                     }
@@ -444,6 +440,7 @@ fun Application.module() {
                                     li { a(href = "/") { +"Home" } }
                                     li { a(href = "/events") { +"Events" } }
                                     li { a(href = "/my-registrations") { +"My Registrations" } }
+                                    li { a(href = "/profile") { +"Profile" } }
                                     li { a(href = "/login") { +"Login" } }
                                 }
                             }
@@ -506,8 +503,7 @@ fun Application.module() {
                                 }
                             }
                             
-                            div {
-                                style = "margin-top: 3rem;"
+                            div(classes = "profile-section") {
                                 h3 { +"My Recent Registrations" }
                                 div {
                                     id = "profile-registrations-container"
