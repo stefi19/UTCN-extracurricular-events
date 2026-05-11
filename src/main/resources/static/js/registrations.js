@@ -8,8 +8,8 @@ async function fetchMyRegistrations() {
     if (!token) {
         container.innerHTML = `
             <div class="empty-state">
-                <h3>Please Login</h3>
-                <p>You need to be logged in to view your registrations.</p>
+                <h3>Sign In Required</h3>
+                <p>Please sign in to view your registrations.</p>
                 <a href="/login" class="btn btn-primary" style="margin-top: 1rem;">Login</a>
             </div>
         `;
@@ -33,7 +33,7 @@ async function fetchMyRegistrations() {
                 container.innerHTML = `
                     <div class="empty-state">
                         <h3>Session Expired</h3>
-                        <p>Your session has expired. Please login again.</p>
+                        <p>Your session has expired. Please sign in again.</p>
                         <a href="/login" class="btn btn-primary" style="margin-top: 1rem;">Login</a>
                     </div>
                 `;
@@ -42,45 +42,49 @@ async function fetchMyRegistrations() {
             throw new Error('Failed to fetch registrations');
         }
         
-        const registrations = await response.json();
+    const registrations = await response.json();
         
         if (registrations.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
                     <h3>No Registrations Yet</h3>
-                    <p>You haven't registered for any events yet.</p>
+                    <p>You have not registered for any events yet.</p>
                     <a href="/events" class="btn btn-primary" style="margin-top: 1rem;">Browse Events</a>
                 </div>
             `;
             return;
         }
         
-        displayRegistrations(registrations);
+    const eventsResponse = await fetch(`${API_URL}/api/events`);
+    const events = eventsResponse.ok ? await eventsResponse.json() : [];
+    const eventsById = new Map(events.map(event => [event.id, event]));
+
+    displayRegistrations(registrations, eventsById);
     } catch (error) {
         console.error('Error fetching registrations:', error);
         container.innerHTML = `
             <div class="empty-state">
                 <h3>Unable to Load Registrations</h3>
-                <p>Please try again later or contact support.</p>
+                <p>We could not load your registrations right now. Please try again shortly.</p>
             </div>
         `;
     }
 }
 
-function displayRegistrations(registrations) {
+function displayRegistrations(registrations, eventsById) {
     const container = document.getElementById('registrations-container');
     if (!container) return;
 
     container.innerHTML = registrations.map(registration => {
-        const event = registration.event;
+        const event = eventsById.get(registration.eventId);
         
         // Handle both date formats
         let formattedDate = 'TBA';
         let formattedTime = '';
         
-        if (event.date) {
+        if (event?.date) {
             formattedDate = event.date;
-        } else if (event.startTime) {
+        } else if (event?.startTime) {
             const startDate = new Date(event.startTime);
             formattedDate = startDate.toLocaleDateString('en-US', { 
                 weekday: 'short', 
@@ -102,24 +106,26 @@ function displayRegistrations(registrations) {
         });
         
         const statusBadge = getStatusBadge(registration.status);
+        const eventTitle = event?.title || `Event #${registration.eventId}`;
+        const eventDescription = event?.description || 'Event details are currently unavailable.';
         
         return `
             <div class="event-card">
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
-                    <h3 style="margin: 0;">${escapeHtml(event.title)}</h3>
+                    <h3 style="margin: 0;">${escapeHtml(eventTitle)}</h3>
                     ${statusBadge}
                 </div>
-                <p>${escapeHtml(event.description || 'No description available')}</p>
+                <p>${escapeHtml(eventDescription)}</p>
                 <div class="meta">
-                    <span>📅 ${formattedDate}</span>
-                    ${formattedTime ? `<span>🕒 ${formattedTime}</span>` : ''}
+                    <span>Date: ${formattedDate}</span>
+                    ${formattedTime ? `<span>Time: ${formattedTime}</span>` : ''}
                 </div>
-                ${event.category ? `<div class="meta" style="margin-top: 0.5rem;"><span>🏷️ ${escapeHtml(event.category)}</span></div>` : ''}
-                ${event.department ? `<div class="meta" style="margin-top: 0.5rem;"><span>🏛️ ${escapeHtml(event.department)}</span></div>` : ''}
+                ${event?.category ? `<div class="meta" style="margin-top: 0.5rem;"><span>Category: ${escapeHtml(event.category)}</span></div>` : ''}
+                ${event?.department ? `<div class="meta" style="margin-top: 0.5rem;"><span>Department: ${escapeHtml(event.department)}</span></div>` : ''}
                 <div class="meta" style="margin-top: 0.5rem;">
-                    <span>📝 Registered: ${formattedRegisteredDate}</span>
+                    <span>Registered on: ${formattedRegisteredDate}</span>
                 </div>
-                ${registration.status === 'CONFIRMED' ? `
+                ${registration.status === 'REGISTERED' || registration.status === 'CONFIRMED' ? `
                     <button class="btn" onclick="cancelRegistration(${registration.id})" 
                             style="margin-top: 1rem; width: 100%; background: #dc3545; border-color: #dc3545;">
                         Cancel Registration
@@ -132,10 +138,12 @@ function displayRegistrations(registrations) {
 
 function getStatusBadge(status) {
     const badges = {
-        'CONFIRMED': '<span class="badge" style="background: #28a745;">✓ Confirmed</span>',
-        'PENDING': '<span class="badge" style="background: #ffc107; color: #333;">⏳ Pending</span>',
-        'CANCELLED': '<span class="badge" style="background: #dc3545;">✗ Cancelled</span>',
-        'ATTENDED': '<span class="badge" style="background: #17a2b8;">★ Attended</span>'
+        'REGISTERED': '<span class="badge" style="background: #1f4a77;">Registered</span>',
+        'CONFIRMED': '<span class="badge" style="background: #28a745;">Confirmed</span>',
+        'PENDING': '<span class="badge" style="background: #ffc107; color: #333;">Pending</span>',
+        'CANCELLED': '<span class="badge" style="background: #dc3545;">Cancelled</span>',
+        'ATTENDED': '<span class="badge" style="background: #17a2b8;">Attended</span>',
+        'NO_SHOW': '<span class="badge" style="background: #6c757d;">No Show</span>'
     };
     return badges[status] || '<span class="badge">Unknown</span>';
 }
@@ -149,7 +157,7 @@ async function cancelRegistration(registrationId) {
     const token = localStorage.getItem('jwt_token');
     
     if (!token) {
-        alert('Please login to cancel registrations');
+        alert('Please sign in to cancel registrations.');
         window.location.href = '/login';
         return;
     }
@@ -163,16 +171,16 @@ async function cancelRegistration(registrationId) {
         });
 
         if (response.ok || response.status === 204) {
-            alert('✅ Registration cancelled successfully!');
+            alert('Registration cancelled successfully.');
             // Reload registrations
             fetchMyRegistrations();
         } else {
             const data = await response.json();
-            alert(`❌ Cancellation failed: ${data.error || data.message || 'Unknown error'}`);
+            alert(`Cancellation failed: ${data.error || data.message || 'Unknown error'}`);
         }
     } catch (error) {
         console.error('Cancellation error:', error);
-        alert('❌ An error occurred during cancellation. Please try again.');
+        alert('An error occurred while cancelling. Please try again.');
     }
 }
 

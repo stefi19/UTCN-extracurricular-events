@@ -1,6 +1,6 @@
 // Profile page functionality
 document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('jwt_token');
     
     if (!token) {
         window.location.href = '/login';
@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function loadProfile() {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('jwt_token');
     const container = document.getElementById('profile-container');
     
     try {
@@ -59,7 +59,7 @@ function displayProfile(user) {
             </button>
             
             <form id="edit-profile-form" class="edit-profile-form" style="display: none;">
-                <h4>Edit Profile Information</h4>
+                <h4>Update Your Details</h4>
                 
                 <div class="form-group">
                     <label for="firstName">First Name</label>
@@ -78,34 +78,34 @@ function displayProfile(user) {
                 
                 <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid #ddd;">
                 
-                <h4>Change Password (Optional)</h4>
+                <h4>Password Update (Optional)</h4>
                 <p style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">
-                    Leave blank if you don't want to change your password
+                    Leave these fields empty if you do not want to change your password.
                 </p>
                 
                 <div class="form-group">
                     <label for="currentPassword">Current Password</label>
                     <input type="password" id="currentPassword" name="currentPassword" 
-                           placeholder="Required to change password or email">
+                           placeholder="Required for email or password changes">
                 </div>
                 
                 <div class="form-group">
                     <label for="newPassword">New Password</label>
                     <input type="password" id="newPassword" name="newPassword" 
-                           placeholder="At least 8 characters">
+                           placeholder="Minimum 8 characters">
                 </div>
                 
                 <div class="form-group">
                     <label for="confirmPassword">Confirm New Password</label>
                     <input type="password" id="confirmPassword" name="confirmPassword" 
-                           placeholder="Re-enter new password">
+                           placeholder="Repeat your new password">
                 </div>
                 
                 <div id="update-error" class="error" style="display: none;"></div>
                 <div id="update-success" class="success" style="display: none;"></div>
                 
                 <div class="form-actions">
-                    <button type="submit" class="btn-primary">Save Changes</button>
+                    <button type="submit" class="btn-primary">Save Profile</button>
                     <button type="button" id="cancel-edit-btn" class="btn-secondary">Cancel</button>
                 </div>
             </form>
@@ -162,7 +162,7 @@ async function handleProfileUpdate(e) {
     // Email validation for UTCLUJ domain
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]*\.utcluj\.ro$/;
     if (!emailRegex.test(email)) {
-        errorDiv.textContent = 'Email must be in format: username@*.utcluj.ro (e.g., john@student.utcluj.ro)';
+    errorDiv.textContent = 'Please use an institutional email in the format username@*.utcluj.ro (for example: john@student.utcluj.ro).';
         errorDiv.style.display = 'block';
         return;
     }
@@ -214,7 +214,7 @@ async function handleProfileUpdate(e) {
     }
     
     try {
-        const token = localStorage.getItem('token');
+    const token = localStorage.getItem('jwt_token');
         const response = await fetch('/api/auth/profile', {
             method: 'PUT',
             headers: {
@@ -231,7 +231,7 @@ async function handleProfileUpdate(e) {
         
         const updatedUser = await response.json();
         
-        successDiv.textContent = 'Profile updated successfully!';
+    successDiv.textContent = 'Profile updated successfully.';
         successDiv.style.display = 'block';
         
         // Reload profile after 1.5 seconds
@@ -248,7 +248,7 @@ async function handleProfileUpdate(e) {
 }
 
 async function loadProfileRegistrations() {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('jwt_token');
     const container = document.getElementById('profile-registrations-container');
     
     try {
@@ -262,8 +262,13 @@ async function loadProfileRegistrations() {
             throw new Error('Failed to load registrations');
         }
         
-        const registrations = await response.json();
-        displayProfileRegistrations(registrations);
+    const registrations = await response.json();
+
+    const eventsResponse = await fetch('/api/events');
+    const events = eventsResponse.ok ? await eventsResponse.json() : [];
+    const eventsById = new Map(events.map(event => [event.id, event]));
+
+    displayProfileRegistrations(registrations, eventsById);
     } catch (error) {
         console.error('Error loading registrations:', error);
         container.innerHTML = `
@@ -274,7 +279,7 @@ async function loadProfileRegistrations() {
     }
 }
 
-function displayProfileRegistrations(registrations) {
+function displayProfileRegistrations(registrations, eventsById) {
     const container = document.getElementById('profile-registrations-container');
     
     if (registrations.length === 0) {
@@ -292,24 +297,31 @@ function displayProfileRegistrations(registrations) {
     
     container.innerHTML = `
         <div class="registrations-list">
-            ${recentRegistrations.map(reg => `
+            ${recentRegistrations.map(registration => {
+                const event = eventsById.get(registration.eventId);
+                const eventTitle = event?.title || `Event #${registration.eventId}`;
+                const eventDate = event?.date || 'TBA';
+                const eventCategory = event?.category || 'General';
+
+                return `
                 <div class="registration-item">
                     <div class="registration-header">
-                        <h4>${reg.eventTitle}</h4>
-                        <span class="badge badge-${reg.status.toLowerCase()}">${reg.status}</span>
+                        <h4>${eventTitle}</h4>
+                        <span class="badge badge-${registration.status.toLowerCase()}">${registration.status}</span>
                     </div>
                     <p class="registration-meta">
-                        📅 ${reg.eventDate} | 📂 ${reg.eventCategory}
+                        ${eventDate} · ${eventCategory}
                     </p>
                     <p class="registration-date">
-                        Registered: ${new Date(reg.registeredAt).toLocaleDateString('en-US', {
+                        Registered: ${new Date(registration.registeredAt).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric'
                         })}
                     </p>
                 </div>
-            `).join('')}
+            `;
+            }).join('')}
         </div>
         ${registrations.length > 3 ? `
             <a href="/my-registrations" class="btn-secondary" style="display: inline-block; margin-top: 1rem;">
