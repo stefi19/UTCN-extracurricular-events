@@ -78,16 +78,18 @@ class AuthService(
         require(request.email.isNotBlank()) { "Email must not be blank" }
         require(request.password.isNotBlank()) { "Password must not be blank" }
 
-        val user = userDao.findByEmail(request.email)
+        val normalizedEmail = normalizeLoginIdentifier(request.email)
+
+        val user = userDao.findByEmail(normalizedEmail)
             ?: throw IllegalArgumentException("Invalid email or password")
 
         if (!user.isActive) {
-            logger.warn("Login failed: inactive user email={}", request.email)
+            logger.warn("Login failed: inactive user email={}", normalizedEmail)
             throw IllegalArgumentException("User account is inactive")
         }
 
         if (!PasswordUtil.verifyPassword(request.password, user.passwordHash)) {
-            logger.warn("Login failed: bad password for email={}", request.email)
+            logger.warn("Login failed: bad password for email={}", normalizedEmail)
             throw IllegalArgumentException("Invalid email or password")
         }
 
@@ -191,6 +193,11 @@ class AuthService(
         if (!password.any { it.isDigit() }) return false
         if (!password.any { !it.isLetterOrDigit() }) return false
         return true
+    }
+
+    private fun normalizeLoginIdentifier(emailOrAlias: String): String {
+        val trimmed = emailOrAlias.trim()
+        return if (trimmed.contains("@")) trimmed else "$trimmed@utcn.ro"
     }
 
     private fun User.toResponse() = UserResponse(

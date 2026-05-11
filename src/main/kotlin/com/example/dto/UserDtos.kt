@@ -20,3 +20,12 @@ data class UpdateProfileRequest(
     val currentPassword: String? = null,
     val newPassword: String? = null
 )
+
+@Serializable
+data class CreateOrganizerRequest(
+    val email: String,
+    val password: String,
+    val firstName: String,
+    val lastName: String,
+    val departmentId: Long? = null
+)

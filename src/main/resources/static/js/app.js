@@ -1,6 +1,62 @@
 // Simple API helper
 const API_URL = 'http://localhost:8080';
 
+function getToken() {
+    return localStorage.getItem('jwt_token');
+}
+
+function getCurrentRole() {
+    return localStorage.getItem('user_role');
+}
+
+function getCurrentUserId() {
+    const raw = localStorage.getItem('user_id');
+    return raw ? Number(raw) : null;
+}
+
+function persistUserSession(user) {
+    if (!user) return;
+    localStorage.setItem('user_email', user.email || '');
+    localStorage.setItem('user_role', user.role || '');
+    localStorage.setItem('user_id', String(user.id || ''));
+    localStorage.setItem('user_name', `${user.firstName || ''} ${user.lastName || ''}`.trim());
+}
+
+async function ensureUserContext() {
+    const token = getToken();
+    if (!token) return null;
+
+    if (getCurrentRole() && getCurrentUserId()) {
+        return {
+            role: getCurrentRole(),
+            id: getCurrentUserId(),
+            email: localStorage.getItem('user_email') || ''
+        };
+    }
+
+    try {
+        const response = await fetch('/api/auth/me', {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                clearSession();
+            }
+            return null;
+        }
+
+        const me = await response.json();
+        persistUserSession(me);
+        return me;
+    } catch (error) {
+        console.error('Failed to load session user:', error);
+        return null;
+    }
+}
+
 async function fetchEvents() {
     const container = document.getElementById('events-container');
     if (!container) return;
@@ -42,7 +98,7 @@ function displayEvents(events) {
     if (!container) return;
 
     const loggedIn = isLoggedIn();
-    const token = localStorage.getItem('jwt_token');
+    const userRole = getCurrentRole();
 
     container.innerHTML = events.map(event => {
         // Handle both date formats
@@ -66,9 +122,12 @@ function displayEvents(events) {
             });
         }
         
-        const registerButton = loggedIn 
-            ? `<button class="btn btn-primary" onclick="registerForEvent(${event.id})" style="margin-top: 1rem; width: 100%;">Register for Event</button>`
-            : `<a href="/login" class="btn" style="margin-top: 1rem; display: block; text-align: center;">Login to Register</a>`;
+        let registerButton = `<a href="/login" class="btn" style="margin-top: 1rem; display: block; text-align: center;">Login to Register</a>`;
+        if (loggedIn && userRole === 'STUDENT') {
+            registerButton = `<button class="btn btn-primary" onclick="registerForEvent(${event.id})" style="margin-top: 1rem; width: 100%;">Register for Event</button>`;
+        } else if (loggedIn && (userRole === 'ORGANIZER' || userRole === 'ADMIN')) {
+            registerButton = `<a href="/organizer-panel" class="btn btn-secondary" style="margin-top: 1rem; display: block; text-align: center;">Manage from Organizer Panel</a>`;
+        }
         
         return `
             <div class="event-card">
@@ -89,7 +148,7 @@ function displayEvents(events) {
 
 // Register for an event
 async function registerForEvent(eventId) {
-    const token = localStorage.getItem('jwt_token');
+    const token = getToken();
     
     if (!token) {
         alert('Please sign in to register for events.');
@@ -130,18 +189,21 @@ function escapeHtml(text) {
 
 // Load events when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    // Update navigation based on auth status
+    initializeAppPage();
+});
+
+async function initializeAppPage() {
+    await ensureUserContext();
     updateNavigation();
-    
-    // Load events if container exists
+
     if (document.getElementById('events-container')) {
         fetchEvents();
     }
-});
+}
 
 // Check if user is logged in
 function isLoggedIn() {
-    return localStorage.getItem('jwt_token') !== null;
+    return getToken() !== null;
 }
 
 // Update navigation based on authentication status
@@ -151,20 +213,52 @@ function updateNavigation() {
 
     if (isLoggedIn()) {
         const userEmail = localStorage.getItem('user_email');
-        const loginLink = navUl.querySelector('li:last-child');
-        if (loginLink) {
-            loginLink.innerHTML = `
+        const userRole = getCurrentRole();
+        const loginLi = Array.from(navUl.querySelectorAll('li')).find(li => li.querySelector('a[href="/login"]'));
+
+        if (loginLi) {
+            loginLi.innerHTML = `
                 <span class="user-chip">${escapeHtml(userEmail || 'User')}</span>
                 <a href="#" onclick="logout(); return false;">Logout</a>
             `;
+        }
+
+        if (userRole === 'ORGANIZER' && !document.getElementById('nav-organizer-link')) {
+            const organizerLi = document.createElement('li');
+            organizerLi.id = 'nav-organizer-link';
+            organizerLi.innerHTML = '<a href="/organizer-panel">Organizer Panel</a>';
+            navUl.appendChild(organizerLi);
+        }
+
+        if (userRole === 'ADMIN') {
+            if (!document.getElementById('nav-organizer-link')) {
+                const organizerLi = document.createElement('li');
+                organizerLi.id = 'nav-organizer-link';
+                organizerLi.innerHTML = '<a href="/organizer-panel">Organizer Panel</a>';
+                navUl.appendChild(organizerLi);
+            }
+
+            if (!document.getElementById('nav-admin-organizers-link')) {
+                const adminLi = document.createElement('li');
+                adminLi.id = 'nav-admin-organizers-link';
+                adminLi.innerHTML = '<a href="/admin-organizers">Admin Organizers</a>';
+                navUl.appendChild(adminLi);
+            }
         }
     }
 }
 
 // Logout function
 function logout() {
-    localStorage.removeItem('jwt_token');
-    localStorage.removeItem('user_email');
+    clearSession();
     alert('You have been signed out successfully.');
     window.location.href = '/';
+}
+
+function clearSession() {
+    localStorage.removeItem('jwt_token');
+    localStorage.removeItem('user_email');
+    localStorage.removeItem('user_role');
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('user_name');
 }

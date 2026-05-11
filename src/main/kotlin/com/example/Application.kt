@@ -525,6 +525,106 @@ fun Application.module() {
             }
         }
 
+        // Organizer dashboard page
+        get("/organizer-panel") {
+            call.respondHtml {
+                head {
+                    meta(charset = "UTF-8")
+                    meta(name = "viewport", content = "width=device-width, initial-scale=1.0")
+                    title { +"Organizer Panel - UTCN Events" }
+                    link(rel = "stylesheet", href = "/static/css/style.css")
+                }
+                body {
+                    header {
+                        div(classes = "container") {
+                            nav {
+                                h1 { +"UTCN Events" }
+                                ul {
+                                    li { a(href = "/") { +"Home" } }
+                                    li { a(href = "/events") { +"Events" } }
+                                    li { a(href = "/my-registrations") { +"My Registrations" } }
+                                    li { a(href = "/profile") { +"Profile" } }
+                                    li { a(href = "/login") { +"Login" } }
+                                }
+                            }
+                        }
+                    }
+                    main {
+                        div(classes = "container") {
+                            h2 { +"Organizer Panel" }
+                            p(classes = "section-intro") {
+                                +"Create and update events, then manage participant attendance and registration statuses."
+                            }
+
+                            div {
+                                id = "organizer-panel-container"
+                                div(classes = "loading") {
+                                    +"Loading organizer tools."
+                                }
+                            }
+                        }
+                    }
+                    footer {
+                        div(classes = "container") {
+                            p { +"© 2026 Technical University of Cluj-Napoca. All rights reserved." }
+                        }
+                    }
+                    script(src = "/static/js/app.js") {}
+                    script(src = "/static/js/organizer.js") {}
+                }
+            }
+        }
+
+        // Admin organizer management page
+        get("/admin-organizers") {
+            call.respondHtml {
+                head {
+                    meta(charset = "UTF-8")
+                    meta(name = "viewport", content = "width=device-width, initial-scale=1.0")
+                    title { +"Organizer Accounts - UTCN Events" }
+                    link(rel = "stylesheet", href = "/static/css/style.css")
+                }
+                body {
+                    header {
+                        div(classes = "container") {
+                            nav {
+                                h1 { +"UTCN Events" }
+                                ul {
+                                    li { a(href = "/") { +"Home" } }
+                                    li { a(href = "/events") { +"Events" } }
+                                    li { a(href = "/my-registrations") { +"My Registrations" } }
+                                    li { a(href = "/profile") { +"Profile" } }
+                                    li { a(href = "/login") { +"Login" } }
+                                }
+                            }
+                        }
+                    }
+                    main {
+                        div(classes = "container") {
+                            h2 { +"Organizer Account Management" }
+                            p(classes = "section-intro") {
+                                +"Create new organizer accounts and review the current organizer list."
+                            }
+
+                            div {
+                                id = "admin-organizers-container"
+                                div(classes = "loading") {
+                                    +"Loading organizer administration panel."
+                                }
+                            }
+                        }
+                    }
+                    footer {
+                        div(classes = "container") {
+                            p { +"© 2026 Technical University of Cluj-Napoca. All rights reserved." }
+                        }
+                    }
+                    script(src = "/static/js/app.js") {}
+                    script(src = "/static/js/admin-organizers.js") {}
+                }
+            }
+        }
+
         get("/health") {
             call.respond(mapOf("status" to "ok"))
         }

@@ -31,7 +31,7 @@ class AuthIntegrationTest {
         setupTestApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
 
-        val response = client.post("/auth/register") {
+        val response = client.post("/api/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(registerRequest())
         }
@@ -47,12 +47,12 @@ class AuthIntegrationTest {
         setupTestApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
 
-        client.post("/auth/register") {
+        client.post("/api/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(registerRequest())
         }
 
-        val response = client.post("/auth/login") {
+        val response = client.post("/api/auth/login") {
             contentType(ContentType.Application.Json)
             setBody(LoginRequest(email = "student@example.com", password = "Password1!"))
         }
@@ -67,12 +67,12 @@ class AuthIntegrationTest {
         setupTestApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
 
-        client.post("/auth/register") {
+        client.post("/api/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(registerRequest())
         }
 
-        val response = client.post("/auth/login") {
+        val response = client.post("/api/auth/login") {
             contentType(ContentType.Application.Json)
             setBody(LoginRequest(email = "student@example.com", password = "WrongPass1!"))
         }
@@ -85,7 +85,7 @@ class AuthIntegrationTest {
         setupTestApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
 
-        val response = client.get("/auth/me")
+    val response = client.get("/api/auth/me")
         assertEquals(HttpStatusCode.Unauthorized, response.status)
     }
 
@@ -94,12 +94,12 @@ class AuthIntegrationTest {
         setupTestApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
 
-        val registerResponse = client.post("/auth/register") {
+        val registerResponse = client.post("/api/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(registerRequest())
         }.body<AuthResponse>()
 
-        val response = client.get("/auth/me") {
+        val response = client.get("/api/auth/me") {
             bearerAuth(registerResponse.token)
         }
 
@@ -113,12 +113,12 @@ class AuthIntegrationTest {
         setupTestApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
 
-        client.post("/auth/register") {
+        client.post("/api/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(registerRequest())
         }
 
-        val response = client.post("/auth/register") {
+        val response = client.post("/api/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(registerRequest())
         }

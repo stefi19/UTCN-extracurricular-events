@@ -58,6 +58,7 @@ fun ApplicationTestBuilder.setupTestApplication(
         }
         routing {
             AuthController(authService).register(this)
+            EventController(eventService).registerPublic(this)
             authenticate {
                 AuthController(authService).registerProtected(this)
                 EventController(eventService).register(this)

@@ -26,12 +26,25 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 // Store the JWT token
                 localStorage.setItem('jwt_token', data.token);
-                localStorage.setItem('user_email', email);
+                localStorage.setItem('user_email', data.user?.email || email);
+                localStorage.setItem('user_role', data.user?.role || 'STUDENT');
+                localStorage.setItem('user_id', String(data.user?.id || ''));
+                localStorage.setItem('user_name', `${data.user?.firstName || ''} ${data.user?.lastName || ''}`.trim());
                 
                 // Show success message
                 alert('Signed in successfully. Welcome back.');
                 
-                // Redirect to events page
+                // Redirect based on role
+                if (data.user?.role === 'ORGANIZER') {
+                    window.location.href = '/organizer-panel';
+                    return;
+                }
+
+                if (data.user?.role === 'ADMIN') {
+                    window.location.href = '/admin-organizers';
+                    return;
+                }
+
                 window.location.href = '/events';
             } else {
                 // Show error message

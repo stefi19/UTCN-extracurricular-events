@@ -1,11 +1,14 @@
 package com.example.controller
 
+import com.example.dto.CreateOrganizerRequest
 import com.example.model.UserRole
 import com.example.service.UserService
 import com.example.security.AuthorizationUtil
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
+import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.routing.post
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
@@ -13,6 +16,14 @@ import io.ktor.server.routing.route
 class UserController(private val userService: UserService) {
     fun register(routing: Route) {
         routing.route("/api/users") {
+            post("/organizers") {
+                if (!AuthorizationUtil.requireAdmin(call)) return@post
+
+                val request = call.receive<CreateOrganizerRequest>()
+                val organizer = userService.createOrganizer(request)
+                call.respond(HttpStatusCode.Created, organizer)
+            }
+
             get {
                 if (!AuthorizationUtil.requireAdmin(call)) return@get
 
