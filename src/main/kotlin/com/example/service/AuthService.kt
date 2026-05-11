@@ -4,6 +4,7 @@ import com.example.db.dao.UserDao
 import com.example.dto.AuthResponse
 import com.example.dto.LoginRequest
 import com.example.dto.RegisterRequest
+import com.example.dto.UpdateProfileRequest
 import com.example.dto.UserResponse
 import com.example.messaging.NotificationMessage
 import com.example.messaging.NotificationPublisher
@@ -103,6 +104,79 @@ class AuthService(
     fun getUsersByRole(role: UserRole): List<UserResponse> {
         logger.info("Getting users by role={}", role)
         return userDao.findByRole(role).map { it.toResponse() }
+    }
+
+    fun updateProfile(userId: Long, request: UpdateProfileRequest): UserResponse {
+        logger.info("Updating profile for userId={}", userId)
+        
+        val user = userDao.findById(userId)
+            ?: throw IllegalArgumentException("User not found")
+        
+        // If changing password, verify current password first
+        if (request.newPassword != null) {
+            if (request.currentPassword == null) {
+                throw IllegalArgumentException("Current password is required to change password")
+            }
+            if (!PasswordUtil.verifyPassword(request.currentPassword, user.passwordHash)) {
+                throw IllegalArgumentException("Current password is incorrect")
+            }
+            if (!isValidPassword(request.newPassword)) {
+                throw IllegalArgumentException("New password must be at least 8 characters with uppercase, lowercase, digit, and special character")
+            }
+        }
+        
+        // If changing email, verify it's not already taken
+        if (request.email != null && request.email != user.email) {
+            if (!isValidEmail(request.email)) {
+                throw IllegalArgumentException("Invalid email format")
+            }
+            val existingUser = userDao.findByEmail(request.email)
+            if (existingUser != null) {
+                throw IllegalArgumentException("Email ${request.email} is already in use")
+            }
+        }
+        
+        // Validate names if provided
+        if (request.firstName != null && request.firstName.isBlank()) {
+            throw IllegalArgumentException("First name cannot be empty")
+        }
+        if (request.lastName != null && request.lastName.isBlank()) {
+            throw IllegalArgumentException("Last name cannot be empty")
+        }
+        
+        // Update user object
+        val updatedUser = user.copy(
+            firstName = request.firstName ?: user.firstName,
+            lastName = request.lastName ?: user.lastName,
+            email = request.email ?: user.email,
+            passwordHash = if (request.newPassword != null) {
+                PasswordUtil.hashPassword(request.newPassword)
+            } else {
+                user.passwordHash
+            }
+        )
+        
+        val result = userDao.update(userId, updatedUser)
+            ?: throw IllegalArgumentException("Failed to update user")
+        
+        logger.info("Profile updated successfully for userId={}", userId)
+        
+        runBlocking {
+            notificationPublisher?.publish(
+                NotificationMessage(
+                    eventType = "USER_PROFILE_UPDATED",
+                    userId = result.id,
+                    userEmail = result.email,
+                    payload = mapOf(
+                        "firstName" to result.firstName,
+                        "lastName" to result.lastName,
+                        "emailChanged" to if (request.email != null && request.email != user.email) "true" else "false"
+                    )
+                )
+            )
+        }
+        
+        return result.toResponse()
     }
 
     private fun isValidEmail(email: String): Boolean {
