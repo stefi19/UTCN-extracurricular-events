@@ -39,7 +39,10 @@ import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import io.ktor.server.html.respondHtml
+import io.ktor.server.http.content.staticResources
 import kotlinx.coroutines.GlobalScope
+import kotlinx.html.*
 import org.slf4j.LoggerFactory
 
 fun Application.module() {
@@ -126,15 +129,418 @@ fun Application.module() {
     val departmentController = DepartmentController(departmentService)
 
     routing {
+        // Serve static files (CSS, JS)
+        staticResources("/static", "static")
+
+        // Home page
+        get("/") {
+            call.respondHtml {
+                head {
+                    meta(charset = "UTF-8")
+                    meta(name = "viewport", content = "width=device-width, initial-scale=1.0")
+                    title { +"UTCN Events - Technical University of Cluj-Napoca" }
+                    link(rel = "stylesheet", href = "/static/css/style.css")
+                }
+                body {
+                    header {
+                        div(classes = "container") {
+                            nav {
+                                h1 { +"UTCN Events" }
+                                ul {
+                                    li { a(href = "/") { +"Home" } }
+                                    li { a(href = "/events") { +"Events" } }
+                                    li { a(href = "/my-registrations") { +"My Registrations" } }
+                                    li { a(href = "/profile") { +"Profile" } }
+                                    li { a(href = "/login") { +"Login" } }
+                                }
+                            }
+                        }
+                    }
+                    div(classes = "hero") {
+                        div(classes = "container") {
+                            h2 { +"Welcome to UTCN Events" }
+                            p { +"Discover and register for exciting events at Technical University of Cluj-Napoca" }
+                            a(href = "/events", classes = "btn") { +"Browse Events" }
+                        }
+                    }
+                    main {
+                        div(classes = "container") {
+                            h2 { +"Featured Events" }
+                            div(classes = "events-grid") {
+                                id = "events-container"
+                                div(classes = "loading") {
+                                    +"Loading featured events..."
+                                }
+                            }
+                        }
+                    }
+                    footer {
+                        div(classes = "container") {
+                            p { +"© 2026 Technical University of Cluj-Napoca. All rights reserved." }
+                        }
+                    }
+                    script(src = "/static/js/app.js") {}
+                }
+            }
+        }
+
+        // Events page
+        get("/events") {
+            call.respondHtml {
+                head {
+                    meta(charset = "UTF-8")
+                    meta(name = "viewport", content = "width=device-width, initial-scale=1.0")
+                    title { +"All Events - UTCN Events" }
+                    link(rel = "stylesheet", href = "/static/css/style.css")
+                }
+                body {
+                    header {
+                        div(classes = "container") {
+                            nav {
+                                h1 { +"UTCN Events" }
+                                ul {
+                                    li { a(href = "/") { +"Home" } }
+                                    li { a(href = "/events") { +"Events" } }
+                                    li { a(href = "/my-registrations") { +"My Registrations" } }
+                                    li { a(href = "/profile") { +"Profile" } }
+                                    li { a(href = "/login") { +"Login" } }
+                                }
+                            }
+                        }
+                    }
+                    main {
+                        div(classes = "container") {
+                            h2 { +"Upcoming Events" }
+                            div(classes = "events-grid") {
+                                id = "events-container"
+                                div(classes = "loading") {
+                                    +"Loading events..."
+                                }
+                            }
+                        }
+                    }
+                    footer {
+                        div(classes = "container") {
+                            p { +"© 2026 Technical University of Cluj-Napoca. All rights reserved." }
+                        }
+                    }
+                    script(src = "/static/js/app.js") {}
+                }
+            }
+        }
+
+        // Login page
+        get("/login") {
+            call.respondHtml {
+                head {
+                    meta(charset = "UTF-8")
+                    meta(name = "viewport", content = "width=device-width, initial-scale=1.0")
+                    title { +"Login - UTCN Events" }
+                    link(rel = "stylesheet", href = "/static/css/style.css")
+                }
+                body {
+                    header {
+                        div(classes = "container") {
+                            nav {
+                                h1 { +"UTCN Events" }
+                                ul {
+                                    li { a(href = "/") { +"Home" } }
+                                    li { a(href = "/events") { +"Events" } }
+                                    li { a(href = "/my-registrations") { +"My Registrations" } }
+                                    li { a(href = "/profile") { +"Profile" } }
+                                    li { a(href = "/login") { +"Login" } }
+                                }
+                            }
+                        }
+                    }
+                    main {
+                        div(classes = "container") {
+                            div(classes = "login-container") {
+                                h2 { +"Login to UTCN Events" }
+                                form {
+                                    id = "login-form"
+                                    classes = setOf("login-form")
+                                    div(classes = "form-group") {
+                                        label {
+                                            htmlFor = "email"
+                                            +"Email Address"
+                                        }
+                                        input(type = InputType.email, name = "email") {
+                                            id = "email"
+                                            required = true
+                                            placeholder = "your.name@student.utcluj.ro"
+                                        }
+                                    }
+                                    div(classes = "form-group") {
+                                        label {
+                                            htmlFor = "password"
+                                            +"Password"
+                                        }
+                                        input(type = InputType.password, name = "password") {
+                                            id = "password"
+                                            required = true
+                                            placeholder = "Enter your password"
+                                        }
+                                    }
+                                    div(classes = "error-message") {
+                                        id = "error-message"
+                                        style = "display: none; color: #c9302c; margin-bottom: 15px; padding: 10px; background: #f2dede; border-radius: 4px;"
+                                    }
+                                    button(type = ButtonType.submit, classes = "btn btn-primary") {
+                                        +"Sign In"
+                                    }
+                                    p(classes = "login-footer") {
+                                        style = "margin-top: 20px; text-align: center; color: #666;"
+                                        +"Don't have an account? "
+                                        a(href = "/signup") {
+                                            style = "color: var(--utcn-navy);"
+                                            +"Register here"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    footer {
+                        div(classes = "container") {
+                            p { +"© 2026 Technical University of Cluj-Napoca. All rights reserved." }
+                        }
+                    }
+                    script(src = "/static/js/login.js") {}
+                }
+            }
+        }
+
+        // Signup page
+        get("/signup") {
+            call.respondHtml {
+                head {
+                    meta(charset = "UTF-8")
+                    meta(name = "viewport", content = "width=device-width, initial-scale=1.0")
+                    title { +"Sign Up - UTCN Events" }
+                    link(rel = "stylesheet", href = "/static/css/style.css")
+                }
+                body {
+                    header {
+                        div(classes = "container") {
+                            nav {
+                                h1 { +"UTCN Events" }
+                                ul {
+                                    li { a(href = "/") { +"Home" } }
+                                    li { a(href = "/events") { +"Events" } }
+                                    li { a(href = "/my-registrations") { +"My Registrations" } }
+                                    li { a(href = "/profile") { +"Profile" } }
+                                    li { a(href = "/login") { +"Login" } }
+                                }
+                            }
+                        }
+                    }
+                    main {
+                        div(classes = "container") {
+                            div(classes = "login-container") {
+                                h2 { +"Create Your Account" }
+                                form {
+                                    id = "signup-form"
+                                    classes = setOf("login-form")
+                                    div(classes = "form-group") {
+                                        label {
+                                            htmlFor = "firstName"
+                                            +"First Name"
+                                        }
+                                        input(type = InputType.text, name = "firstName") {
+                                            id = "firstName"
+                                            required = true
+                                            placeholder = "John"
+                                        }
+                                    }
+                                    div(classes = "form-group") {
+                                        label {
+                                            htmlFor = "lastName"
+                                            +"Last Name"
+                                        }
+                                        input(type = InputType.text, name = "lastName") {
+                                            id = "lastName"
+                                            required = true
+                                            placeholder = "Doe"
+                                        }
+                                    }
+                                    div(classes = "form-group") {
+                                        label {
+                                            htmlFor = "email"
+                                            +"Email Address"
+                                        }
+                                        input(type = InputType.email, name = "email") {
+                                            id = "email"
+                                            required = true
+                                            placeholder = "your.name@student.utcluj.ro"
+                                        }
+                                    }
+                                    div(classes = "form-group") {
+                                        label {
+                                            htmlFor = "password"
+                                            +"Password"
+                                        }
+                                        input(type = InputType.password, name = "password") {
+                                            id = "password"
+                                            required = true
+                                            placeholder = "Enter a strong password"
+                                        }
+                                    }
+                                    div(classes = "form-group") {
+                                        label {
+                                            htmlFor = "confirmPassword"
+                                            +"Confirm Password"
+                                        }
+                                        input(type = InputType.password, name = "confirmPassword") {
+                                            id = "confirmPassword"
+                                            required = true
+                                            placeholder = "Re-enter your password"
+                                        }
+                                    }
+                                    div(classes = "error-message") {
+                                        id = "error-message"
+                                        style = "display: none; color: #c9302c; margin-bottom: 15px; padding: 10px; background: #f2dede; border-radius: 4px;"
+                                    }
+                                    button(type = ButtonType.submit, classes = "btn btn-primary") {
+                                        +"Create Account"
+                                    }
+                                    p(classes = "login-footer") {
+                                        style = "margin-top: 20px; text-align: center; color: #666;"
+                                        +"Already have an account? "
+                                        a(href = "/login") {
+                                            style = "color: var(--utcn-navy);"
+                                            +"Login here"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    footer {
+                        div(classes = "container") {
+                            p { +"© 2026 Technical University of Cluj-Napoca. All rights reserved." }
+                        }
+                    }
+                    script(src = "/static/js/signup.js") {}
+                }
+            }
+        }
+
+        // My Registrations page
+        get("/my-registrations") {
+            call.respondHtml {
+                head {
+                    meta(charset = "UTF-8")
+                    meta(name = "viewport", content = "width=device-width, initial-scale=1.0")
+                    title { +"My Registrations - UTCN Events" }
+                    link(rel = "stylesheet", href = "/static/css/style.css")
+                }
+                body {
+                    header {
+                        div(classes = "container") {
+                            nav {
+                                h1 { +"UTCN Events" }
+                                ul {
+                                    li { a(href = "/") { +"Home" } }
+                                    li { a(href = "/events") { +"Events" } }
+                                    li { a(href = "/my-registrations") { +"My Registrations" } }
+                                    li { a(href = "/login") { +"Login" } }
+                                }
+                            }
+                        }
+                    }
+                    main {
+                        div(classes = "container") {
+                            h2 { +"My Event Registrations" }
+                            div(classes = "events-grid") {
+                                id = "registrations-container"
+                                div(classes = "loading") {
+                                    +"Loading your registrations..."
+                                }
+                            }
+                        }
+                    }
+                    footer {
+                        div(classes = "container") {
+                            p { +"© 2026 Technical University of Cluj-Napoca. All rights reserved." }
+                        }
+                    }
+                    script(src = "/static/js/app.js") {}
+                    script(src = "/static/js/registrations.js") {}
+                }
+            }
+        }
+
+        // Profile page
+        get("/profile") {
+            call.respondHtml {
+                head {
+                    meta(charset = "UTF-8")
+                    meta(name = "viewport", content = "width=device-width, initial-scale=1.0")
+                    title { +"My Profile - UTCN Events" }
+                    link(rel = "stylesheet", href = "/static/css/style.css")
+                }
+                body {
+                    header {
+                        div(classes = "container") {
+                            nav {
+                                h1 { +"UTCN Events" }
+                                ul {
+                                    li { a(href = "/") { +"Home" } }
+                                    li { a(href = "/events") { +"Events" } }
+                                    li { a(href = "/my-registrations") { +"My Registrations" } }
+                                    li { a(href = "/profile") { +"Profile" } }
+                                    li { a(href = "/login") { +"Login" } }
+                                }
+                            }
+                        }
+                    }
+                    main {
+                        div(classes = "container") {
+                            h2 { +"My Profile" }
+                            
+                            div {
+                                id = "profile-container"
+                                div(classes = "loading") {
+                                    +"Loading your profile..."
+                                }
+                            }
+                            
+                            div {
+                                style = "margin-top: 3rem;"
+                                h3 { +"My Recent Registrations" }
+                                div {
+                                    id = "profile-registrations-container"
+                                    div(classes = "loading") {
+                                        +"Loading your registrations..."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    footer {
+                        div(classes = "container") {
+                            p { +"© 2026 Technical University of Cluj-Napoca. All rights reserved." }
+                        }
+                    }
+                    script(src = "/static/js/app.js") {}
+                    script(src = "/static/js/profile.js") {}
+                }
+            }
+        }
+
         get("/health") {
             call.respond(mapOf("status" to "ok"))
         }
 
         authController.register(this)
+        
+        // Public events API (GET only - no authentication required)
+        eventController.registerPublic(this)
 
         authenticate {
             authController.registerProtected(this)
-            eventController.register(this)
+            eventController.register(this)  // Protected operations (POST, PUT, DELETE)
             userController.register(this)
             registrationController.register(this)
             categoryController.register(this)
