@@ -29,19 +29,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('user_email', email);
                 
                 // Show success message
-                alert('Login successful! Welcome to UTCN Events.');
+                alert('Signed in successfully. Welcome back.');
                 
                 // Redirect to events page
                 window.location.href = '/events';
             } else {
                 // Show error message
                 errorMessage.style.display = 'block';
-                errorMessage.textContent = data.error || 'Invalid email or password. Please try again.';
+                errorMessage.textContent = data.error || 'The email or password is incorrect. Please try again.';
             }
         } catch (error) {
             console.error('Login error:', error);
             errorMessage.style.display = 'block';
-            errorMessage.textContent = 'An error occurred. Please try again later.';
+            errorMessage.textContent = 'We could not sign you in right now. Please try again shortly.';
         }
     });
 });

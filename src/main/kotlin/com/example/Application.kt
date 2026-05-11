@@ -158,8 +158,8 @@ fun Application.module() {
                     }
                     div(classes = "hero") {
                         div(classes = "container") {
-                            h2 { +"Welcome to UTCN Events" }
-                            p { +"Discover and register for exciting events at Technical University of Cluj-Napoca" }
+                            h2 { +"Welcome to the UTCN Events Platform" }
+                            p { +"Discover academic events and register with ease across the Technical University of Cluj-Napoca." }
                             a(href = "/events", classes = "btn") { +"Browse Events" }
                         }
                     }
@@ -169,7 +169,7 @@ fun Application.module() {
                             div(classes = "events-grid") {
                                 id = "events-container"
                                 div(classes = "loading") {
-                                    +"Loading featured events..."
+                                    +"Loading featured events."
                                 }
                             }
                         }
@@ -214,7 +214,7 @@ fun Application.module() {
                             div(classes = "events-grid") {
                                 id = "events-container"
                                 div(classes = "loading") {
-                                    +"Loading events..."
+                                    +"Loading events."
                                 }
                             }
                         }
@@ -256,7 +256,7 @@ fun Application.module() {
                     main {
                         div(classes = "container") {
                             div(classes = "login-container") {
-                                h2 { +"Login to UTCN Events" }
+                                h2 { +"Sign In" }
                                 form {
                                     id = "login-form"
                                     classes = setOf("login-form")
@@ -290,9 +290,9 @@ fun Application.module() {
                                         +"Sign In"
                                     }
                                     p(classes = "login-footer") {
-                                        +"Don't have an account? "
+                                        +"New here? "
                                         a(href = "/signup") {
-                                            +"Register here"
+                                            +"Create an account"
                                         }
                                     }
                                 }
@@ -336,7 +336,7 @@ fun Application.module() {
                     main {
                         div(classes = "container") {
                             div(classes = "login-container") {
-                                h2 { +"Create Your Account" }
+                                h2 { +"Create Account" }
                                 form {
                                     id = "signup-form"
                                     classes = setOf("login-form")
@@ -403,9 +403,9 @@ fun Application.module() {
                                         +"Create Account"
                                     }
                                     p(classes = "login-footer") {
-                                        +"Already have an account? "
+                                        +"Already registered? "
                                         a(href = "/login") {
-                                            +"Login here"
+                                            +"Sign in"
                                         }
                                     }
                                 }
@@ -448,11 +448,11 @@ fun Application.module() {
                     }
                     main {
                         div(classes = "container") {
-                            h2 { +"My Event Registrations" }
+                            h2 { +"My Registrations" }
                             div(classes = "events-grid") {
                                 id = "registrations-container"
                                 div(classes = "loading") {
-                                    +"Loading your registrations..."
+                                    +"Loading your registrations."
                                 }
                             }
                         }
@@ -499,16 +499,16 @@ fun Application.module() {
                             div {
                                 id = "profile-container"
                                 div(classes = "loading") {
-                                    +"Loading your profile..."
+                                    +"Loading your profile."
                                 }
                             }
                             
                             div(classes = "profile-section") {
-                                h3 { +"My Recent Registrations" }
+                                h3 { +"Recent Registrations" }
                                 div {
                                     id = "profile-registrations-container"
                                     div(classes = "loading") {
-                                        +"Loading your registrations..."
+                                        +"Loading your registrations."
                                     }
                                 }
                             }

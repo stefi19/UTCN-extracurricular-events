@@ -18,14 +18,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Validate passwords match
         if (password !== confirmPassword) {
             errorMessage.style.display = 'block';
-            errorMessage.textContent = 'Passwords do not match!';
+            errorMessage.textContent = 'The passwords do not match.';
             return;
         }
 
         // Validate password strength
         if (password.length < 8) {
             errorMessage.style.display = 'block';
-            errorMessage.textContent = 'Password must be at least 8 characters long!';
+            errorMessage.textContent = 'Password must be at least 8 characters long.';
             return;
         }
 
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const emailPattern = /@[a-zA-Z0-9.-]+\.utcluj\.ro$/;
         if (!emailPattern.test(email)) {
             errorMessage.style.display = 'block';
-            errorMessage.textContent = 'Please use your UTCLUJ email address (e.g., @student.utcluj.ro, @cs.utcluj.ro)';
+            errorMessage.textContent = 'Please use your institutional email address (for example: @student.utcluj.ro, @cs.utcluj.ro).';
             return;
         }
 
@@ -55,19 +55,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 // Registration successful
-                alert('Account created successfully! Please login with your credentials.');
+                alert('Account created successfully. You can sign in now.');
                 
                 // Redirect to login page
                 window.location.href = '/login';
             } else {
                 // Show error message
                 errorMessage.style.display = 'block';
-                errorMessage.textContent = data.error || data.message || 'Registration failed. Please try again.';
+                errorMessage.textContent = data.error || data.message || 'We could not complete registration. Please try again.';
             }
         } catch (error) {
             console.error('Signup error:', error);
             errorMessage.style.display = 'block';
-            errorMessage.textContent = 'An error occurred. Please try again later.';
+            errorMessage.textContent = 'A temporary error occurred. Please try again shortly.';
         }
     });
 });

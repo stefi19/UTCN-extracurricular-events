@@ -19,7 +19,7 @@ async function fetchEvents() {
             container.innerHTML = `
                 <div class="empty-state">
                     <h3>No Events Available</h3>
-                    <p>Check back later for upcoming events!</p>
+                    <p>There are no events at the moment. Please check back soon.</p>
                 </div>
             `;
             return;
@@ -31,7 +31,7 @@ async function fetchEvents() {
         container.innerHTML = `
             <div class="empty-state">
                 <h3>Unable to Load Events</h3>
-                <p>Please try again later or contact support.</p>
+                <p>We could not load events right now. Please try again in a moment.</p>
             </div>
         `;
     }
@@ -75,12 +75,12 @@ function displayEvents(events) {
                 <h3>${escapeHtml(event.title)}</h3>
                 <p>${escapeHtml(event.description || 'No description available')}</p>
                 <div class="meta">
-                    <span>📅 ${formattedDate}</span>
-                    ${formattedTime ? `<span>🕒 ${formattedTime}</span>` : ''}
+                    <span>Date: ${formattedDate}</span>
+                    ${formattedTime ? `<span>Time: ${formattedTime}</span>` : ''}
                 </div>
-                ${event.category ? `<div class="meta" style="margin-top: 0.5rem;"><span>🏷️ ${escapeHtml(event.category)}</span></div>` : ''}
-                ${event.department ? `<div class="meta" style="margin-top: 0.5rem;"><span>🏛️ ${escapeHtml(event.department)}</span></div>` : ''}
-                ${event.location ? `<div class="meta" style="margin-top: 0.5rem;"><span>📍 ${escapeHtml(event.location)}</span></div>` : ''}
+                ${event.category ? `<div class="meta" style="margin-top: 0.5rem;"><span>Category: ${escapeHtml(event.category)}</span></div>` : ''}
+                ${event.department ? `<div class="meta" style="margin-top: 0.5rem;"><span>Department: ${escapeHtml(event.department)}</span></div>` : ''}
+                ${event.location ? `<div class="meta" style="margin-top: 0.5rem;"><span>Location: ${escapeHtml(event.location)}</span></div>` : ''}
                 ${registerButton}
             </div>
         `;
@@ -92,7 +92,7 @@ async function registerForEvent(eventId) {
     const token = localStorage.getItem('jwt_token');
     
     if (!token) {
-        alert('Please login to register for events');
+        alert('Please sign in to register for events.');
         window.location.href = '/login';
         return;
     }
@@ -110,15 +110,15 @@ async function registerForEvent(eventId) {
         const data = await response.json();
 
         if (response.ok) {
-            alert('✅ Successfully registered for the event!');
+            alert('You have been registered for the event successfully.');
             // Optionally reload events to update UI
             fetchEvents();
         } else {
-            alert(`❌ Registration failed: ${data.error || data.message || 'Unknown error'}`);
+            alert(`Registration failed: ${data.error || data.message || 'Unknown error'}`);
         }
     } catch (error) {
         console.error('Registration error:', error);
-        alert('❌ An error occurred during registration. Please try again.');
+        alert('An error occurred while registering. Please try again.');
     }
 }
 
@@ -165,6 +165,6 @@ function updateNavigation() {
 function logout() {
     localStorage.removeItem('jwt_token');
     localStorage.removeItem('user_email');
-    alert('You have been logged out successfully.');
+    alert('You have been signed out successfully.');
     window.location.href = '/';
 }
