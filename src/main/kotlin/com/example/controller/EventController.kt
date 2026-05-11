@@ -14,7 +14,8 @@ import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 
 class EventController(private val eventService: EventService) {
-    fun register(route: Route) {
+    // Public routes (no authentication required)
+    fun registerPublic(route: Route) {
         route.route("/api/events") {
             get {
                 call.respond(eventService.listEvents())
@@ -29,7 +30,12 @@ class EventController(private val eventService: EventService) {
 
                 call.respond(event)
             }
+        }
+    }
 
+    // Protected routes (authentication required)
+    fun register(route: Route) {
+        route.route("/api/events") {
             post {
                 val request = call.receive<EventRequest>()
                 val created = eventService.createEvent(request)
