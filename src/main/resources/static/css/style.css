@@ -1,0 +1,496 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --utcn-navy: #003366;
+    --utcn-gold: #FFB81C;
+    --utcn-light-blue: #005A9C;
+    --utcn-gray: #F5F5F5;
+    --utcn-dark-gray: #333333;
+    --utcn-white: #FFFFFF;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--utcn-gray);
+    min-height: 100vh;
+    color: var(--utcn-dark-gray);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Header */
+header {
+    background: var(--utcn-navy);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 0;
+    margin-bottom: 0;
+}
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem 0;
+}
+
+nav h1 {
+    color: var(--utcn-white);
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+nav h1::before {
+    content: "🎓 ";
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    gap: 2rem;
+    margin: 0;
+}
+
+nav a {
+    text-decoration: none;
+    color: var(--utcn-white);
+    font-weight: 500;
+    font-size: 1rem;
+    transition: color 0.3s ease;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+}
+
+nav a:hover {
+    color: var(--utcn-gold);
+    background: rgba(255, 184, 28, 0.1);
+}
+
+/* Hero Section */
+.hero {
+    background: linear-gradient(135deg, var(--utcn-navy) 0%, var(--utcn-light-blue) 100%);
+    color: var(--utcn-white);
+    padding: 4rem 0;
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.hero h2 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    font-weight: 700;
+}
+
+.hero p {
+    font-size: 1.3rem;
+    margin-bottom: 2rem;
+    opacity: 0.95;
+}
+
+.btn {
+    display: inline-block;
+    padding: 14px 40px;
+    background: var(--utcn-gold);
+    color: var(--utcn-navy);
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    border: 2px solid var(--utcn-gold);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn:hover {
+    background: transparent;
+    color: var(--utcn-gold);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 184, 28, 0.3);
+}
+
+/* Main Content */
+main {
+    padding: 2rem 0;
+}
+
+main h2 {
+    color: var(--utcn-navy);
+    font-size: 2.2rem;
+    margin-bottom: 2rem;
+    font-weight: 700;
+    border-left: 5px solid var(--utcn-gold);
+    padding-left: 1rem;
+}
+
+/* Events Grid */
+.events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.event-card {
+    background: var(--utcn-white);
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    border-top: 4px solid var(--utcn-navy);
+}
+
+.event-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+    border-top-color: var(--utcn-gold);
+}
+
+.event-card h3 {
+    color: var(--utcn-navy);
+    margin-bottom: 0.8rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.event-card p {
+    color: var(--utcn-dark-gray);
+    margin-bottom: 1.2rem;
+    line-height: 1.6;
+}
+
+.event-card .meta {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.95rem;
+    color: #666;
+    border-top: 1px solid #E0E0E0;
+    padding-top: 1rem;
+}
+
+.event-card .meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+/* Footer */
+footer {
+    background: var(--utcn-navy);
+    color: var(--utcn-white);
+    text-align: center;
+    padding: 2rem 0;
+    margin-top: 4rem;
+}
+
+footer p {
+    opacity: 0.9;
+}
+
+/* Loading State */
+.loading {
+    text-align: center;
+    padding: 3rem;
+    color: #666;
+    font-size: 1.1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    nav {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    nav ul {
+        gap: 1rem;
+    }
+
+    .hero h2 {
+        font-size: 2rem;
+    }
+
+    .hero p {
+        font-size: 1.1rem;
+    }
+
+    .events-grid {
+        grid-template-columns: 1fr;
+    }
+
+    main h2 {
+        font-size: 1.8rem;
+    }
+}
+
+/* Professional touches */
+.badge {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    background: var(--utcn-gold);
+    color: var(--utcn-navy);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--utcn-white);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.empty-state h3 {
+    color: var(--utcn-navy);
+    margin-bottom: 1rem;
+    font-size: 1.8rem;
+}
+
+.empty-state p {
+    color: #666;
+    font-size: 1.1rem;
+}
+
+/* Badge */
+.badge {
+    display: inline-block;
+    padding: 0.35rem 0.8rem;
+    background: var(--utcn-navy);
+    color: var(--utcn-white);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* Login Form */
+.login-container {
+    max-width: 450px;
+    margin: 3rem auto;
+    background: var(--utcn-white);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    padding: 2.5rem;
+    border-top: 4px solid var(--utcn-navy);
+}
+
+.login-container h2 {
+    color: var(--utcn-navy);
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    color: var(--utcn-dark-gray);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.form-group input {
+    padding: 0.9rem 1.2rem;
+    border: 2px solid #E0E0E0;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--utcn-navy);
+    box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.1);
+}
+
+.btn-primary {
+    background: var(--utcn-navy);
+    color: var(--utcn-white);
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 0.5rem;
+}
+
+.btn-primary:hover {
+    background: #002244;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 51, 102, 0.3);
+}
+
+.login-footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    color: #666;
+}
+
+.login-footer a {
+    color: var(--utcn-navy);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.login-footer a:hover {
+    text-decoration: underline;
+    color: var(--utcn-gold);
+}
+
+/* Profile Page Styles */
+.profile-card {
+    background: white;
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    max-width: 600px;
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--utcn-navy), var(--utcn-light-blue));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.profile-info h3 {
+    color: var(--utcn-navy);
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.profile-email {
+    color: #666;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.edit-profile-form {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 2px solid var(--utcn-gray);
+}
+
+.edit-profile-form h4 {
+    color: var(--utcn-navy);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+}
+
+.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+    padding: 1rem;
+    border-radius: 5px;
+    margin-top: 1rem;
+}
+
+/* Registration items on profile page */
+.registrations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.registration-item {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1.2rem;
+    transition: all 0.3s ease;
+}
+
+.registration-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: var(--utcn-navy);
+}
+
+.registration-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.8rem;
+}
+
+.registration-header h4 {
+    color: var(--utcn-navy);
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.registration-meta {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.registration-date {
+    color: #999;
+    font-size: 0.85rem;
+}
