@@ -154,8 +154,8 @@ function updateNavigation() {
         const loginLink = navUl.querySelector('li:last-child');
         if (loginLink) {
             loginLink.innerHTML = `
-                <span style="color: var(--utcn-gold); margin-right: 10px;">👤 ${escapeHtml(userEmail || 'User')}</span>
-                <a href="#" onclick="logout(); return false;" style="color: #fff;">Logout</a>
+                <span class="user-chip">${escapeHtml(userEmail || 'User')}</span>
+                <a href="#" onclick="logout(); return false;">Logout</a>
             `;
         }
     }
