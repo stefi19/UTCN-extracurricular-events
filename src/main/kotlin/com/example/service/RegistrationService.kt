@@ -2,6 +2,8 @@ package com.example.service
 
 import com.example.db.dao.EventDao
 import com.example.db.dao.RegistrationDao
+import com.example.db.dao.UserDao
+import com.example.dto.ParticipantDetailsResponse
 import com.example.dto.RegistrationResponse
 import com.example.messaging.NotificationMessage
 import com.example.messaging.NotificationPublisher
@@ -12,6 +14,7 @@ import org.slf4j.LoggerFactory
 class RegistrationService(
     private val registrationDao: RegistrationDao,
     private val eventDao: EventDao,
+    private val userDao: UserDao? = null,
     private val notificationPublisher: NotificationPublisher? = null
 ) {
     private val logger = LoggerFactory.getLogger(RegistrationService::class.java)
@@ -54,6 +57,24 @@ class RegistrationService(
     fun getEventParticipants(eventId: Long): List<RegistrationResponse> {
         logger.info("Getting participants for event={}", eventId)
         return registrationDao.findByEventId(eventId).map { it.toResponse() }
+    }
+
+    fun getEventParticipantsDetailed(eventId: Long): List<ParticipantDetailsResponse> {
+        logger.info("Getting detailed participants for event={}", eventId)
+        return registrationDao.findByEventId(eventId).map { registration ->
+            val student = userDao?.findById(registration.studentId)
+            ParticipantDetailsResponse(
+                id = registration.id,
+                studentId = registration.studentId,
+                studentFirstName = student?.firstName ?: "Student",
+                studentLastName = student?.lastName ?: "#${registration.studentId}",
+                studentEmail = student?.email ?: "Unavailable",
+                eventId = registration.eventId,
+                status = registration.status,
+                registeredAt = registration.registeredAt,
+                cancelledAt = registration.cancelledAt
+            )
+        }
     }
 
     fun cancelRegistration(studentId: Long, registrationId: Long): Boolean {

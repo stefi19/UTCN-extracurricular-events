@@ -16,3 +16,16 @@ data class RegistrationResponse(
     val registeredAt: String? = null,
     val cancelledAt: String? = null
 )
+
+@Serializable
+data class ParticipantDetailsResponse(
+    val id: Long,
+    val studentId: Long,
+    val studentFirstName: String,
+    val studentLastName: String,
+    val studentEmail: String,
+    val eventId: Long,
+    val status: String,
+    val registeredAt: String? = null,
+    val cancelledAt: String? = null
+)

@@ -5,6 +5,10 @@ let organizerEvents = [];
 let organizerCategories = [];
 let organizerDepartments = [];
 let selectedEventId = null;
+let eventParticipants = [];
+let participantSearchTerm = '';
+let participantStatusFilter = 'ALL';
+let participantSortOrder = 'NEWEST';
 
 function organizerToken() {
     return localStorage.getItem('jwt_token');
@@ -137,7 +141,7 @@ function renderOrganizerShell() {
 
         <section id="participants-section" class="dashboard-card" style="margin-top: 1rem; display: none;">
             <h3 id="participants-title">Participants</h3>
-            <p class="dashboard-muted">Update participant statuses (REGISTERED, ATTENDED, NO_SHOW, CANCELLED).</p>
+            <p class="dashboard-muted">Search by name or email, review attendance history, and update statuses quickly.</p>
             <div id="participants-list" class="dashboard-list"></div>
         </section>
     `;
@@ -352,13 +356,16 @@ async function showParticipants(eventId) {
     const section = document.getElementById('participants-section');
     const title = document.getElementById('participants-title');
     const container = document.getElementById('participants-list');
+    const selectedEvent = organizerEvents.find(event => event.id === eventId);
 
     section.style.display = 'block';
-    title.textContent = `Participants for Event #${eventId}`;
+    title.textContent = selectedEvent?.title
+        ? `Participants · ${selectedEvent.title}`
+        : `Participants for Event #${eventId}`;
     container.innerHTML = '<div class="loading">Loading participants.</div>';
 
     try {
-        const response = await fetch(`${ORGANIZER_API}/api/registrations/event/${eventId}`, {
+        const response = await fetch(`${ORGANIZER_API}/api/registrations/event/${eventId}/details`, {
             headers: organizerAuthHeaders()
         });
 
@@ -367,8 +374,13 @@ async function showParticipants(eventId) {
             throw new Error(apiError.error || 'Failed to load participants');
         }
 
-        const participants = await response.json();
-        renderParticipants(participants);
+        eventParticipants = await response.json();
+        participantSearchTerm = '';
+        participantStatusFilter = 'ALL';
+        participantSortOrder = 'NEWEST';
+        renderParticipantsPanel();
+
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (error) {
         container.innerHTML = `
             <div class="error">
@@ -378,10 +390,12 @@ async function showParticipants(eventId) {
     }
 }
 
-function renderParticipants(participants) {
+function renderParticipantsPanel() {
     const container = document.getElementById('participants-list');
+    const filteredParticipants = applyParticipantFilters();
+    const summary = summarizeParticipants(eventParticipants);
 
-    if (!participants.length) {
+    if (!eventParticipants.length) {
         container.innerHTML = `
             <div class="empty-state">
                 <h3>No participants</h3>
@@ -392,39 +406,184 @@ function renderParticipants(participants) {
     }
 
     container.innerHTML = `
+        <div class="participants-toolbar">
+            <div class="manage-summary-grid">
+                <div class="manage-summary-card"><strong>${summary.total}</strong><span>Total</span></div>
+                <div class="manage-summary-card"><strong>${summary.registered}</strong><span>Registered</span></div>
+                <div class="manage-summary-card"><strong>${summary.attended}</strong><span>Attended</span></div>
+                <div class="manage-summary-card"><strong>${summary.noShow}</strong><span>No Show</span></div>
+                <div class="manage-summary-card"><strong>${summary.cancelled}</strong><span>Cancelled</span></div>
+            </div>
+
+            <div class="participants-controls">
+                <div class="manage-control-group">
+                    <label for="participant-search">Search participant</label>
+                    <input id="participant-search" type="text" placeholder="Name or email" value="${escapeHtml(participantSearchTerm)}" />
+                </div>
+                <div class="manage-control-group">
+                    <label for="participant-status-filter">Status</label>
+                    <select id="participant-status-filter">
+                        ${['ALL', 'REGISTERED', 'ATTENDED', 'NO_SHOW', 'CANCELLED']
+                            .map(status => `<option value="${status}" ${status === participantStatusFilter ? 'selected' : ''}>${status === 'ALL' ? 'All statuses' : status.replace('_', ' ')}</option>`)
+                            .join('')}
+                    </select>
+                </div>
+                <div class="manage-control-group">
+                    <label for="participant-sort">Sort</label>
+                    <select id="participant-sort">
+                        <option value="NEWEST" ${participantSortOrder === 'NEWEST' ? 'selected' : ''}>Newest registration</option>
+                        <option value="OLDEST" ${participantSortOrder === 'OLDEST' ? 'selected' : ''}>Oldest registration</option>
+                        <option value="NAME_ASC" ${participantSortOrder === 'NAME_ASC' ? 'selected' : ''}>Name A–Z</option>
+                        <option value="NAME_DESC" ${participantSortOrder === 'NAME_DESC' ? 'selected' : ''}>Name Z–A</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        ${renderParticipantsTable(filteredParticipants)}
+    `;
+
+    attachParticipantControlListeners();
+}
+
+function renderParticipantsTable(participants) {
+    if (!participants.length) {
+        return `
+            <div class="empty-state">
+                <h3>No participants match this filter</h3>
+                <p>Try adjusting search text or status filter.</p>
+            </div>
+        `;
+    }
+
+    return `
         <div class="table-wrap">
-            <table class="dashboard-table">
+            <table class="dashboard-table participants-table">
                 <thead>
                     <tr>
-                        <th>Registration ID</th>
+                        <th>Participant</th>
                         <th>Student ID</th>
                         <th>Status</th>
-                        <th>Registered At</th>
+                        <th>Registered</th>
+                        <th>Cancelled</th>
                         <th>Update</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${participants.map(participant => `
+                    ${participants.map(participant => {
+                        const fullName = `${participant.studentFirstName} ${participant.studentLastName}`.trim();
+                        return `
                         <tr>
-                            <td>#${participant.id}</td>
+                            <td>
+                                <div class="participant-identity">
+                                    <strong>${escapeHtml(fullName)}</strong>
+                                    <span>${escapeHtml(participant.studentEmail)}</span>
+                                </div>
+                            </td>
                             <td>${participant.studentId}</td>
                             <td>
-                                <select id="status-${participant.id}">
-                                    ${['REGISTERED', 'ATTENDED', 'NO_SHOW', 'CANCELLED']
-                                        .map(status => `<option value="${status}" ${participant.status === status ? 'selected' : ''}>${status}</option>`)
-                                        .join('')}
-                                </select>
+                                <div class="participant-status-cell">
+                                    <span class="badge ${statusBadgeClass(participant.status)}">${participant.status.replace('_', ' ')}</span>
+                                    <select id="status-${participant.id}">
+                                        ${['REGISTERED', 'ATTENDED', 'NO_SHOW', 'CANCELLED']
+                                            .map(status => `<option value="${status}" ${participant.status === status ? 'selected' : ''}>${status.replace('_', ' ')}</option>`)
+                                            .join('')}
+                                    </select>
+                                </div>
                             </td>
-                            <td>${participant.registeredAt ? new Date(participant.registeredAt).toLocaleString('en-US') : '-'}</td>
+                            <td>${formatDateTime(participant.registeredAt)}</td>
+                            <td>${formatDateTime(participant.cancelledAt)}</td>
                             <td>
                                 <button class="btn-secondary" onclick="updateParticipantStatus(${participant.id})">Save</button>
                             </td>
                         </tr>
-                    `).join('')}
+                    `;
+                    }).join('')}
                 </tbody>
             </table>
         </div>
     `;
+}
+
+function attachParticipantControlListeners() {
+    const searchInput = document.getElementById('participant-search');
+    const statusSelect = document.getElementById('participant-status-filter');
+    const sortSelect = document.getElementById('participant-sort');
+
+    searchInput?.addEventListener('input', (event) => {
+        participantSearchTerm = event.target.value;
+        renderParticipantsPanel();
+    });
+
+    statusSelect?.addEventListener('change', (event) => {
+        participantStatusFilter = event.target.value;
+        renderParticipantsPanel();
+    });
+
+    sortSelect?.addEventListener('change', (event) => {
+        participantSortOrder = event.target.value;
+        renderParticipantsPanel();
+    });
+}
+
+function applyParticipantFilters() {
+    const searchLower = participantSearchTerm.trim().toLowerCase();
+
+    const filtered = eventParticipants.filter(participant => {
+        const fullName = `${participant.studentFirstName} ${participant.studentLastName}`.toLowerCase();
+        const email = (participant.studentEmail || '').toLowerCase();
+        const statusMatch = participantStatusFilter === 'ALL' || participant.status === participantStatusFilter;
+        const searchMatch = !searchLower || fullName.includes(searchLower) || email.includes(searchLower);
+        return statusMatch && searchMatch;
+    });
+
+    const byRegisteredAt = (left, right) => {
+        const leftTime = left.registeredAt ? new Date(left.registeredAt).getTime() : 0;
+        const rightTime = right.registeredAt ? new Date(right.registeredAt).getTime() : 0;
+        return leftTime - rightTime;
+    };
+
+    const byName = (left, right) => {
+        const leftName = `${left.studentFirstName} ${left.studentLastName}`.trim().toLowerCase();
+        const rightName = `${right.studentFirstName} ${right.studentLastName}`.trim().toLowerCase();
+        return leftName.localeCompare(rightName);
+    };
+
+    if (participantSortOrder === 'NEWEST') {
+        return filtered.sort((left, right) => byRegisteredAt(right, left));
+    }
+    if (participantSortOrder === 'OLDEST') {
+        return filtered.sort(byRegisteredAt);
+    }
+    if (participantSortOrder === 'NAME_ASC') {
+        return filtered.sort(byName);
+    }
+    return filtered.sort((left, right) => byName(right, left));
+}
+
+function summarizeParticipants(participants) {
+    return {
+        total: participants.length,
+        registered: participants.filter(item => item.status === 'REGISTERED').length,
+        attended: participants.filter(item => item.status === 'ATTENDED').length,
+        noShow: participants.filter(item => item.status === 'NO_SHOW').length,
+        cancelled: participants.filter(item => item.status === 'CANCELLED').length
+    };
+}
+
+function statusBadgeClass(status) {
+    const map = {
+        REGISTERED: 'badge-registered',
+        ATTENDED: 'badge-attended',
+        NO_SHOW: 'badge-no-show',
+        CANCELLED: 'badge-cancelled'
+    };
+    return map[status] || 'badge';
+}
+
+function formatDateTime(value) {
+    if (!value) return '-';
+    return new Date(value).toLocaleString('en-US');
 }
 
 async function updateParticipantStatus(registrationId) {
@@ -443,10 +602,16 @@ async function updateParticipantStatus(registrationId) {
             throw new Error(apiError.error || 'Could not update status');
         }
 
-        alert('Participant status updated.');
-        if (selectedEventId) {
-            await showParticipants(selectedEventId);
+        const participant = eventParticipants.find(item => item.id === registrationId);
+        if (participant) {
+            participant.status = status;
+            if (status === 'CANCELLED' && !participant.cancelledAt) {
+                participant.cancelledAt = new Date().toISOString();
+            }
         }
+
+        renderParticipantsPanel();
+        alert('Participant status updated.');
     } catch (error) {
         alert(error.message);
     }

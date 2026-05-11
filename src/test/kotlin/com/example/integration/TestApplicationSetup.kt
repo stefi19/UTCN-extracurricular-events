@@ -37,7 +37,7 @@ fun ApplicationTestBuilder.setupTestApplication(
     val jwtManager = JwtManager(TEST_JWT_SECRET)
     val authService = AuthService(userDao, jwtManager, publisher)
     val eventService = EventService(eventDao)
-    val registrationService = RegistrationService(registrationDao, eventDao, publisher)
+    val registrationService = RegistrationService(registrationDao, eventDao, userDao, publisher)
 
     application {
         install(ContentNegotiation) { json() }

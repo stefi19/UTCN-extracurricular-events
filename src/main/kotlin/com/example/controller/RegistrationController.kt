@@ -61,6 +61,18 @@ class RegistrationController(private val registrationService: RegistrationServic
                 call.respond(participants)
             }
 
+            get("/event/{eventId}/details") {
+                if (!AuthorizationUtil.requireRole(call, UserRole.ORGANIZER, UserRole.ADMIN)) {
+                    return@get
+                }
+
+                val eventId = call.parameters["eventId"]?.toLongOrNull()
+                    ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid event ID"))
+
+                val participants = registrationService.getEventParticipantsDetailed(eventId)
+                call.respond(participants)
+            }
+
             put("/{registrationId}/status") {
                 val userRole = AuthorizationUtil.getUserRoleFromPrincipal(call)
                     ?: return@put call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Unauthorized"))

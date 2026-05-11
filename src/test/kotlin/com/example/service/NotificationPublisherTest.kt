@@ -42,7 +42,7 @@ class NotificationPublisherTest {
     fun registrationServicePublishesEventRegistrationOnRegister() {
         val eventDao = FakeEventDao()
         eventDao.create(Event(id = 0, title = "E", description = "D", date = "2026-06-01", category = "C", department = "D"))
-        val service = RegistrationService(FakeRegistrationDao(), eventDao, publisher)
+    val service = RegistrationService(FakeRegistrationDao(), eventDao, notificationPublisher = publisher)
         service.registerStudent(studentId = 5L, eventId = 1L)
         assertEquals(1, publisher.countByType("EVENT_REGISTRATION"))
         assertEquals(5L, publisher.published[0].userId)
@@ -52,7 +52,7 @@ class NotificationPublisherTest {
     fun registrationServicePublishesRegistrationCancelledOnCancel() {
         val eventDao = FakeEventDao()
         eventDao.create(Event(id = 0, title = "E", description = "D", date = "2026-06-01", category = "C", department = "D"))
-        val service = RegistrationService(FakeRegistrationDao(), eventDao, publisher)
+    val service = RegistrationService(FakeRegistrationDao(), eventDao, notificationPublisher = publisher)
         val reg = service.registerStudent(studentId = 5L, eventId = 1L)
         publisher.published.clear()
         service.cancelRegistration(studentId = 5L, registrationId = reg.id)

@@ -714,6 +714,61 @@ main h3 {
     background: #fff;
 }
 
+.participants-toolbar {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.participants-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.7rem;
+}
+
+.participants-controls input,
+.participants-controls select {
+    width: 100%;
+    border: 1px solid #c8d4e2;
+    border-radius: var(--radius-sm);
+    padding: 0.62rem 0.7rem;
+    background: #fff;
+    color: var(--text-primary);
+    font-size: 0.92rem;
+}
+
+.participants-controls input:focus,
+.participants-controls select:focus {
+    outline: none;
+    border-color: #7697bb;
+    box-shadow: 0 0 0 3px rgba(31, 74, 119, 0.14);
+}
+
+.participants-table {
+    margin-top: 0.2rem;
+}
+
+.participant-identity {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+}
+
+.participant-identity strong {
+    color: var(--text-primary);
+}
+
+.participant-identity span {
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+}
+
+.participant-status-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    min-width: 170px;
+}
+
 footer {
     margin-top: 3rem;
     background: var(--utcn-navy);
