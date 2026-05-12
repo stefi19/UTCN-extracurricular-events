@@ -2,6 +2,7 @@
 const API_URL = 'http://localhost:8080';
 let allEvents = [];
 let myRegisteredEventIds = new Set(); // event IDs the current student has registered for
+let activeEventsTab = 'upcoming'; // 'upcoming' | 'past'
 const EVENT_FILTERS_STORAGE_KEY = 'events_filters_v2';
 const ORGANIZER_LABEL_ASSIGNED = 'Organizator desemnat';
 const ORGANIZER_LABEL_UNSPECIFIED = 'Fără organizator specificat';
@@ -233,6 +234,41 @@ function renderEventFilterControls(events) {
     });
 }
 
+function isUpcomingEvent(event) {
+    const ts = getEventTimestamp(event);
+    if (ts === Number.MAX_SAFE_INTEGER) return true; // no date → treat as upcoming
+    return ts >= Date.now();
+}
+
+function renderEventTabs(allFilteredUpcoming, allFilteredPast) {
+    const eventsContainer = document.getElementById('events-container');
+    if (!eventsContainer || !eventsContainer.parentElement) return;
+
+    let tabBar = document.getElementById('events-tab-bar');
+    if (!tabBar) {
+        tabBar = document.createElement('div');
+        tabBar.id = 'events-tab-bar';
+        tabBar.className = 'events-tab-bar';
+        eventsContainer.parentElement.insertBefore(tabBar, document.getElementById('events-filter-container') || eventsContainer);
+    }
+
+    tabBar.innerHTML = `
+        <button class="events-tab-btn ${activeEventsTab === 'upcoming' ? 'active' : ''}" onclick="switchEventsTab('upcoming')">
+            Upcoming Events
+            <span class="events-tab-count">${allFilteredUpcoming}</span>
+        </button>
+        <button class="events-tab-btn ${activeEventsTab === 'past' ? 'active' : ''}" onclick="switchEventsTab('past')">
+            Past Events
+            <span class="events-tab-count">${allFilteredPast}</span>
+        </button>
+    `;
+}
+
+function switchEventsTab(tab) {
+    activeEventsTab = tab;
+    applyEventFiltersAndRender();
+}
+
 function applyEventFiltersAndRender() {
     const filtered = allEvents.filter((event) => {
         const organizerMatch = eventFilters.organizers.length === 0 || eventFilters.organizers.includes(getOrganizerLabel(event));
@@ -241,23 +277,28 @@ function applyEventFiltersAndRender() {
         return organizerMatch && typeMatch && topicMatch;
     });
 
-    const sorted = applyEventSorting(filtered, eventFilters.sortBy);
+    const upcomingFiltered = filtered.filter(isUpcomingEvent);
+    const pastFiltered = filtered.filter(e => !isUpcomingEvent(e));
 
-    displayEvents(sorted);
-    updateEventFilterResults(sorted.length, allEvents.length);
+    renderEventTabs(upcomingFiltered.length, pastFiltered.length);
+
+    const tabEvents = activeEventsTab === 'past' ? pastFiltered : upcomingFiltered;
+    const sorted = applyEventSorting(tabEvents, eventFilters.sortBy);
+
+    displayEvents(sorted, activeEventsTab === 'past');
+    updateEventFilterResults(sorted.length, allEvents.filter(isUpcomingEvent).length, allEvents.filter(e => !isUpcomingEvent(e)).length);
     updateActiveFilterSummary();
 }
 
-function updateEventFilterResults(visibleCount, totalCount) {
+function updateEventFilterResults(visibleCount, totalUpcoming, totalPast) {
     const results = document.getElementById('events-filter-results');
     if (!results) return;
-
-    if (visibleCount === totalCount) {
-        results.textContent = `Showing all ${totalCount} events`;
+    const tabTotal = activeEventsTab === 'past' ? totalPast : totalUpcoming;
+    if (visibleCount === tabTotal) {
+        results.textContent = `Showing all ${visibleCount} ${activeEventsTab} events`;
         return;
     }
-
-    results.textContent = `Showing ${visibleCount} of ${totalCount} events`;
+    results.textContent = `Showing ${visibleCount} of ${tabTotal} ${activeEventsTab} events`;
 }
 
 function matchesTopic(event, topicQuery) {
@@ -443,8 +484,11 @@ function openEventModal(eventId) {
 
     const loggedIn = isLoggedIn();
     const userRole = getCurrentRole();
+    const isPast = !isUpcomingEvent(event);
     const { formattedDate, formattedTime } = formatEventDate(event);
-    const registerBtn = buildRegisterButton(event, loggedIn, userRole, 'modal');
+    const actionArea = isPast
+        ? `<div class="event-past-note">This event has already taken place.</div>`
+        : `<div class="event-modal-action" id="event-modal-action-${event.id}">${buildRegisterButton(event, loggedIn, userRole, 'modal')}</div>`;
 
     const rows = [
         ['Date',       formattedDate + (formattedTime ? ' · ' + formattedTime : '')],
@@ -458,6 +502,7 @@ function openEventModal(eventId) {
     document.getElementById('event-modal-body').innerHTML = `
         <div class="event-modal-header">
             <h2>${escapeHtml(event.title)}</h2>
+            ${isPast ? '<span class="event-past-badge" style="font-size:.8rem;padding:.25rem .6rem;">Past</span>' : ''}
             ${event.category ? `<span class="badge badge-registered">${escapeHtml(event.category)}</span>` : ''}
         </div>
         <p class="event-modal-desc">${escapeHtml(event.description || 'No description available.')}</p>
@@ -468,9 +513,7 @@ function openEventModal(eventId) {
                     <span class="event-modal-meta-value">${escapeHtml(value)}</span>
                 </div>`).join('')}
         </div>
-        <div class="event-modal-action" id="event-modal-action-${event.id}">
-            ${registerBtn}
-        </div>`;
+        ${actionArea}`;
 
     const overlay = document.getElementById('event-modal');
     overlay.classList.add('open');
@@ -484,12 +527,17 @@ function closeEventModal() {
     document.body.style.overflow = '';
 }
 
-function displayEvents(events) {
+function displayEvents(events, isPastTab = false) {
     const container = document.getElementById('events-container');
     if (!container) return;
 
     if (!events.length) {
-        container.innerHTML = `
+        container.innerHTML = isPastTab ? `
+            <div class="empty-state">
+                <h3>No past events</h3>
+                <p>No past events match the current filters.</p>
+            </div>
+        ` : `
             <div class="empty-state">
                 <h3>No matching events</h3>
                 <p>Try broadening your organizer/type/topic filters to see more results.</p>
@@ -503,10 +551,11 @@ function displayEvents(events) {
 
     container.innerHTML = events.map(event => {
         const { formattedDate, formattedTime } = formatEventDate(event);
-        const registerButton = buildRegisterButton(event, loggedIn, userRole, 'card');
+        const registerButton = isPastTab ? '' : buildRegisterButton(event, loggedIn, userRole, 'card');
 
         return `
-            <div class="event-card" onclick="openEventModal(${event.id})" style="cursor:pointer;">
+            <div class="event-card${isPastTab ? ' event-card-past' : ''}" onclick="openEventModal(${event.id})" style="cursor:pointer;">
+                ${isPastTab ? '<span class="event-past-badge">Past</span>' : ''}
                 <h3>${escapeHtml(event.title)}</h3>
                 <p>${escapeHtml(event.description || 'No description available')}</p>
                 <div class="meta">
@@ -516,9 +565,7 @@ function displayEvents(events) {
                 ${event.category ? `<div class="meta" style="margin-top:.4rem;"><span>Type: ${escapeHtml(event.category)}</span></div>` : ''}
                 ${event.department ? `<div class="meta" style="margin-top:.4rem;"><span>Department: ${escapeHtml(event.department)}</span></div>` : ''}
                 <div class="meta" style="margin-top:.4rem;"><span>Organizer: ${escapeHtml(getOrganizerLabel(event))}</span></div>
-                <div onclick="event.stopPropagation()">
-                    ${registerButton}
-                </div>
+                ${registerButton ? `<div onclick="event.stopPropagation()">${registerButton}</div>` : ''}
             </div>
         `;
     }).join('');

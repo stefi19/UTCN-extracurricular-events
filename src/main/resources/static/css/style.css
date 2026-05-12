@@ -234,6 +234,56 @@ main h3 {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius-md); padding: 1.1rem 1.25rem; margin-bottom: 1.1rem;
 }
+
+/* ── Event tabs ─────────────────────────────────────────────────────── */
+.events-tab-bar {
+    display: flex; gap: .5rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 0;
+}
+.events-tab-btn {
+    display: inline-flex; align-items: center; gap: .45rem;
+    background: none; border: none; cursor: pointer;
+    padding: .6rem 1.1rem .8rem;
+    font-family: inherit; font-size: .92rem; font-weight: 600;
+    color: var(--text-muted);
+    position: relative; bottom: -2px;
+    border-bottom: 2px solid transparent;
+    transition: color .18s, border-color .18s;
+}
+.events-tab-btn:hover { color: var(--text-primary); }
+.events-tab-btn.active {
+    color: var(--utcn-red);
+    border-bottom-color: var(--utcn-red);
+}
+.events-tab-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 1.4rem; height: 1.4rem; padding: 0 .38rem;
+    border-radius: 999px; font-size: .72rem; font-weight: 700;
+    background: var(--bg-3); color: var(--text-muted);
+    transition: background .18s, color .18s;
+}
+.events-tab-btn.active .events-tab-count {
+    background: var(--utcn-red); color: #fff;
+}
+
+/* past event card dim */
+.event-card-past { opacity: .72; }
+.event-card-past:hover { opacity: 1; }
+.event-past-badge {
+    display: inline-block; padding: .18rem .55rem;
+    border-radius: 999px; font-size: .72rem; font-weight: 700;
+    background: var(--bg-3); color: var(--text-muted);
+    border: 1px solid var(--border);
+    margin-bottom: .5rem;
+}
+.event-past-note {
+    margin-top: 1rem; padding: .75rem 1rem;
+    border-radius: var(--radius-sm);
+    background: var(--bg-3); border: 1px solid var(--border);
+    color: var(--text-muted); font-size: .88rem; text-align: center;
+}
 .events-filter-header {
     display: flex; justify-content: space-between;
     align-items: center; gap: .8rem; margin-bottom: 1rem;
