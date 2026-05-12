@@ -116,7 +116,7 @@ fun Application.module() {
 
     val authService = AuthService(userDao, jwtManager, notificationPublisher)
     val userService = UserService(userDao)
-    val eventService = EventService(eventDao)
+    val eventService = EventService(eventDao, userDao)
     val registrationService = RegistrationService(registrationDao, eventDao, userDao, notificationPublisher)
     val categoryService = CategoryService(categoryDao)
     val departmentService = DepartmentService(departmentDao)

@@ -26,6 +26,7 @@ data class EventResponse(
     val category: String,
     val department: String,
     val organizerId: Long? = null,
+    val organizerName: String? = null,
     val categoryId: Long? = null,
     val location: String? = null,
     val startTime: String? = null,

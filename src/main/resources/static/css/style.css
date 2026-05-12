@@ -207,6 +207,109 @@ main h3 {
     margin-top: 1rem;
 }
 
+.events-filter-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.events-filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 0.9rem;
+}
+
+.events-filter-header h3 {
+    margin: 0;
+    font-size: 1.08rem;
+}
+
+.events-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 0.8rem;
+}
+
+.events-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.events-filter-field span {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.events-filter-field select,
+.events-filter-field input {
+    width: 100%;
+    padding: 0.66rem 0.75rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid #c8d4e2;
+    background: #fff;
+    font-size: 0.92rem;
+    color: var(--text-primary);
+}
+
+.events-filter-field select[multiple] {
+    min-height: 124px;
+    padding: 0.45rem;
+}
+
+.events-filter-field select[multiple] option {
+    padding: 0.45rem 0.5rem;
+    border-radius: 6px;
+    margin-bottom: 0.2rem;
+}
+
+.events-filter-field select[multiple] option:checked {
+    background: var(--utcn-navy-soft);
+    color: #fff;
+}
+
+.events-filter-field select:focus,
+.events-filter-field input:focus {
+    outline: none;
+    border-color: #7697bb;
+    box-shadow: 0 0 0 3px rgba(31, 74, 119, 0.14);
+}
+
+.events-filter-results {
+    margin-top: 0.8rem;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+}
+
+.events-filter-hint {
+    font-size: 0.78rem;
+    color: #6f7f90;
+}
+
+.events-active-filters {
+    margin-top: 0.65rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.events-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.28rem 0.62rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: rgba(11, 45, 82, 0.1);
+    color: var(--utcn-navy);
+}
+
 .event-card {
     background: var(--surface);
     border: 1px solid var(--border);

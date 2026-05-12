@@ -2,6 +2,9 @@ package com.example.service
 
 import com.example.dto.EventRequest
 import com.example.fake.FakeEventDao
+import com.example.fake.FakeUserDao
+import com.example.model.User
+import com.example.model.UserRole
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -143,5 +146,26 @@ class EventServiceTest {
         assertFailsWith<IllegalArgumentException> {
             service.createEvent(validRequest(title = "A".repeat(256)))
         }
+    }
+
+    @Test
+    fun listEventsIncludesOrganizerNameWhenOrganizerExists() {
+        val userDao = FakeUserDao()
+        val createdUser = userDao.create(
+            User(
+                id = 0,
+                email = "organizer@test.com",
+                passwordHash = "hash",
+                firstName = "Olivia",
+                lastName = "Organizer",
+                role = UserRole.ORGANIZER
+            )
+        )
+        val serviceWithUsers = EventService(FakeEventDao(), userDao)
+
+        serviceWithUsers.createEvent(validRequest().copy(organizerId = createdUser.id))
+        val event = serviceWithUsers.listEvents().first()
+
+        assertEquals("Olivia Organizer", event.organizerName)
     }
 }

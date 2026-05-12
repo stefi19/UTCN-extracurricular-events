@@ -28,8 +28,10 @@ class RegistrationService(
             throw IllegalArgumentException("You are already registered for this event")
         }
 
-        eventDao.findById(eventId)
+        val event = eventDao.findById(eventId)
             ?: throw IllegalArgumentException("Event not found")
+
+        val student = userDao?.findById(studentId)
 
         val registration = Registration(id = 0, studentId = studentId, eventId = eventId, status = "REGISTERED")
         val created = registrationDao.create(registration).toResponse()
@@ -40,8 +42,19 @@ class RegistrationService(
                 NotificationMessage(
                     eventType = "EVENT_REGISTRATION",
                     userId = studentId,
-                    userEmail = "",
-                    payload = mapOf("eventId" to eventId.toString(), "registrationId" to created.id.toString())
+                    userEmail = student?.email.orEmpty(),
+                    payload = mapOf(
+                        "eventId" to eventId.toString(),
+                        "registrationId" to created.id.toString(),
+                        "eventTitle" to event.title,
+                        "eventDate" to event.date,
+                        "eventStartTime" to (event.startTime ?: ""),
+                        "eventLocation" to (event.location ?: ""),
+                        "eventCategory" to event.category,
+                        "eventDepartment" to event.department,
+                        "studentFirstName" to (student?.firstName ?: ""),
+                        "studentLastName" to (student?.lastName ?: "")
+                    )
                 )
             )
         }
@@ -95,12 +108,13 @@ class RegistrationService(
         logger.info("Cancelled registration={}", registrationId)
 
         if (result) {
+            val student = userDao?.findById(studentId)
             runBlocking {
                 notificationPublisher?.publish(
                     NotificationMessage(
                         eventType = "REGISTRATION_CANCELLED",
                         userId = studentId,
-                        userEmail = "",
+                        userEmail = student?.email.orEmpty(),
                         payload = mapOf("registrationId" to registrationId.toString())
                     )
                 )
