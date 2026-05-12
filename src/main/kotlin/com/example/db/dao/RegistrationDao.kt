@@ -5,6 +5,7 @@ import com.example.model.Registration
 interface RegistrationDao {
     fun create(registration: Registration): Registration
     fun findById(id: Long): Registration?
+    fun findAll(): List<Registration>
     fun findByStudentId(studentId: Long): List<Registration>
     fun findByEventId(eventId: Long): List<Registration>
     fun findByStudentAndEvent(studentId: Long, eventId: Long): Registration?

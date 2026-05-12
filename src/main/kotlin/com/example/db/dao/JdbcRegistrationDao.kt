@@ -39,6 +39,24 @@ class JdbcRegistrationDao(private val dataSource: DataSource) : RegistrationDao 
         }
     }
 
+    override fun findAll(): List<Registration> = dataSource.connection.use { connection ->
+        connection.prepareStatement(
+            """
+            SELECT id, student_id, event_id, status, registered_at, cancelled_at
+            FROM registrations
+            ORDER BY registered_at DESC
+            """.trimIndent()
+        ).use { statement ->
+            statement.executeQuery().use { rs ->
+                buildList {
+                    while (rs.next()) {
+                        add(rs.toRegistration())
+                    }
+                }
+            }
+        }
+    }
+
     override fun findByStudentId(studentId: Long): List<Registration> = dataSource.connection.use { connection ->
         connection.prepareStatement(
             """

@@ -28,6 +28,11 @@ class RegistrationService(
     private val logger = LoggerFactory.getLogger(RegistrationService::class.java)
     private val reminderHoursBefore: Long = (System.getenv("REMINDER_HOURS_BEFORE") ?: "3").toLongOrNull() ?: 3L
 
+    fun getAllRegistrations(): List<RegistrationResponse> {
+        logger.info("Getting all registrations (admin)")
+        return registrationDao.findAll().map { it.toResponse() }
+    }
+
     fun registerStudent(studentId: Long, eventId: Long): RegistrationResponse {
         logger.info("Registering student={} for event={}", studentId, eventId)
 

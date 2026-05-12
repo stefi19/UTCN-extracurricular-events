@@ -1,5 +1,6 @@
 package com.example
 
+import com.example.controller.AdminStatsController
 import com.example.controller.AuthController
 import com.example.controller.CategoryController
 import com.example.controller.DepartmentController
@@ -138,6 +139,9 @@ fun Application.module() {
     val registrationController = RegistrationController(registrationService)
     val categoryController = CategoryController(categoryService)
     val departmentController = DepartmentController(departmentService)
+    val adminStatsController = AdminStatsController(
+        userService, eventService, registrationService, categoryService, departmentService
+    )
 
     routing {
         // Serve static files (CSS, JS)
@@ -690,6 +694,51 @@ fun Application.module() {
             call.respond(mapOf("status" to "ok"))
         }
 
+        // Admin Dashboard page
+        get("/admin-dashboard") {
+            call.respondHtml {
+                head {
+                    meta(charset = "UTF-8")
+                    meta(name = "viewport", content = "width=device-width, initial-scale=1.0")
+                    title { +"Admin Dashboard - UTCN Events" }
+                    link(rel = "stylesheet", href = "/static/css/style.css")
+                }
+                body {
+                    header {
+                        div(classes = "container") {
+                            nav {
+                                h1 { +"UTCN Events" }
+                                ul {
+                                    li { a(href = "/") { +"Home" } }
+                                    li { a(href = "/events") { +"Events" } }
+                                    li { a(href = "/my-registrations") { +"My Registrations" } }
+                                    li { a(href = "/profile") { +"Profile" } }
+                                    li { a(href = "/login") { +"Login" } }
+                                }
+                            }
+                        }
+                    }
+                    main {
+                        div(classes = "container") {
+                            div {
+                                id = "admin-dashboard-container"
+                                div(classes = "loading") {
+                                    +"Loading admin dashboard..."
+                                }
+                            }
+                        }
+                    }
+                    footer {
+                        div(classes = "container") {
+                            p { +"© 2026 Technical University of Cluj-Napoca. All rights reserved." }
+                        }
+                    }
+                    script(src = "/static/js/app.js") {}
+                    script(src = "/static/js/admin-dashboard.js") {}
+                }
+            }
+        }
+
         authController.register(this)
         
         // Public events API (GET only - no authentication required)
@@ -702,6 +751,7 @@ fun Application.module() {
             registrationController.register(this)
             categoryController.register(this)
             departmentController.register(this)
+            adminStatsController.register(this)
         }
     }
 

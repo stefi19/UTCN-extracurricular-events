@@ -521,6 +521,13 @@ function updateNavigation() {
                 navUl.appendChild(organizerLi);
             }
 
+            if (!document.getElementById('nav-admin-dashboard-link')) {
+                const dashLi = document.createElement('li');
+                dashLi.id = 'nav-admin-dashboard-link';
+                dashLi.innerHTML = '<a href="/admin-dashboard">📊 Dashboard</a>';
+                navUl.appendChild(dashLi);
+            }
+
             if (!document.getElementById('nav-admin-organizers-link')) {
                 const adminLi = document.createElement('li');
                 adminLi.id = 'nav-admin-organizers-link';
