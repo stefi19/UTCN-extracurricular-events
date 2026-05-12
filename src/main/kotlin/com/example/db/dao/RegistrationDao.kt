@@ -9,6 +9,8 @@ interface RegistrationDao {
     fun findByStudentId(studentId: Long): List<Registration>
     fun findByEventId(eventId: Long): List<Registration>
     fun findByStudentAndEvent(studentId: Long, eventId: Long): Registration?
+    fun findByStudentAndEventAny(studentId: Long, eventId: Long): Registration?
+    fun reactivate(id: Long): Registration?
     fun updateStatus(id: Long, status: String): Boolean
     fun delete(id: Long): Boolean
 }

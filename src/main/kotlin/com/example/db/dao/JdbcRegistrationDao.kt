@@ -114,6 +114,39 @@ class JdbcRegistrationDao(private val dataSource: DataSource) : RegistrationDao 
             }
         }
 
+    override fun findByStudentAndEventAny(studentId: Long, eventId: Long): Registration? =
+        dataSource.connection.use { connection ->
+            connection.prepareStatement(
+                """
+                SELECT id, student_id, event_id, status, registered_at, cancelled_at
+                FROM registrations
+                WHERE student_id = ? AND event_id = ?
+                """.trimIndent()
+            ).use { statement ->
+                statement.setLong(1, studentId)
+                statement.setLong(2, eventId)
+                statement.executeQuery().use { rs ->
+                    if (rs.next()) rs.toRegistration() else null
+                }
+            }
+        }
+
+    override fun reactivate(id: Long): Registration? = dataSource.connection.use { connection ->
+        connection.prepareStatement(
+            """
+            UPDATE registrations
+            SET status = 'REGISTERED', cancelled_at = NULL, registered_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            RETURNING id, student_id, event_id, status, registered_at, cancelled_at
+            """.trimIndent()
+        ).use { statement ->
+            statement.setLong(1, id)
+            statement.executeQuery().use { rs ->
+                if (rs.next()) rs.toRegistration() else null
+            }
+        }
+    }
+
     override fun updateStatus(id: Long, status: String): Boolean = dataSource.connection.use { connection ->
         connection.prepareStatement(
             """

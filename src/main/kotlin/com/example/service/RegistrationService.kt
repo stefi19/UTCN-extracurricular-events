@@ -36,8 +36,15 @@ class RegistrationService(
     fun registerStudent(studentId: Long, eventId: Long): RegistrationResponse {
         logger.info("Registering student={} for event={}", studentId, eventId)
 
-        val existing = registrationDao.findByStudentAndEvent(studentId, eventId)
+        val existing = registrationDao.findByStudentAndEventAny(studentId, eventId)
         if (existing != null) {
+            if (existing.status == "CANCELLED") {
+                // Re-register: reactivate the cancelled row
+                logger.info("Re-activating cancelled registration id={} for student={} event={}", existing.id, studentId, eventId)
+                val reactivated = registrationDao.reactivate(existing.id)
+                    ?: throw IllegalStateException("Failed to reactivate registration")
+                return reactivated.toResponse()
+            }
             logger.warn("Duplicate registration: student={} event={}", studentId, eventId)
             throw IllegalArgumentException("You are already registered for this event")
         }

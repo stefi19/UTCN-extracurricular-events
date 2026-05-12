@@ -81,7 +81,7 @@ async function fetchMyRegistrations() {
         });
         if (!res.ok) { myRegisteredEventIds = new Set(); return; }
         const regs = await res.json();
-        myRegisteredEventIds = new Set(regs.map(r => r.eventId));
+        myRegisteredEventIds = new Set(regs.filter(r => r.status !== 'CANCELLED').map(r => r.eventId));
     } catch {
         myRegisteredEventIds = new Set();
     }
