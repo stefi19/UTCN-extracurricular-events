@@ -385,6 +385,105 @@ function normalizePersistedOrganizerFilters(values) {
     return [...new Set(normalized)];
 }
 
+function buildRegisterButton(event, loggedIn, userRole, context) {
+    // context = 'card' (in grid) | 'modal' (in popup)
+    const fullWidth = context === 'modal' ? ' style="width:100%;"' : ' style="margin-top:1rem;width:100%;"';
+    if (loggedIn && userRole === 'STUDENT') {
+        if (myRegisteredEventIds.has(event.id)) {
+            return `<div class="already-registered-badge"${fullWidth}>✓ Already Registered</div>`;
+        }
+        return `<button class="btn btn-primary" onclick="registerForEvent(${event.id})"${fullWidth}>Register for Event</button>`;
+    }
+    if (loggedIn && (userRole === 'ORGANIZER' || userRole === 'ADMIN')) {
+        return `<a href="/organizer-panel" class="btn btn-secondary"${fullWidth}>Manage from Organizer Panel</a>`;
+    }
+    return `<a href="/login" class="btn"${fullWidth}>Login to Register</a>`;
+}
+
+function formatEventDate(event) {
+    let formattedDate = 'TBA';
+    let formattedTime = '';
+    if (event.date) {
+        formattedDate = event.date;
+    } else if (event.startTime) {
+        const startDate = new Date(event.startTime);
+        formattedDate = startDate.toLocaleDateString('en-US', {
+            weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
+        });
+        formattedTime = startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+    return { formattedDate, formattedTime };
+}
+
+// ── Event detail modal ─────────────────────────────────────────────────────
+
+function ensureModalInDOM() {
+    if (document.getElementById('event-modal')) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'event-modal';
+    overlay.className = 'event-modal-overlay';
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('role', 'dialog');
+    overlay.innerHTML = `
+        <div class="event-modal-box" id="event-modal-box">
+            <button class="event-modal-close" id="event-modal-close" aria-label="Close">✕</button>
+            <div id="event-modal-body"></div>
+        </div>`;
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeEventModal(); });
+    document.getElementById('event-modal-close').addEventListener('click', closeEventModal);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEventModal(); });
+}
+
+function openEventModal(eventId) {
+    const event = allEvents.find(ev => ev.id === eventId);
+    if (!event) return;
+    ensureModalInDOM();
+
+    const loggedIn = isLoggedIn();
+    const userRole = getCurrentRole();
+    const { formattedDate, formattedTime } = formatEventDate(event);
+    const registerBtn = buildRegisterButton(event, loggedIn, userRole, 'modal');
+
+    const rows = [
+        ['Date',       formattedDate + (formattedTime ? ' · ' + formattedTime : '')],
+        ['Category',   event.category],
+        ['Department', event.department],
+        ['Location',   event.location],
+        ['Organizer',  getOrganizerLabel(event)],
+        ['Max seats',  event.maxParticipants != null ? String(event.maxParticipants) : null],
+    ].filter(([, v]) => v);
+
+    document.getElementById('event-modal-body').innerHTML = `
+        <div class="event-modal-header">
+            <h2>${escapeHtml(event.title)}</h2>
+            ${event.category ? `<span class="badge badge-registered">${escapeHtml(event.category)}</span>` : ''}
+        </div>
+        <p class="event-modal-desc">${escapeHtml(event.description || 'No description available.')}</p>
+        <div class="event-modal-meta">
+            ${rows.map(([label, value]) => `
+                <div class="event-modal-meta-row">
+                    <span class="event-modal-meta-label">${label}</span>
+                    <span class="event-modal-meta-value">${escapeHtml(value)}</span>
+                </div>`).join('')}
+        </div>
+        <div class="event-modal-action" id="event-modal-action-${event.id}">
+            ${registerBtn}
+        </div>`;
+
+    const overlay = document.getElementById('event-modal');
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEventModal() {
+    const overlay = document.getElementById('event-modal');
+    if (!overlay) return;
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+}
+
 function displayEvents(events) {
     const container = document.getElementById('events-container');
     if (!container) return;
@@ -403,51 +502,23 @@ function displayEvents(events) {
     const userRole = getCurrentRole();
 
     container.innerHTML = events.map(event => {
-        // Handle both date formats
-        let formattedDate = 'TBA';
-        let formattedTime = '';
-        
-        if (event.date) {
-            // Simple date format from our schema
-            formattedDate = event.date;
-        } else if (event.startTime) {
-            const startDate = new Date(event.startTime);
-            formattedDate = startDate.toLocaleDateString('en-US', { 
-                weekday: 'short', 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric' 
-            });
-            formattedTime = startDate.toLocaleTimeString('en-US', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
-        }
-        
-        let registerButton = `<a href="/login" class="btn" style="margin-top: 1rem; display: block; text-align: center;">Login to Register</a>`;
-        if (loggedIn && userRole === 'STUDENT') {
-            if (myRegisteredEventIds.has(event.id)) {
-                registerButton = `<div class="already-registered-badge" style="margin-top: 1rem;">✓ Already Registered</div>`;
-            } else {
-                registerButton = `<button class="btn btn-primary" onclick="registerForEvent(${event.id})" style="margin-top: 1rem; width: 100%;">Register for Event</button>`;
-            }
-        } else if (loggedIn && (userRole === 'ORGANIZER' || userRole === 'ADMIN')) {
-            registerButton = `<a href="/organizer-panel" class="btn btn-secondary" style="margin-top: 1rem; display: block; text-align: center;">Manage from Organizer Panel</a>`;
-        }
-        
+        const { formattedDate, formattedTime } = formatEventDate(event);
+        const registerButton = buildRegisterButton(event, loggedIn, userRole, 'card');
+
         return `
-            <div class="event-card">
+            <div class="event-card" onclick="openEventModal(${event.id})" style="cursor:pointer;">
                 <h3>${escapeHtml(event.title)}</h3>
                 <p>${escapeHtml(event.description || 'No description available')}</p>
                 <div class="meta">
                     <span>Date: ${formattedDate}</span>
                     ${formattedTime ? `<span>Time: ${formattedTime}</span>` : ''}
                 </div>
-                ${event.category ? `<div class="meta" style="margin-top: 0.5rem;"><span>Type: ${escapeHtml(event.category)}</span></div>` : ''}
-                ${event.department ? `<div class="meta" style="margin-top: 0.5rem;"><span>Department: ${escapeHtml(event.department)}</span></div>` : ''}
-                <div class="meta" style="margin-top: 0.5rem;"><span>Organizer: ${escapeHtml(getOrganizerLabel(event))}</span></div>
-                ${event.location ? `<div class="meta" style="margin-top: 0.5rem;"><span>Location: ${escapeHtml(event.location)}</span></div>` : ''}
-                ${registerButton}
+                ${event.category ? `<div class="meta" style="margin-top:.4rem;"><span>Type: ${escapeHtml(event.category)}</span></div>` : ''}
+                ${event.department ? `<div class="meta" style="margin-top:.4rem;"><span>Department: ${escapeHtml(event.department)}</span></div>` : ''}
+                <div class="meta" style="margin-top:.4rem;"><span>Organizer: ${escapeHtml(getOrganizerLabel(event))}</span></div>
+                <div onclick="event.stopPropagation()">
+                    ${registerButton}
+                </div>
             </div>
         `;
     }).join('');
@@ -480,15 +551,22 @@ async function registerForEvent(eventId) {
         const data = await response.json();
 
         if (response.ok) {
-            // Mark as registered locally and swap the button to the badge — no full reload
+            // Mark as registered locally and swap every button for this event to the badge
             myRegisteredEventIds.add(eventId);
+            const badge = `<div class="already-registered-badge" style="width:100%;">✓ Already Registered</div>`;
+
+            // Swap button in the card grid
             if (btn) {
-                const badge = document.createElement('div');
-                badge.className = 'already-registered-badge';
-                badge.style.marginTop = '1rem';
-                badge.textContent = '✓ Already Registered';
-                btn.replaceWith(badge);
+                const badgeEl = document.createElement('div');
+                badgeEl.className = 'already-registered-badge';
+                badgeEl.style.width = '100%';
+                badgeEl.textContent = '✓ Already Registered';
+                btn.replaceWith(badgeEl);
             }
+
+            // Swap button inside the modal (if open)
+            const modalAction = document.getElementById(`event-modal-action-${eventId}`);
+            if (modalAction) modalAction.innerHTML = badge;
         } else {
             alert(`Registration failed: ${data.error || data.message || 'Unknown error'}`);
             if (btn) { btn.disabled = false; btn.textContent = 'Register for Event'; }
