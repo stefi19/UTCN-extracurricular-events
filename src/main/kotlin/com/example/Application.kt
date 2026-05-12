@@ -625,6 +625,56 @@ fun Application.module() {
             }
         }
 
+        // Admin taxonomy management page
+        get("/admin-taxonomy") {
+            call.respondHtml {
+                head {
+                    meta(charset = "UTF-8")
+                    meta(name = "viewport", content = "width=device-width, initial-scale=1.0")
+                    title { +"Taxonomy Management - UTCN Events" }
+                    link(rel = "stylesheet", href = "/static/css/style.css")
+                }
+                body {
+                    header {
+                        div(classes = "container") {
+                            nav {
+                                h1 { +"UTCN Events" }
+                                ul {
+                                    li { a(href = "/") { +"Home" } }
+                                    li { a(href = "/events") { +"Events" } }
+                                    li { a(href = "/my-registrations") { +"My Registrations" } }
+                                    li { a(href = "/profile") { +"Profile" } }
+                                    li { a(href = "/login") { +"Login" } }
+                                }
+                            }
+                        }
+                    }
+                    main {
+                        div(classes = "container") {
+                            h2 { +"Taxonomy Management" }
+                            p(classes = "section-intro") {
+                                +"Create, edit, and delete categories and departments used by event organizers."
+                            }
+
+                            div {
+                                id = "admin-taxonomy-container"
+                                div(classes = "loading") {
+                                    +"Loading taxonomy administration panel."
+                                }
+                            }
+                        }
+                    }
+                    footer {
+                        div(classes = "container") {
+                            p { +"© 2026 Technical University of Cluj-Napoca. All rights reserved." }
+                        }
+                    }
+                    script(src = "/static/js/app.js") {}
+                    script(src = "/static/js/admin-taxonomy.js") {}
+                }
+            }
+        }
+
         get("/health") {
             call.respond(mapOf("status" to "ok"))
         }

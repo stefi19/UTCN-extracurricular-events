@@ -769,6 +769,41 @@ main h3 {
     min-width: 170px;
 }
 
+.taxonomy-grid {
+    align-items: start;
+}
+
+.taxonomy-card h4 {
+    margin: 1rem 0 0.55rem;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.taxonomy-table-wrapper {
+    margin-top: 0.55rem;
+}
+
+.taxonomy-table th:last-child,
+.taxonomy-table td:last-child {
+    width: 190px;
+}
+
+.compact-actions {
+    gap: 0.35rem;
+}
+
+.compact-actions .btn-secondary,
+.compact-actions .btn-manage-cancel {
+    min-width: 72px;
+    width: auto;
+    padding: 0.45rem 0.65rem;
+    font-size: 0.82rem;
+}
+
+.compact-empty-state {
+    padding: 1.3rem 1rem;
+}
+
 footer {
     margin-top: 3rem;
     background: var(--utcn-navy);

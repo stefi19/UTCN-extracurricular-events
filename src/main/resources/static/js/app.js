@@ -244,6 +244,13 @@ function updateNavigation() {
                 adminLi.innerHTML = '<a href="/admin-organizers">Admin Organizers</a>';
                 navUl.appendChild(adminLi);
             }
+
+            if (!document.getElementById('nav-admin-taxonomy-link')) {
+                const taxonomyLi = document.createElement('li');
+                taxonomyLi.id = 'nav-admin-taxonomy-link';
+                taxonomyLi.innerHTML = '<a href="/admin-taxonomy">Admin Taxonomy</a>';
+                navUl.appendChild(taxonomyLi);
+            }
         }
     }
 }
