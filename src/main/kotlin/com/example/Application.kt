@@ -178,7 +178,7 @@ fun Application.module() {
                                 +"Where curiosity meets "
                                 em { +"opportunity." }
                             }
-                            p { +"Your campus. Your journey. Twelve events, six organizers, one platform built for you." }
+                            p { +"Your campus. Your journey." }
                             div(classes = "hero-cta-group") {
                                 a(href = "/events", classes = "btn btn-primary") { +"Explore Events" }
                                 a(href = "/my-registrations", classes = "btn btn-secondary") { +"My Journey" }
