@@ -7,10 +7,15 @@ import javax.sql.DataSource
 
 object DatabaseFactory {
     fun createPostgresDataSource(): DataSource {
+        val host = System.getenv("DB_HOST") ?: "localhost"
+        val port = System.getenv("DB_PORT") ?: "5432"
+        val name = System.getenv("DB_NAME") ?: "utcnevents"
+        val jdbcFromParts = "jdbc:postgresql://$host:$port/$name"
+
         val config = HikariConfig().apply {
-            jdbcUrl = System.getenv("DATABASE_URL") ?: "jdbc:postgresql://localhost:5432/utcnevents"
-            username = System.getenv("DATABASE_USER") ?: "postgres"
-            password = System.getenv("DATABASE_PASSWORD") ?: "postgres"
+            jdbcUrl = System.getenv("DATABASE_URL") ?: jdbcFromParts
+            username = System.getenv("DATABASE_USER") ?: System.getenv("DB_USER") ?: "postgres"
+            password = System.getenv("DATABASE_PASSWORD") ?: System.getenv("DB_PASSWORD") ?: "postgres"
             driverClassName = "org.postgresql.Driver"
             maximumPoolSize = 5
             isAutoCommit = true
