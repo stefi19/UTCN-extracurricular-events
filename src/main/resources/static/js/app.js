@@ -641,6 +641,10 @@ async function initializeAppPage() {
     updateNavigation();
     loadPersistedEventFilters();
 
+    if (document.getElementById('home-container')) {
+        loadHomePage();
+    }
+
     if (document.getElementById('events-container')) {
         fetchEvents();
     }
@@ -650,6 +654,386 @@ async function initializeAppPage() {
 function isLoggedIn() {
     return getToken() !== null;
 }
+
+// ── HOME PAGE ────────────────────────────────────────────────────────────────
+
+async function loadHomePage() {
+    const container = document.getElementById('home-container');
+    if (!container) return;
+    container.innerHTML = '<div class="loading">Personalizing your experience…</div>';
+
+    try {
+        const loggedIn = isLoggedIn();
+        const role = getCurrentRole();
+
+        const fetchList = [fetch(`${API_URL}/api/events`)];
+        if (loggedIn && role === 'STUDENT') {
+            fetchList.push(fetch(`${API_URL}/api/registrations`, {
+                headers: { Authorization: `Bearer ${getToken()}` }
+            }));
+        }
+
+        const results = await Promise.all(fetchList);
+        if (!results[0].ok) throw new Error('events fetch failed');
+        allEvents = await results[0].json();
+
+        let registrations = [];
+        if (results[1] && results[1].ok) {
+            registrations = await results[1].json();
+            myRegisteredEventIds = new Set(
+                registrations.filter(r => r.status !== 'CANCELLED').map(r => r.eventId)
+            );
+        }
+
+        if (loggedIn && role === 'STUDENT') {
+            renderStudentHome(container, registrations);
+        } else if (loggedIn && role === 'ORGANIZER') {
+            renderOrganizerHome(container);
+        } else {
+            renderGuestHome(container);
+        }
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = `<div class="empty-state"><h3>Something went wrong</h3><p>Please refresh the page.</p></div>`;
+    }
+}
+
+function getStudentLevel(count) {
+    const levels = [
+        { min: 0,  max: 0,        title: 'Newcomer',   emoji: '🌱', nextAt: 1  },
+        { min: 1,  max: 2,        title: 'Explorer',   emoji: '🔭', nextAt: 3  },
+        { min: 3,  max: 5,        title: 'Scholar',    emoji: '📚', nextAt: 6  },
+        { min: 6,  max: 9,        title: 'Enthusiast', emoji: '⚡', nextAt: 10 },
+        { min: 10, max: Infinity, title: 'Legend',     emoji: '🏆', nextAt: null },
+    ];
+    return levels.find(l => count >= l.min && count <= l.max) || levels[0];
+}
+
+function renderStudentHome(container, registrations) {
+    const firstName = (localStorage.getItem('user_name') || 'there').split(' ')[0];
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+
+    const activeRegs = registrations.filter(r => r.status !== 'CANCELLED');
+    const upcoming = allEvents.filter(isUpcomingEvent);
+    const myUpcoming = upcoming.filter(e => myRegisteredEventIds.has(e.id))
+        .sort((a, b) => getEventTimestamp(a) - getEventTimestamp(b));
+    const myPast = allEvents.filter(e => !isUpcomingEvent(e) && myRegisteredEventIds.has(e.id));
+    const notRegistered = upcoming.filter(e => !myRegisteredEventIds.has(e.id));
+
+    const { title: rankTitle, emoji, nextAt } = getStudentLevel(activeRegs.length);
+    const progress = nextAt === null ? 100 : Math.min(100, Math.round((activeRegs.length / nextAt) * 100));
+
+    const catCount = {};
+    activeRegs.forEach(r => {
+        const ev = allEvents.find(e => e.id === r.eventId);
+        if (ev?.category) catCount[ev.category] = (catCount[ev.category] || 0) + 1;
+    });
+    const cats = Object.entries(catCount).sort((a, b) => b[1] - a[1]);
+    const maxCat = cats.length ? cats[0][1] : 1;
+
+    const achievements = [
+        activeRegs.length >= 1  ? { icon: '🎫', label: 'First Step'  } : null,
+        activeRegs.length >= 3  ? { icon: '🔭', label: 'Explorer'    } : null,
+        cats.length >= 2        ? { icon: '🌐', label: 'Diverse'      } : null,
+        myUpcoming.length >= 1  ? { icon: '📅', label: 'Committed'    } : null,
+        activeRegs.length >= 5  ? { icon: '⚡', label: 'Enthusiast'   } : null,
+        activeRegs.length >= 10 ? { icon: '🏆', label: 'Legend'       } : null,
+    ].filter(Boolean);
+
+    container.innerHTML = `
+        <div class="home-wrap">
+
+            <div class="home-greeting">
+                <div class="home-greeting-text">
+                    <span class="home-greeting-sub">${greeting}</span>
+                    <h2 class="home-greeting-name">${escapeHtml(firstName)} <span class="home-wave">👋</span></h2>
+                    <p class="home-greeting-desc">
+                        ${upcoming.length} event${upcoming.length !== 1 ? 's' : ''} waiting for you.
+                        ${myUpcoming.length > 0 ? `You're signed up for <strong>${myUpcoming.length}</strong> of them.` : 'Start building your journey.'}
+                    </p>
+                </div>
+                <div class="home-rank-card">
+                    <div class="home-rank-emoji">${emoji}</div>
+                    <div class="home-rank-body">
+                        <span class="home-rank-label">YOUR RANK</span>
+                        <span class="home-rank-title">${rankTitle}</span>
+                        <div class="home-rank-bar-wrap">
+                            <div class="home-rank-bar" style="width:${progress}%"></div>
+                        </div>
+                        <span class="home-rank-hint">
+                            ${nextAt === null ? '✨ Maximum rank achieved' : `${activeRegs.length} / ${nextAt} registrations to next rank`}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="home-stats-grid">
+                <div class="home-stat-card">
+                    <span class="home-stat-icon">🎫</span>
+                    <span class="home-stat-value">${activeRegs.length}</span>
+                    <span class="home-stat-label">Registrations</span>
+                </div>
+                <div class="home-stat-card">
+                    <span class="home-stat-icon">📅</span>
+                    <span class="home-stat-value">${myUpcoming.length}</span>
+                    <span class="home-stat-label">Coming Up</span>
+                </div>
+                <div class="home-stat-card">
+                    <span class="home-stat-icon">🏛️</span>
+                    <span class="home-stat-value">${myPast.length}</span>
+                    <span class="home-stat-label">Attended</span>
+                </div>
+                <div class="home-stat-card">
+                    <span class="home-stat-icon">🔬</span>
+                    <span class="home-stat-value">${cats.length}</span>
+                    <span class="home-stat-label">Categories</span>
+                </div>
+            </div>
+
+            <div class="home-panels">
+
+                <div class="home-panel">
+                    <div class="home-panel-hdr">
+                        <h3>Your Upcoming Events</h3>
+                        <a href="/my-registrations" class="btn btn-secondary home-panel-action">View All</a>
+                    </div>
+                    ${myUpcoming.length === 0 ? `
+                        <div class="home-empty-panel">
+                            <span>🗓️</span>
+                            <p>No upcoming registrations yet.</p>
+                            <a href="/events" class="btn btn-primary" style="margin-top:.75rem;font-size:.85rem;">Find Events →</a>
+                        </div>
+                    ` : myUpcoming.slice(0, 4).map(ev => {
+                        const daysLeft = Math.ceil((getEventTimestamp(ev) - Date.now()) / 86400000);
+                        const cls = daysLeft <= 3 ? 'urgent' : daysLeft <= 7 ? 'soon' : '';
+                        return `
+                        <div class="home-ev-row home-ev-row--${cls}" onclick="openEventModal(${ev.id})" style="cursor:pointer;">
+                            <div class="home-ev-info">
+                                <span class="home-ev-title">${escapeHtml(ev.title)}</span>
+                                <span class="home-ev-meta">${escapeHtml(ev.category || '')}${ev.location ? ' · ' + escapeHtml(ev.location) : ''}</span>
+                            </div>
+                            <div class="home-ev-countdown">
+                                <span class="home-ev-days">${daysLeft}</span>
+                                <span class="home-ev-days-lbl">day${daysLeft !== 1 ? 's' : ''}</span>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>
+
+                <div class="home-panel">
+                    <div class="home-panel-hdr">
+                        <h3>Your Profile</h3>
+                    </div>
+                    ${cats.length === 0 ? `
+                        <div class="home-empty-panel">
+                            <span>🔭</span>
+                            <p>Register for events to build your profile.</p>
+                        </div>
+                    ` : `
+                        <div class="home-cats">
+                            ${cats.map(([cat, n]) => `
+                            <div class="home-cat-row">
+                                <span class="home-cat-name">${escapeHtml(cat)}</span>
+                                <div class="home-cat-bar-wrap">
+                                    <div class="home-cat-bar" style="width:${Math.round((n/maxCat)*100)}%"></div>
+                                </div>
+                                <span class="home-cat-n">${n}</span>
+                            </div>`).join('')}
+                        </div>
+                    `}
+                    ${achievements.length > 0 ? `
+                        <div class="home-achievements">
+                            <span class="home-ach-label">ACHIEVEMENTS</span>
+                            <div class="home-ach-list">
+                                ${achievements.map(a => `
+                                <span class="home-ach-badge" title="${escapeHtml(a.label)}">${a.icon} ${escapeHtml(a.label)}</span>`).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+
+            ${notRegistered.length > 0 ? `
+            <div class="home-discover">
+                <div class="home-panel-hdr" style="margin-bottom:1.25rem;">
+                    <h3>Discover What's Next</h3>
+                    <a href="/events" class="btn btn-secondary home-panel-action">All Events →</a>
+                </div>
+                <div class="home-discover-grid">
+                    ${notRegistered.slice(0, 3).map(ev => `
+                    <div class="home-disc-card" onclick="openEventModal(${ev.id})" style="cursor:pointer;">
+                        <span class="home-disc-cat">${escapeHtml(ev.category || 'Event')}</span>
+                        <h4 class="home-disc-title">${escapeHtml(ev.title)}</h4>
+                        <p class="home-disc-desc">${escapeHtml((ev.description || '').slice(0, 100))}…</p>
+                        <div class="home-disc-footer">
+                            <span class="home-disc-loc">📍 ${escapeHtml(ev.location || 'TBA')}</span>
+                            <div onclick="event.stopPropagation()">
+                                <button class="btn btn-primary home-disc-btn" onclick="registerForEvent(${ev.id})">Register</button>
+                            </div>
+                        </div>
+                    </div>`).join('')}
+                </div>
+            </div>
+            ` : `
+            <div class="home-allreg-banner">
+                <span>🎉</span>
+                <div>
+                    <strong>You're registered for everything!</strong>
+                    <p>You've signed up for all ${upcoming.length} upcoming events. Impressive.</p>
+                </div>
+                <a href="/events" class="btn btn-secondary">Browse History</a>
+            </div>
+            `}
+        </div>
+    `;
+    ensureModalInDOM();
+}
+
+function renderOrganizerHome(container) {
+    const firstName = (localStorage.getItem('user_name') || 'there').split(' ')[0];
+    const userId = getCurrentUserId();
+    const myEvents = allEvents.filter(e => e.organizerId === userId);
+    const myUpcoming = myEvents.filter(isUpcomingEvent).sort((a, b) => getEventTimestamp(a) - getEventTimestamp(b));
+    const myPast = myEvents.filter(e => !isUpcomingEvent(e));
+    const totalSeats = myEvents.reduce((s, e) => s + (e.maxParticipants || 0), 0);
+
+    container.innerHTML = `
+        <div class="home-wrap">
+            <div class="home-greeting">
+                <div class="home-greeting-text">
+                    <span class="home-greeting-sub">Organizer Dashboard</span>
+                    <h2 class="home-greeting-name">${escapeHtml(firstName)} <span class="home-wave">⚡</span></h2>
+                    <p class="home-greeting-desc">
+                        You have <strong>${myUpcoming.length}</strong> upcoming event${myUpcoming.length !== 1 ? 's' : ''} on the platform.
+                        ${allEvents.filter(isUpcomingEvent).length} total upcoming across all organizers.
+                    </p>
+                </div>
+                <div class="home-rank-card">
+                    <div class="home-rank-emoji">🎙️</div>
+                    <div class="home-rank-body">
+                        <span class="home-rank-label">YOUR ROLE</span>
+                        <span class="home-rank-title">Event Organizer</span>
+                        <span class="home-rank-hint">${myEvents.length} event${myEvents.length !== 1 ? 's' : ''} created on the platform</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="home-stats-grid">
+                <div class="home-stat-card">
+                    <span class="home-stat-icon">📅</span>
+                    <span class="home-stat-value">${myUpcoming.length}</span>
+                    <span class="home-stat-label">Upcoming</span>
+                </div>
+                <div class="home-stat-card">
+                    <span class="home-stat-icon">✅</span>
+                    <span class="home-stat-value">${myPast.length}</span>
+                    <span class="home-stat-label">Past Events</span>
+                </div>
+                <div class="home-stat-card">
+                    <span class="home-stat-icon">🎯</span>
+                    <span class="home-stat-value">${totalSeats}</span>
+                    <span class="home-stat-label">Total Seats</span>
+                </div>
+                <div class="home-stat-card">
+                    <span class="home-stat-icon">🌐</span>
+                    <span class="home-stat-value">${allEvents.filter(isUpcomingEvent).length}</span>
+                    <span class="home-stat-label">Platform Events</span>
+                </div>
+            </div>
+
+            <div class="home-discover">
+                <div class="home-panel-hdr" style="margin-bottom:1.25rem;">
+                    <h3>Your Upcoming Events</h3>
+                    <a href="/organizer-panel" class="btn btn-primary home-panel-action">Manage Events</a>
+                </div>
+                ${myUpcoming.length === 0 ? `
+                    <div class="home-empty-panel">
+                        <span>📭</span>
+                        <p>No upcoming events. Head to the Organizer Panel to create one.</p>
+                        <a href="/organizer-panel" class="btn btn-primary" style="margin-top:.75rem;font-size:.85rem;">Go to Panel →</a>
+                    </div>
+                ` : `
+                <div class="home-discover-grid">
+                    ${myUpcoming.slice(0, 3).map(ev => `
+                    <div class="home-disc-card" onclick="openEventModal(${ev.id})" style="cursor:pointer;">
+                        <span class="home-disc-cat">${escapeHtml(ev.category || 'Event')}</span>
+                        <h4 class="home-disc-title">${escapeHtml(ev.title)}</h4>
+                        <p class="home-disc-desc">${escapeHtml((ev.description || '').slice(0, 100))}…</p>
+                        <div class="home-disc-footer">
+                            <span class="home-disc-loc">📍 ${escapeHtml(ev.location || 'TBA')}</span>
+                            <span class="home-disc-loc">${ev.maxParticipants || '∞'} seats</span>
+                        </div>
+                    </div>`).join('')}
+                </div>`}
+            </div>
+        </div>
+    `;
+    ensureModalInDOM();
+}
+
+function renderGuestHome(container) {
+    const upcoming = allEvents.filter(isUpcomingEvent);
+    const organizers = [...new Set(allEvents.map(e => e.organizerName).filter(Boolean))];
+    const cats = [...new Set(allEvents.map(e => e.category).filter(Boolean))];
+
+    container.innerHTML = `
+        <div class="home-wrap">
+            <div class="home-guest-banner">
+                <div class="home-guest-stats">
+                    <div class="home-guest-stat">
+                        <span class="home-guest-num">${allEvents.length}</span>
+                        <span class="home-guest-lbl">Events on Platform</span>
+                    </div>
+                    <div class="home-guest-divider"></div>
+                    <div class="home-guest-stat">
+                        <span class="home-guest-num">${upcoming.length}</span>
+                        <span class="home-guest-lbl">Upcoming</span>
+                    </div>
+                    <div class="home-guest-divider"></div>
+                    <div class="home-guest-stat">
+                        <span class="home-guest-num">${organizers.length}</span>
+                        <span class="home-guest-lbl">Organizers</span>
+                    </div>
+                    <div class="home-guest-divider"></div>
+                    <div class="home-guest-stat">
+                        <span class="home-guest-num">${cats.length}</span>
+                        <span class="home-guest-lbl">Categories</span>
+                    </div>
+                </div>
+                <p class="home-guest-tagline">Join the UTCN Events community. Track your registrations, build your profile, earn ranks.</p>
+                <div class="home-guest-ctas">
+                    <a href="/register" class="btn btn-primary">Create Account — It's Free</a>
+                    <a href="/login" class="btn btn-secondary">Sign In</a>
+                </div>
+            </div>
+
+            <div class="home-discover">
+                <div class="home-panel-hdr" style="margin-bottom:1.25rem;">
+                    <h3>What's Coming Up</h3>
+                    <a href="/events" class="btn btn-secondary home-panel-action">All Events →</a>
+                </div>
+                <div class="home-discover-grid">
+                    ${upcoming.slice(0, 3).map(ev => `
+                    <div class="home-disc-card" onclick="openEventModal(${ev.id})" style="cursor:pointer;">
+                        <span class="home-disc-cat">${escapeHtml(ev.category || 'Event')}</span>
+                        <h4 class="home-disc-title">${escapeHtml(ev.title)}</h4>
+                        <p class="home-disc-desc">${escapeHtml((ev.description || '').slice(0, 100))}…</p>
+                        <div class="home-disc-footer">
+                            <span class="home-disc-loc">📍 ${escapeHtml(ev.location || 'TBA')}</span>
+                            <div onclick="event.stopPropagation()">
+                                <a href="/login" class="btn btn-secondary home-disc-btn">Sign in to Register</a>
+                            </div>
+                        </div>
+                    </div>`).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+    ensureModalInDOM();
+}
+
+
 
 // Update navigation based on authentication status
 function updateNavigation() {

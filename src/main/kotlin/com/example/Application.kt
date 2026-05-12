@@ -173,18 +173,24 @@ fun Application.module() {
                     }
                     div(classes = "hero") {
                         div(classes = "container") {
-                            h2 { +"Welcome to the UTCN Events Platform" }
-                            p { +"Discover academic events and register with ease across the Technical University of Cluj-Napoca." }
-                            a(href = "/events", classes = "btn") { +"Browse Events" }
+                            p(classes = "hero-eyebrow") { +"UTCN Events Platform" }
+                            h2 {
+                                +"Where curiosity meets "
+                                em { +"opportunity." }
+                            }
+                            p { +"Your campus. Your journey. Twelve events, six organizers, one platform built for you." }
+                            div(classes = "hero-cta-group") {
+                                a(href = "/events", classes = "btn btn-primary") { +"Explore Events" }
+                                a(href = "/my-registrations", classes = "btn btn-secondary") { +"My Journey" }
+                            }
                         }
                     }
                     main {
                         div(classes = "container") {
-                            h2 { +"Featured Events" }
-                            div(classes = "events-grid") {
-                                id = "events-container"
+                            div {
+                                id = "home-container"
                                 div(classes = "loading") {
-                                    +"Loading featured events."
+                                    +"Personalizing your experience…"
                                 }
                             }
                         }
