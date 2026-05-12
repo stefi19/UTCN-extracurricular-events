@@ -1,18 +1,25 @@
 package com.example.integration
 
 import com.example.controller.AuthController
+import com.example.controller.CategoryController
+import com.example.controller.DepartmentController
 import com.example.controller.EventController
 import com.example.controller.RegistrationController
+import com.example.controller.UserController
 import com.example.dto.ErrorResponse
 import com.example.fake.FakeCategoryDao
+import com.example.fake.FakeDepartmentDao
 import com.example.fake.FakeEventDao
 import com.example.fake.FakeNotificationPublisher
 import com.example.fake.FakeRegistrationDao
 import com.example.fake.FakeUserDao
 import com.example.security.JwtManager
 import com.example.service.AuthService
+import com.example.service.CategoryService
+import com.example.service.DepartmentService
 import com.example.service.EventService
 import com.example.service.RegistrationService
+import com.example.service.UserService
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.install
@@ -32,12 +39,17 @@ fun ApplicationTestBuilder.setupTestApplication(
     userDao: FakeUserDao = FakeUserDao(),
     eventDao: FakeEventDao = FakeEventDao(),
     registrationDao: FakeRegistrationDao = FakeRegistrationDao(),
+    categoryDao: FakeCategoryDao = FakeCategoryDao(),
+    departmentDao: FakeDepartmentDao = FakeDepartmentDao(),
     publisher: FakeNotificationPublisher = FakeNotificationPublisher()
 ): Triple<AuthService, EventService, RegistrationService> {
     val jwtManager = JwtManager(TEST_JWT_SECRET)
     val authService = AuthService(userDao, jwtManager, publisher)
+    val userService = UserService(userDao)
     val eventService = EventService(eventDao)
     val registrationService = RegistrationService(registrationDao, eventDao, userDao, publisher)
+    val categoryService = CategoryService(categoryDao)
+    val departmentService = DepartmentService(departmentDao)
 
     application {
         install(ContentNegotiation) { json() }
@@ -62,7 +74,10 @@ fun ApplicationTestBuilder.setupTestApplication(
             authenticate {
                 AuthController(authService).registerProtected(this)
                 EventController(eventService).register(this)
+                UserController(userService).register(this)
                 RegistrationController(registrationService).register(this)
+                CategoryController(categoryService).register(this)
+                DepartmentController(departmentService).register(this)
             }
         }
     }
