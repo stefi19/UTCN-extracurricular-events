@@ -1,6 +1,7 @@
 // Simple API helper
 const API_URL = 'http://localhost:8080';
 let allEvents = [];
+let myRegisteredEventIds = new Set(); // event IDs the current student has registered for
 const EVENT_FILTERS_STORAGE_KEY = 'events_filters_v2';
 const ORGANIZER_LABEL_ASSIGNED = 'Organizator desemnat';
 const ORGANIZER_LABEL_UNSPECIFIED = 'Fără organizator specificat';
@@ -68,6 +69,24 @@ async function ensureUserContext() {
     }
 }
 
+async function fetchMyRegistrations() {
+    const token = getToken();
+    if (!token || getCurrentRole() !== 'STUDENT') {
+        myRegisteredEventIds = new Set();
+        return;
+    }
+    try {
+        const res = await fetch(`${API_URL}/api/registrations`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) { myRegisteredEventIds = new Set(); return; }
+        const regs = await res.json();
+        myRegisteredEventIds = new Set(regs.map(r => r.eventId));
+    } catch {
+        myRegisteredEventIds = new Set();
+    }
+}
+
 async function fetchEvents() {
     const container = document.getElementById('events-container');
     if (!container) return;
@@ -75,12 +94,14 @@ async function fetchEvents() {
     try {
         container.innerHTML = '<div class="loading">Loading events...</div>';
         
-        const response = await fetch(`${API_URL}/api/events`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch events');
-        }
+        const [eventsRes] = await Promise.all([
+            fetch(`${API_URL}/api/events`),
+            fetchMyRegistrations()
+        ]);
+
+        if (!eventsRes.ok) throw new Error('Failed to fetch events');
         
-        allEvents = await response.json();
+        allEvents = await eventsRes.json();
 
         if (allEvents.length === 0) {
             renderEventFilterControls([]);
@@ -405,7 +426,11 @@ function displayEvents(events) {
         
         let registerButton = `<a href="/login" class="btn" style="margin-top: 1rem; display: block; text-align: center;">Login to Register</a>`;
         if (loggedIn && userRole === 'STUDENT') {
-            registerButton = `<button class="btn btn-primary" onclick="registerForEvent(${event.id})" style="margin-top: 1rem; width: 100%;">Register for Event</button>`;
+            if (myRegisteredEventIds.has(event.id)) {
+                registerButton = `<div class="already-registered-badge" style="margin-top: 1rem;">✓ Already Registered</div>`;
+            } else {
+                registerButton = `<button class="btn btn-primary" onclick="registerForEvent(${event.id})" style="margin-top: 1rem; width: 100%;">Register for Event</button>`;
+            }
         } else if (loggedIn && (userRole === 'ORGANIZER' || userRole === 'ADMIN')) {
             registerButton = `<a href="/organizer-panel" class="btn btn-secondary" style="margin-top: 1rem; display: block; text-align: center;">Manage from Organizer Panel</a>`;
         }
@@ -438,6 +463,10 @@ async function registerForEvent(eventId) {
         return;
     }
 
+    // Disable the button immediately to prevent double-clicks
+    const btn = document.querySelector(`button[onclick="registerForEvent(${eventId})"]`);
+    if (btn) { btn.disabled = true; btn.textContent = 'Registering…'; }
+
     try {
         const response = await fetch(`${API_URL}/api/registrations`, {
             method: 'POST',
@@ -451,15 +480,23 @@ async function registerForEvent(eventId) {
         const data = await response.json();
 
         if (response.ok) {
-            alert('You have been registered for the event successfully.');
-            // Optionally reload events to update UI
-            fetchEvents();
+            // Mark as registered locally and swap the button to the badge — no full reload
+            myRegisteredEventIds.add(eventId);
+            if (btn) {
+                const badge = document.createElement('div');
+                badge.className = 'already-registered-badge';
+                badge.style.marginTop = '1rem';
+                badge.textContent = '✓ Already Registered';
+                btn.replaceWith(badge);
+            }
         } else {
             alert(`Registration failed: ${data.error || data.message || 'Unknown error'}`);
+            if (btn) { btn.disabled = false; btn.textContent = 'Register for Event'; }
         }
     } catch (error) {
         console.error('Registration error:', error);
         alert('An error occurred while registering. Please try again.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Register for Event'; }
     }
 }
 
