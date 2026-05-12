@@ -47,7 +47,12 @@ fun ApplicationTestBuilder.setupTestApplication(
     val authService = AuthService(userDao, jwtManager, publisher)
     val userService = UserService(userDao)
     val eventService = EventService(eventDao, userDao)
-    val registrationService = RegistrationService(registrationDao, eventDao, userDao, publisher)
+    val registrationService = RegistrationService(
+        registrationDao = registrationDao,
+        eventDao = eventDao,
+        userDao = userDao,
+        notificationPublisher = publisher
+    )
     val categoryService = CategoryService(categoryDao)
     val departmentService = DepartmentService(departmentDao)
 

@@ -2,22 +2,31 @@ package com.example.service
 
 import com.example.db.dao.EventDao
 import com.example.db.dao.RegistrationDao
+import com.example.db.dao.ReminderOutboxDao
 import com.example.db.dao.UserDao
 import com.example.dto.ParticipantDetailsResponse
 import com.example.dto.RegistrationResponse
 import com.example.messaging.NotificationMessage
 import com.example.messaging.NotificationPublisher
 import com.example.model.Registration
+import com.example.model.ReminderOutboxItem
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 class RegistrationService(
     private val registrationDao: RegistrationDao,
     private val eventDao: EventDao,
     private val userDao: UserDao? = null,
+    private val reminderOutboxDao: ReminderOutboxDao? = null,
     private val notificationPublisher: NotificationPublisher? = null
 ) {
     private val logger = LoggerFactory.getLogger(RegistrationService::class.java)
+    private val reminderHoursBefore: Long = (System.getenv("REMINDER_HOURS_BEFORE") ?: "3").toLongOrNull() ?: 3L
 
     fun registerStudent(studentId: Long, eventId: Long): RegistrationResponse {
         logger.info("Registering student={} for event={}", studentId, eventId)
@@ -36,6 +45,8 @@ class RegistrationService(
         val registration = Registration(id = 0, studentId = studentId, eventId = eventId, status = "REGISTERED")
         val created = registrationDao.create(registration).toResponse()
         logger.info("Created registration id={}", created.id)
+
+    scheduleReminderOutbox(created.id, studentId, eventId, event, student)
 
         runBlocking {
             notificationPublisher?.publish(
@@ -109,6 +120,7 @@ class RegistrationService(
 
         if (result) {
             val student = userDao?.findById(studentId)
+            reminderOutboxDao?.markCancelledByRegistrationId(registrationId)
             runBlocking {
                 notificationPublisher?.publish(
                     NotificationMessage(
@@ -122,6 +134,90 @@ class RegistrationService(
         }
 
         return result
+    }
+
+    private fun scheduleReminderOutbox(
+        registrationId: Long,
+        studentId: Long,
+        eventId: Long,
+        event: com.example.model.Event,
+        student: com.example.model.User?
+    ) {
+        val sendAt = computeReminderTime(event)
+        if (sendAt == null) {
+            logger.warn("Reminder outbox skipped: cannot parse event time for eventId={}", eventId)
+            return
+        }
+
+        val recipient = student?.email
+        if (recipient.isNullOrBlank()) {
+            logger.warn("Reminder outbox skipped: no recipient email for studentId={}", studentId)
+            return
+        }
+
+        val item = ReminderOutboxItem(
+            id = 0,
+            registrationId = registrationId,
+            studentId = studentId,
+            eventId = eventId,
+            recipientEmail = recipient,
+            eventTitle = event.title,
+            eventDate = event.date,
+            eventStartTime = event.startTime,
+            eventLocation = event.location,
+            eventCategory = event.category,
+            eventDepartment = event.department,
+            studentFirstName = student.firstName,
+            sendAt = sendAt.toString(),
+            status = "PENDING"
+        )
+
+        runCatching {
+            reminderOutboxDao?.schedule(item)
+        }.onFailure {
+            logger.error("Failed to persist reminder outbox registrationId={}: {}", registrationId, it.message)
+        }
+    }
+
+    private fun computeReminderTime(event: com.example.model.Event): LocalDateTime? {
+        val eventStart = parseEventStart(event.startTime, event.date) ?: return null
+        return eventStart.minusHours(reminderHoursBefore)
+    }
+
+    private fun parseEventStart(startTimeRaw: String?, dateRaw: String): LocalDateTime? {
+        parseDateTime(startTimeRaw)?.let { return it }
+        parseDate(dateRaw)?.let { return it.atTime(LocalTime.of(9, 0)) }
+        return null
+    }
+
+    private fun parseDateTime(value: String?): LocalDateTime? {
+        if (value.isNullOrBlank()) return null
+
+        val patterns = listOf(
+            DateTimeFormatter.ISO_DATE_TIME,
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.S"),
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+        )
+
+        for (formatter in patterns) {
+            try {
+                return LocalDateTime.parse(value.trim(), formatter)
+            } catch (_: DateTimeParseException) {
+                // continue
+            }
+        }
+
+        return null
+    }
+
+    private fun parseDate(value: String?): LocalDate? {
+        if (value.isNullOrBlank()) return null
+        return try {
+            LocalDate.parse(value.trim(), DateTimeFormatter.ISO_DATE)
+        } catch (_: DateTimeParseException) {
+            null
+        }
     }
 
     fun updateRegistrationStatus(registrationId: Long, status: String, userRole: String): Boolean {

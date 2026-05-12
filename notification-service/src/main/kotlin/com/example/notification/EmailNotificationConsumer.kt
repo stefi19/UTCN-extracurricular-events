@@ -2,15 +2,7 @@ package com.example.notification
 
 import dev.kourier.amqp.connection.AMQPConfig
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
 
 /**
  * Single consumer for all notification events to avoid message loss
@@ -28,10 +20,8 @@ class EmailNotificationConsumer(
     override fun handleMessage(message: NotificationMessage) {
         when (message.eventType) {
             "USER_REGISTERED" -> sendWelcome(message)
-            "EVENT_REGISTRATION" -> {
-                sendRegistrationConfirmation(message)
-                scheduleReminder(message)
-            }
+            "EVENT_REGISTRATION" -> sendRegistrationConfirmation(message)
+            "EVENT_REMINDER_DUE" -> sendReminder(message)
             "REGISTRATION_CANCELLED" -> sendCancellationNotice(message)
             else -> logger.debug("Skipping unsupported eventType={}", message.eventType)
         }
@@ -95,27 +85,9 @@ class EmailNotificationConsumer(
             .onFailure { logger.error("Failed to send registration confirmation to={}: {}", recipient, it.message) }
     }
 
-    private fun scheduleReminder(message: NotificationMessage) {
+    private fun sendReminder(message: NotificationMessage) {
         val recipient = message.userEmail
         if (recipient.isBlank()) return
-
-        val eventStart = parseEventStart(message.payload)
-        if (eventStart == null) {
-            logger.warn("Cannot schedule reminder: no parseable event date/time for userId={}", message.userId)
-            return
-        }
-
-        val reminderTime = eventStart.minusHours(reminderHoursBefore)
-        val delayMillis = reminderTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() - System.currentTimeMillis()
-
-        if (delayMillis <= 0) {
-            logger.info(
-                "Reminder skipped (event is too close or past): userId={} eventStart={}",
-                message.userId,
-                eventStart
-            )
-            return
-        }
 
         val eventTitle = message.payload["eventTitle"].orUnknown("eveniment")
         val eventDate = message.payload["eventDate"].orUnknown("data neprecizată")
@@ -123,35 +95,25 @@ class EmailNotificationConsumer(
         val eventLocation = message.payload["eventLocation"].orUnknown("locație neprecizată")
         val firstName = message.payload["studentFirstName"].orUnknown("student")
 
-        logger.info(
-            "Scheduling reminder in {} ms for userId={} eventTitle={}",
-            delayMillis,
-            message.userId,
-            eventTitle
-        )
+        val subject = "Reminder: $eventTitle începe în curând"
+        val body = """
+            Salut, $firstName!
+            
+            Acesta este reminder-ul tău pentru evenimentul "$eventTitle".
+            
+            Evenimentul începe în aproximativ $reminderHoursBefore ore.
+            
+            Detalii:
+            - Data: $eventDate
+            - Ora start: $eventStartTime
+            - Locație: $eventLocation
+            
+            Ne vedem acolo!
+            Echipa UTCN Events
+        """.trimIndent()
 
-        scope.launch {
-            delay(delayMillis)
-            val subject = "Reminder: $eventTitle începe în curând"
-            val body = """
-                Salut, $firstName!
-                
-                Acesta este reminder-ul tău pentru evenimentul "$eventTitle".
-                
-                Evenimentul începe în aproximativ $reminderHoursBefore ore.
-                
-                Detalii:
-                - Data: $eventDate
-                - Ora start: $eventStartTime
-                - Locație: $eventLocation
-                
-                Ne vedem acolo!
-                Echipa UTCN Events
-            """.trimIndent()
-
-            runCatching { emailSender.send(recipient, subject, body) }
-                .onFailure { logger.error("Failed to send reminder to={}: {}", recipient, it.message) }
-        }
+        runCatching { emailSender.send(recipient, subject, body) }
+            .onFailure { logger.error("Failed to send reminder to={}: {}", recipient, it.message) }
     }
 
     private fun sendCancellationNotice(message: NotificationMessage) {
@@ -172,45 +134,6 @@ class EmailNotificationConsumer(
 
         runCatching { emailSender.send(recipient, subject, body) }
             .onFailure { logger.error("Failed to send cancellation email to={}: {}", recipient, it.message) }
-    }
-
-    private fun parseEventStart(payload: Map<String, String>): LocalDateTime? {
-        val startTimeRaw = payload["eventStartTime"]?.trim().orEmpty()
-        val dateRaw = payload["eventDate"]?.trim().orEmpty()
-
-        parseDateTime(startTimeRaw)?.let { return it }
-        parseDate(dateRaw)?.let { return it.atTime(LocalTime.of(9, 0)) }
-        return null
-    }
-
-    private fun parseDateTime(value: String): LocalDateTime? {
-        if (value.isBlank()) return null
-
-        val patterns = listOf(
-            DateTimeFormatter.ISO_DATE_TIME,
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.S"),
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-        )
-
-        for (formatter in patterns) {
-            try {
-                return LocalDateTime.parse(value, formatter)
-            } catch (_: DateTimeParseException) {
-                // try next formatter
-            }
-        }
-
-        return null
-    }
-
-    private fun parseDate(value: String): LocalDate? {
-        if (value.isBlank()) return null
-        return try {
-            LocalDate.parse(value, DateTimeFormatter.ISO_DATE)
-        } catch (_: DateTimeParseException) {
-            null
-        }
     }
 
     private fun String?.orUnknown(defaultValue: String): String = this?.takeIf { it.isNotBlank() } ?: defaultValue

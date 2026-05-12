@@ -11,6 +11,7 @@ import com.example.db.dao.JdbcCategoryDao
 import com.example.db.dao.JdbcDepartmentDao
 import com.example.db.dao.JdbcEventDao
 import com.example.db.dao.JdbcRegistrationDao
+import com.example.db.dao.JdbcReminderOutboxDao
 import com.example.db.dao.JdbcUserDao
 import com.example.dto.ErrorResponse
 import com.example.messaging.LogNotificationPublisher
@@ -21,6 +22,7 @@ import com.example.service.CategoryService
 import com.example.service.DepartmentService
 import com.example.service.EventService
 import com.example.service.RegistrationService
+import com.example.service.ReminderOutboxDispatcher
 import com.example.service.UserService
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
@@ -41,7 +43,9 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.server.html.respondHtml
 import io.ktor.server.http.content.staticResources
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.html.*
 import org.slf4j.LoggerFactory
 
@@ -104,11 +108,14 @@ fun Application.module() {
     val userDao = JdbcUserDao(dataSource)
     val eventDao = JdbcEventDao(dataSource)
     val registrationDao = JdbcRegistrationDao(dataSource)
+    val reminderOutboxDao = JdbcReminderOutboxDao(dataSource)
     val categoryDao = JdbcCategoryDao(dataSource)
     val departmentDao = JdbcDepartmentDao(dataSource)
 
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     val notificationPublisher = try {
-        RabbitMQNotificationPublisher(GlobalScope)
+        RabbitMQNotificationPublisher(appScope)
     } catch (exception: Exception) {
         logger.warn("RabbitMQ unavailable, falling back to log publisher: {}", exception.message)
         LogNotificationPublisher()
@@ -117,9 +124,13 @@ fun Application.module() {
     val authService = AuthService(userDao, jwtManager, notificationPublisher)
     val userService = UserService(userDao)
     val eventService = EventService(eventDao, userDao)
-    val registrationService = RegistrationService(registrationDao, eventDao, userDao, notificationPublisher)
+    val registrationService = RegistrationService(registrationDao, eventDao, userDao, reminderOutboxDao, notificationPublisher)
     val categoryService = CategoryService(categoryDao)
     val departmentService = DepartmentService(departmentDao)
+
+    if (notificationPublisher is RabbitMQNotificationPublisher) {
+        ReminderOutboxDispatcher(reminderOutboxDao, notificationPublisher).start(appScope)
+    }
 
     val authController = AuthController(authService)
     val userController = UserController(userService)
