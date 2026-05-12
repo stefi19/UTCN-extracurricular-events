@@ -120,7 +120,7 @@ function renderRegistrationsPage() {
                 <div class="manage-summary-card"><strong>${summary.completed}</strong><span>Completed</span></div>
             </div>
         </div>
-        <div class="events-grid" id="managed-registrations-list">
+        <div class="registrations-grid" id="managed-registrations-list">
             ${renderRegistrationCards(filteredRegistrations)}
         </div>
     `;
@@ -217,23 +217,23 @@ function renderRegistrationCards(registrations) {
             : '';
 
         return `
-            <div class="event-card">
-                <div class="registration-title-row">
-                    <h3>${escapeHtml(eventTitle)}</h3>
-                    ${getStatusBadge(registration.status)}
+            <div class="reg-card">
+                <div class="reg-card-main">
+                    <div class="reg-card-title-row">
+                        <h3>${escapeHtml(eventTitle)}</h3>
+                        ${getStatusBadge(registration.status)}
+                    </div>
+                    <p class="reg-card-desc">${escapeHtml(eventDescription)}</p>
                 </div>
-                <p>${escapeHtml(eventDescription)}</p>
-                <div class="meta">
-                    <span>Date: ${formattedDate}</span>
-                    ${formattedTime ? `<span>Time: ${formattedTime}</span>` : ''}
-                </div>
-                ${event?.category ? `<div class="meta" style="margin-top: 0.5rem;"><span>Category: ${escapeHtml(event.category)}</span></div>` : ''}
-                ${event?.department ? `<div class="meta" style="margin-top: 0.5rem;"><span>Department: ${escapeHtml(event.department)}</span></div>` : ''}
-                <div class="meta" style="margin-top: 0.5rem;">
-                    <span>Registered on: ${registeredDate}</span>
-                </div>
-                <div class="registration-actions">
-                    ${cancelButton}
+                <div class="reg-card-side">
+                    <div class="reg-card-meta">
+                        <div class="reg-meta-item"><span class="reg-meta-label">Date</span><span>${formattedDate}${formattedTime ? ' · ' + formattedTime : ''}</span></div>
+                        ${event?.category ? `<div class="reg-meta-item"><span class="reg-meta-label">Category</span><span>${escapeHtml(event.category)}</span></div>` : ''}
+                        ${event?.department ? `<div class="reg-meta-item"><span class="reg-meta-label">Department</span><span>${escapeHtml(event.department)}</span></div>` : ''}
+                        ${event?.location ? `<div class="reg-meta-item"><span class="reg-meta-label">Location</span><span>${escapeHtml(event.location)}</span></div>` : ''}
+                        <div class="reg-meta-item"><span class="reg-meta-label">Registered on</span><span>${registeredDate}</span></div>
+                    </div>
+                    ${cancelButton ? `<div class="reg-card-actions">${cancelButton}</div>` : ''}
                 </div>
             </div>
         `;
