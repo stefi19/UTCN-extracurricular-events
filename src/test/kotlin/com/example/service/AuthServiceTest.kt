@@ -3,6 +3,8 @@ package com.example.service
 import com.example.dto.LoginRequest
 import com.example.dto.RegisterRequest
 import com.example.fake.FakeUserDao
+import com.example.messaging.NotificationMessage
+import com.example.messaging.NotificationPublisher
 import com.example.security.JwtManager
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -29,6 +31,21 @@ class AuthServiceTest {
         assertTrue(response.token.isNotBlank())
         assertEquals("test@example.com", response.user.email)
         assertEquals("STUDENT", response.user.role)
+    }
+
+    @Test
+    fun registerPublishesWelcomeNotification() {
+        val publisher = CapturingNotificationPublisher()
+        service = AuthService(FakeUserDao(), JwtManager("test-secret-key-for-tests"), publisher)
+
+        service.register(validRegister())
+
+        assertEquals(1, publisher.messages.size)
+        val message = publisher.messages.first()
+        assertEquals("USER_REGISTERED", message.eventType)
+        assertEquals("test@example.com", message.userEmail)
+        assertEquals("John", message.payload["firstName"])
+        assertEquals("Doe", message.payload["lastName"])
     }
 
     @Test
@@ -143,5 +160,13 @@ class AuthServiceTest {
     @Test
     fun getUserByIdReturnsNullForMissing() {
         assertEquals(null, service.getUserById(999L))
+    }
+
+    private class CapturingNotificationPublisher : NotificationPublisher {
+        val messages = mutableListOf<NotificationMessage>()
+
+        override suspend fun publish(message: NotificationMessage) {
+            messages += message
+        }
     }
 }

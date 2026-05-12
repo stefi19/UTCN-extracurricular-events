@@ -32,11 +32,11 @@ class EmailNotificationConsumer(
         if (recipient.isBlank()) return
 
         val firstName = message.payload["firstName"]?.ifBlank { "student" } ?: "student"
-        val subject = "Bun venit pe UTCN Events"
+        val subject = "Bine ai venit în aplicația UTCN Events"
         val body = """
             Salut, $firstName!
             
-            Contul tău a fost creat cu succes pe platforma UTCN Events.
+            Bine ai venit în aplicație! Contul tău a fost creat cu succes pe platforma UTCN Events.
             De acum poți descoperi evenimente și te poți înscrie rapid.
             
             Succes,
