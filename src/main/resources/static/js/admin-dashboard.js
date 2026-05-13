@@ -1,21 +1,11 @@
-/* ──────────────────────────────────────────────
-   Admin Dashboard  –  admin-dashboard.js
-   ────────────────────────────────────────────── */
-
 const DASH_API = 'http://localhost:8080';
-
 function dashToken() { return localStorage.getItem('jwt_token'); }
 function dashHeaders() { return { Authorization: `Bearer ${dashToken()}` }; }
-
 document.addEventListener('DOMContentLoaded', () => { initDashboard(); });
-
-/* ─── Bootstrap ─────────────────────────────── */
 async function initDashboard() {
     const root = document.getElementById('admin-dashboard-container');
     if (!root) return;
-
     if (!dashToken()) { window.location.href = '/login'; return; }
-
     try {
         const me = await apiFetch('/api/auth/me');
         if (me.role !== 'ADMIN') {
@@ -28,14 +18,12 @@ async function initDashboard() {
         root.innerHTML = errorState('Eroare la încărcare', e.message || 'Încearcă să reîncarci pagina.');
     }
 }
-
 async function loadAll(me) {
     const [stats, events, users] = await Promise.all([
         apiFetch('/api/admin/stats'),
         apiFetch('/api/events'),
         apiFetch('/api/users'),
     ]);
-
     renderGreeting(me);
     renderStatCards(stats);
     renderCharts(stats, events);
@@ -43,15 +31,11 @@ async function loadAll(me) {
     renderRecentEvents(events);
     renderUsersTable(users);
 }
-
-/* ─── API helper ─────────────────────────────── */
 async function apiFetch(path) {
     const res = await fetch(`${DASH_API}${path}`, { headers: dashHeaders() });
     if (!res.ok) throw new Error(`${path} → ${res.status}`);
     return res.json();
 }
-
-/* ─── Skeleton while loading ─────────────────── */
 function skeletonHTML() {
     return `
       <div id="dash-greeting"></div>
@@ -63,8 +47,6 @@ function skeletonHTML() {
       <div id="dash-tables-row" class="dash-tables-row"></div>
     `;
 }
-
-/* ─── Greeting ───────────────────────────────── */
 function renderGreeting(me) {
     const el = document.getElementById('dash-greeting');
     if (!el) return;
@@ -79,12 +61,9 @@ function renderGreeting(me) {
         <span class="badge badge-admin">Administrator</span>
       </div>`;
 }
-
-/* ─── Stat Cards ─────────────────────────────── */
 function renderStatCards(stats) {
     const el = document.getElementById('dash-stat-cards');
     if (!el) return;
-
     const cards = [
         {
             icon: '👥', label: 'Utilizatori totali', value: stats.users.total,
@@ -107,7 +86,6 @@ function renderStatCards(stats) {
             color: 'orange'
         },
     ];
-
     el.innerHTML = cards.map(c => `
       <div class="dash-stat-card dash-stat-${c.color}">
         <div class="dash-stat-icon">${c.icon}</div>
@@ -118,12 +96,9 @@ function renderStatCards(stats) {
         </div>
       </div>`).join('');
 }
-
-/* ─── Charts ─────────────────────────────────── */
 function renderCharts(stats, events) {
     const el = document.getElementById('dash-charts-row');
     if (!el) return;
-
     el.innerHTML = `
       <div class="dash-chart-card">
         <h3 class="dash-chart-title">📊 Utilizatori după rol</h3>
@@ -147,7 +122,6 @@ function renderCharts(stats, events) {
         ${categoryChart(stats.events.byCategory)}
       </div>`;
 }
-
 function barChart(rows, total) {
     if (rows.every(r => r.value === 0)) {
         return `<p class="dash-chart-empty">Nicio dată disponibilă.</p>`;
@@ -165,11 +139,9 @@ function barChart(rows, total) {
               </div>`;
         }).join('') + `</div>`;
 }
-
 function categoryChart(byCategory) {
     const entries = Object.entries(byCategory || {}).sort((a, b) => b[1] - a[1]).slice(0, 6);
     if (!entries.length) return `<p class="dash-chart-empty">Nicio dată disponibilă.</p>`;
-
     const maxVal = entries[0][1] || 1;
     const colors = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4'];
     return `<div class="dash-bar-list">` +
@@ -185,19 +157,15 @@ function categoryChart(byCategory) {
               </div>`;
         }).join('') + `</div>`;
 }
-
-/* ─── Quick Actions ──────────────────────────── */
 function renderQuickActions() {
     const el = document.getElementById('dash-quick-actions');
     if (!el) return;
-
     const actions = [
         { icon: '➕', label: 'Adaugă Organizator',  href: '/admin-organizers' },
         { icon: '🗂️', label: 'Gestionează Taxonomie', href: '/admin-taxonomy' },
         { icon: '📅', label: 'Vezi Evenimente',       href: '/events' },
         { icon: '👤', label: 'Profil Admin',           href: '/profile' },
     ];
-
     el.innerHTML = `
       <h3 class="dash-section-title">⚡ Acțiuni rapide</h3>
       <div class="dash-quick-grid">
@@ -208,16 +176,12 @@ function renderQuickActions() {
           </a>`).join('')}
       </div>`;
 }
-
-/* ─── Tables ─────────────────────────────────── */
 function renderRecentEvents(events) {
     const el = document.getElementById('dash-tables-row');
     if (!el) return;
-
     const recent = [...(events || [])]
         .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
         .slice(0, 8);
-
     const tableHTML = recent.length
         ? `<table class="dash-table">
              <thead><tr><th>Titlu</th><th>Dată</th><th>Categorie</th><th>Departament</th><th>Organizator</th></tr></thead>
@@ -231,7 +195,6 @@ function renderRecentEvents(events) {
                </tr>`).join('')}</tbody>
            </table>`
         : `<p class="dash-chart-empty">Nu există evenimente.</p>`;
-
     el.innerHTML = `
       <div class="dash-table-card">
         <div class="dash-table-header">
@@ -242,19 +205,15 @@ function renderRecentEvents(events) {
       </div>
       <div id="dash-users-card" class="dash-table-card"></div>`;
 }
-
 function renderUsersTable(users) {
     const el = document.getElementById('dash-users-card');
     if (!el) return;
-
     const allUsers = [
         ...(users.organizers || []),
         ...(users.students || []),
         ...(users.admins || []),
     ].slice(0, 8);
-
     const roleColor = { STUDENT: 'badge-student', ORGANIZER: 'badge-organizer', ADMIN: 'badge-admin' };
-
     const tableHTML = allUsers.length
         ? `<table class="dash-table">
              <thead><tr><th>Nume</th><th>Email</th><th>Rol</th></tr></thead>
@@ -266,7 +225,6 @@ function renderUsersTable(users) {
                </tr>`).join('')}</tbody>
            </table>`
         : `<p class="dash-chart-empty">Nu există utilizatori.</p>`;
-
     el.innerHTML = `
       <div class="dash-table-header">
         <h3 class="dash-chart-title">👥 Utilizatori recenți</h3>
@@ -274,14 +232,11 @@ function renderUsersTable(users) {
       </div>
       ${tableHTML}`;
 }
-
-/* ─── Helpers ────────────────────────────────── */
 function escHtml(str) {
     return String(str ?? '')
         .replace(/&/g, '&amp;').replace(/</g, '&lt;')
         .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
-
 function errorState(title, msg) {
     return `<div class="empty-state"><h3>${escHtml(title)}</h3><p>${escHtml(msg)}</p></div>`;
 }

@@ -20,9 +20,7 @@ CREATE TABLE IF NOT EXISTS reminder_outbox (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_reminder_status CHECK (status IN ('PENDING', 'PROCESSING', 'SENT', 'CANCELLED'))
 );
-
 CREATE INDEX IF NOT EXISTS idx_reminder_outbox_status_send_at
     ON reminder_outbox(status, send_at);
-
 CREATE INDEX IF NOT EXISTS idx_reminder_outbox_registration
     ON reminder_outbox(registration_id);

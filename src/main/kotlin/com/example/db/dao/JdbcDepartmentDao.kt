@@ -1,8 +1,6 @@
 package com.example.db.dao
-
 import com.example.model.Department
 import javax.sql.DataSource
-
 class JdbcDepartmentDao(private val dataSource: DataSource) : DepartmentDao {
     override fun findAll(): List<Department> = dataSource.connection.use { connection ->
         connection.prepareStatement(
@@ -17,7 +15,6 @@ class JdbcDepartmentDao(private val dataSource: DataSource) : DepartmentDao {
             }
         }
     }
-
     override fun findById(id: Long): Department? = dataSource.connection.use { connection ->
         connection.prepareStatement(
             "SELECT id, name FROM departments WHERE id = ?"
@@ -28,7 +25,6 @@ class JdbcDepartmentDao(private val dataSource: DataSource) : DepartmentDao {
             }
         }
     }
-
     override fun create(department: Department): Department = dataSource.connection.use { connection ->
         connection.prepareStatement(
             "INSERT INTO departments(name) VALUES (?) RETURNING id, name"
@@ -40,7 +36,6 @@ class JdbcDepartmentDao(private val dataSource: DataSource) : DepartmentDao {
             }
         }
     }
-
     override fun update(id: Long, department: Department): Department? = dataSource.connection.use { connection ->
         connection.prepareStatement(
             "UPDATE departments SET name = ? WHERE id = ? RETURNING id, name"
@@ -52,14 +47,12 @@ class JdbcDepartmentDao(private val dataSource: DataSource) : DepartmentDao {
             }
         }
     }
-
     override fun delete(id: Long): Boolean = dataSource.connection.use { connection ->
         connection.prepareStatement("DELETE FROM departments WHERE id = ?").use { statement ->
             statement.setLong(1, id)
             statement.executeUpdate() > 0
         }
     }
-
     override fun findByName(name: String): Department? = dataSource.connection.use { connection ->
         connection.prepareStatement(
             "SELECT id, name FROM departments WHERE LOWER(name) = LOWER(?)"
@@ -70,10 +63,8 @@ class JdbcDepartmentDao(private val dataSource: DataSource) : DepartmentDao {
             }
         }
     }
-
     private fun java.sql.ResultSet.toDepartment(): Department = Department(
         id = getLong("id"),
         name = getString("name")
     )
 }
-

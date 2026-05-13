@@ -1,5 +1,4 @@
 package com.example.service
-
 import com.example.db.dao.ReminderOutboxDao
 import com.example.messaging.NotificationMessage
 import com.example.messaging.NotificationPublisher
@@ -9,7 +8,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import java.time.LocalDateTime
-
 class ReminderOutboxDispatcher(
     private val reminderOutboxDao: ReminderOutboxDao,
     private val notificationPublisher: NotificationPublisher,
@@ -18,7 +16,6 @@ class ReminderOutboxDispatcher(
     private val retryDelayMinutes: Long = (System.getenv("REMINDER_RETRY_DELAY_MINUTES") ?: "5").toLongOrNull() ?: 5L
 ) {
     private val logger = LoggerFactory.getLogger(ReminderOutboxDispatcher::class.java)
-
     fun start(scope: CoroutineScope) {
         scope.launch {
             logger.info("Reminder outbox dispatcher started (poll={}ms, batch={})", pollIntervalMs, batchSize)
@@ -28,14 +25,12 @@ class ReminderOutboxDispatcher(
             }
         }
     }
-
     private suspend fun processBatch() {
         val due = runCatching {
             reminderOutboxDao.claimDue(LocalDateTime.now(), batchSize)
         }.onFailure {
             logger.error("Reminder claim batch failed: {}", it.message)
         }.getOrElse { emptyList() }
-
         for (item in due) {
             val message = NotificationMessage(
                 eventType = "EVENT_REMINDER_DUE",
@@ -54,7 +49,6 @@ class ReminderOutboxDispatcher(
                     "studentFirstName" to (item.studentFirstName ?: "student")
                 )
             )
-
             runCatching {
                 notificationPublisher.publish(message)
                 reminderOutboxDao.markSent(item.id)

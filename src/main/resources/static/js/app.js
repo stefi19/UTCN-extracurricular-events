@@ -1,32 +1,26 @@
-// Simple API helper
 const API_URL = 'http://localhost:8080';
 let allEvents = [];
-let myRegisteredEventIds = new Set(); // event IDs the current student has registered for
-let activeEventsTab = 'upcoming'; // 'upcoming' | 'past'
+let myRegisteredEventIds = new Set(); 
+let activeEventsTab = 'upcoming'; 
 const EVENT_FILTERS_STORAGE_KEY = 'events_filters_v2';
 const ORGANIZER_LABEL_ASSIGNED = 'Organizator desemnat';
 const ORGANIZER_LABEL_UNSPECIFIED = 'Fără organizator specificat';
-
 const eventFilters = {
     organizers: [],
     types: [],
     topic: '',
     sortBy: 'date-asc'
 };
-
 function getToken() {
     return localStorage.getItem('jwt_token');
 }
-
 function getCurrentRole() {
     return localStorage.getItem('user_role');
 }
-
 function getCurrentUserId() {
     const raw = localStorage.getItem('user_id');
     return raw ? Number(raw) : null;
 }
-
 function persistUserSession(user) {
     if (!user) return;
     localStorage.setItem('user_email', user.email || '');
@@ -34,11 +28,9 @@ function persistUserSession(user) {
     localStorage.setItem('user_id', String(user.id || ''));
     localStorage.setItem('user_name', `${user.firstName || ''} ${user.lastName || ''}`.trim());
 }
-
 async function ensureUserContext() {
     const token = getToken();
     if (!token) return null;
-
     if (getCurrentRole() && getCurrentUserId()) {
         return {
             role: getCurrentRole(),
@@ -46,21 +38,18 @@ async function ensureUserContext() {
             email: localStorage.getItem('user_email') || ''
         };
     }
-
     try {
         const response = await fetch('/api/auth/me', {
             headers: {
                 Authorization: `Bearer ${token}`
             }
         });
-
         if (!response.ok) {
             if (response.status === 401) {
                 clearSession();
             }
             return null;
         }
-
         const me = await response.json();
         persistUserSession(me);
         return me;
@@ -69,7 +58,6 @@ async function ensureUserContext() {
         return null;
     }
 }
-
 async function fetchMyRegistrations() {
     const token = getToken();
     if (!token || getCurrentRole() !== 'STUDENT') {
@@ -87,23 +75,17 @@ async function fetchMyRegistrations() {
         myRegisteredEventIds = new Set();
     }
 }
-
 async function fetchEvents() {
     const container = document.getElementById('events-container');
     if (!container) return;
-
     try {
         container.innerHTML = '<div class="loading">Loading events...</div>';
-        
         const [eventsRes] = await Promise.all([
             fetch(`${API_URL}/api/events`),
             fetchMyRegistrations()
         ]);
-
         if (!eventsRes.ok) throw new Error('Failed to fetch events');
-        
         allEvents = await eventsRes.json();
-
         if (allEvents.length === 0) {
             renderEventFilterControls([]);
             container.innerHTML = `
@@ -114,7 +96,6 @@ async function fetchEvents() {
             `;
             return;
         }
-
         renderEventFilterControls(allEvents);
         applyEventFiltersAndRender();
     } catch (error) {
@@ -127,11 +108,9 @@ async function fetchEvents() {
         `;
     }
 }
-
 function renderEventFilterControls(events) {
     const eventsContainer = document.getElementById('events-container');
     if (!eventsContainer || !eventsContainer.parentElement) return;
-
     let filterContainer = document.getElementById('events-filter-container');
     if (!filterContainer) {
         filterContainer = document.createElement('section');
@@ -139,10 +118,8 @@ function renderEventFilterControls(events) {
         filterContainer.className = 'events-filter-panel';
         eventsContainer.parentElement.insertBefore(filterContainer, eventsContainer);
     }
-
     const organizers = [...new Set(events.map(getOrganizerLabel).filter(Boolean))].sort((a, b) => a.localeCompare(b));
     const types = [...new Set(events.map(getEventType).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-
     filterContainer.innerHTML = `
         <div class="events-filter-header">
             <h3>Find events faster</h3>
@@ -180,13 +157,11 @@ function renderEventFilterControls(events) {
         <div id="events-active-filters" class="events-active-filters"></div>
         <div id="events-filter-results" class="events-filter-results"></div>
     `;
-
     const organizerSelect = document.getElementById('event-filter-organizer');
     const typeSelect = document.getElementById('event-filter-type');
     const topicInput = document.getElementById('event-filter-topic');
     const sortSelect = document.getElementById('event-filter-sort');
     const clearButton = document.getElementById('events-clear-filters');
-
     if (organizerSelect) {
         setSelectedValues(organizerSelect, eventFilters.organizers);
         organizerSelect.addEventListener('change', () => {
@@ -195,7 +170,6 @@ function renderEventFilterControls(events) {
             applyEventFiltersAndRender();
         });
     }
-
     if (typeSelect) {
         setSelectedValues(typeSelect, eventFilters.types);
         typeSelect.addEventListener('change', () => {
@@ -204,7 +178,6 @@ function renderEventFilterControls(events) {
             applyEventFiltersAndRender();
         });
     }
-
     if (topicInput) {
         topicInput.value = eventFilters.topic;
         topicInput.addEventListener('input', () => {
@@ -213,7 +186,6 @@ function renderEventFilterControls(events) {
             applyEventFiltersAndRender();
         });
     }
-
     if (sortSelect) {
         sortSelect.value = eventFilters.sortBy;
         sortSelect.addEventListener('change', () => {
@@ -222,7 +194,6 @@ function renderEventFilterControls(events) {
             applyEventFiltersAndRender();
         });
     }
-
     clearButton?.addEventListener('click', () => {
         eventFilters.organizers = [];
         eventFilters.types = [];
@@ -233,17 +204,14 @@ function renderEventFilterControls(events) {
         applyEventFiltersAndRender();
     });
 }
-
 function isUpcomingEvent(event) {
     const ts = getEventTimestamp(event);
-    if (ts === Number.MAX_SAFE_INTEGER) return true; // no date → treat as upcoming
+    if (ts === Number.MAX_SAFE_INTEGER) return true; 
     return ts >= Date.now();
 }
-
 function renderEventTabs(allFilteredUpcoming, allFilteredPast) {
     const eventsContainer = document.getElementById('events-container');
     if (!eventsContainer || !eventsContainer.parentElement) return;
-
     let tabBar = document.getElementById('events-tab-bar');
     if (!tabBar) {
         tabBar = document.createElement('div');
@@ -251,7 +219,6 @@ function renderEventTabs(allFilteredUpcoming, allFilteredPast) {
         tabBar.className = 'events-tab-bar';
         eventsContainer.parentElement.insertBefore(tabBar, document.getElementById('events-filter-container') || eventsContainer);
     }
-
     tabBar.innerHTML = `
         <button class="events-tab-btn ${activeEventsTab === 'upcoming' ? 'active' : ''}" onclick="switchEventsTab('upcoming')">
             Upcoming Events
@@ -263,12 +230,10 @@ function renderEventTabs(allFilteredUpcoming, allFilteredPast) {
         </button>
     `;
 }
-
 function switchEventsTab(tab) {
     activeEventsTab = tab;
     applyEventFiltersAndRender();
 }
-
 function applyEventFiltersAndRender() {
     const filtered = allEvents.filter((event) => {
         const organizerMatch = eventFilters.organizers.length === 0 || eventFilters.organizers.includes(getOrganizerLabel(event));
@@ -276,20 +241,15 @@ function applyEventFiltersAndRender() {
         const topicMatch = matchesTopic(event, eventFilters.topic);
         return organizerMatch && typeMatch && topicMatch;
     });
-
     const upcomingFiltered = filtered.filter(isUpcomingEvent);
     const pastFiltered = filtered.filter(e => !isUpcomingEvent(e));
-
     renderEventTabs(upcomingFiltered.length, pastFiltered.length);
-
     const tabEvents = activeEventsTab === 'past' ? pastFiltered : upcomingFiltered;
     const sorted = applyEventSorting(tabEvents, eventFilters.sortBy);
-
     displayEvents(sorted, activeEventsTab === 'past');
     updateEventFilterResults(sorted.length, allEvents.filter(isUpcomingEvent).length, allEvents.filter(e => !isUpcomingEvent(e)).length);
     updateActiveFilterSummary();
 }
-
 function updateEventFilterResults(visibleCount, totalUpcoming, totalPast) {
     const results = document.getElementById('events-filter-results');
     if (!results) return;
@@ -300,11 +260,9 @@ function updateEventFilterResults(visibleCount, totalUpcoming, totalPast) {
     }
     results.textContent = `Showing ${visibleCount} of ${tabTotal} ${activeEventsTab} events`;
 }
-
 function matchesTopic(event, topicQuery) {
     const normalizedQuery = (topicQuery || '').trim().toLowerCase();
     if (!normalizedQuery) return true;
-
     const searchableFields = [
         event.title,
         event.description,
@@ -315,10 +273,8 @@ function matchesTopic(event, topicQuery) {
     ]
         .filter(Boolean)
         .map(value => String(value).toLowerCase());
-
     return searchableFields.some(value => value.includes(normalizedQuery));
 }
-
 function applyEventSorting(events, sortBy) {
     const sortedEvents = [...events];
     switch (sortBy) {
@@ -333,7 +289,6 @@ function applyEventSorting(events, sortBy) {
             return sortedEvents.sort((a, b) => getEventTimestamp(a) - getEventTimestamp(b));
     }
 }
-
 function getEventTimestamp(event) {
     const candidates = [event.startTime, event.date];
     for (const candidate of candidates) {
@@ -343,45 +298,36 @@ function getEventTimestamp(event) {
     }
     return Number.MAX_SAFE_INTEGER;
 }
-
 function updateActiveFilterSummary() {
     const container = document.getElementById('events-active-filters');
     if (!container) return;
-
     const chips = [];
     eventFilters.organizers.forEach(name => chips.push(`<span class="events-filter-chip">Organizer: ${escapeHtml(name)}</span>`));
     eventFilters.types.forEach(type => chips.push(`<span class="events-filter-chip">Type: ${escapeHtml(type)}</span>`));
     if (eventFilters.topic.trim()) {
         chips.push(`<span class="events-filter-chip">Topic: ${escapeHtml(eventFilters.topic.trim())}</span>`);
     }
-
     if (chips.length === 0) {
         container.innerHTML = '<span class="events-filter-hint">No active filters.</span>';
         return;
     }
-
     container.innerHTML = chips.join('');
 }
-
 function getSelectedValues(selectElement) {
     return Array.from(selectElement.selectedOptions).map(option => option.value);
 }
-
 function setSelectedValues(selectElement, values) {
     const selected = new Set(values || []);
     Array.from(selectElement.options).forEach(option => {
         option.selected = selected.has(option.value);
     });
 }
-
 function isOptionSelected(selectedValues, optionValue) {
     return (selectedValues || []).includes(optionValue) ? 'selected' : '';
 }
-
 function persistEventFilters() {
     localStorage.setItem(EVENT_FILTERS_STORAGE_KEY, JSON.stringify(eventFilters));
 }
-
 function loadPersistedEventFilters() {
     const raw = localStorage.getItem(EVENT_FILTERS_STORAGE_KEY);
     if (!raw) return;
@@ -395,11 +341,9 @@ function loadPersistedEventFilters() {
         console.warn('Could not parse persisted event filters', error);
     }
 }
-
 function getEventType(event) {
     return (event.category || 'Uncategorized').trim();
 }
-
 function getOrganizerLabel(event) {
     const resolvedName = (event.organizerName || '').trim();
     if (resolvedName) return resolvedName;
@@ -408,10 +352,8 @@ function getOrganizerLabel(event) {
     }
     return ORGANIZER_LABEL_UNSPECIFIED;
 }
-
 function normalizePersistedOrganizerFilters(values) {
     if (!Array.isArray(values)) return [];
-
     const normalized = values.map((value) => {
         if (typeof value !== 'string') return null;
         if (/^Organizer\s*#\d+$/i.test(value.trim())) {
@@ -422,12 +364,9 @@ function normalizePersistedOrganizerFilters(values) {
         }
         return value.trim();
     }).filter(Boolean);
-
     return [...new Set(normalized)];
 }
-
 function buildRegisterButton(event, loggedIn, userRole, context) {
-    // context = 'card' (in grid) | 'modal' (in popup)
     const fullWidth = context === 'modal' ? ' style="width:100%;"' : ' style="margin-top:1rem;width:100%;"';
     if (loggedIn && userRole === 'STUDENT') {
         if (myRegisteredEventIds.has(event.id)) {
@@ -440,7 +379,6 @@ function buildRegisterButton(event, loggedIn, userRole, context) {
     }
     return `<a href="/login" class="btn"${fullWidth}>Login to Register</a>`;
 }
-
 function formatEventDate(event) {
     let formattedDate = 'TBA';
     let formattedTime = '';
@@ -455,9 +393,6 @@ function formatEventDate(event) {
     }
     return { formattedDate, formattedTime };
 }
-
-// ── Event detail modal ─────────────────────────────────────────────────────
-
 function ensureModalInDOM() {
     if (document.getElementById('event-modal')) return;
     const overlay = document.createElement('div');
@@ -471,17 +406,14 @@ function ensureModalInDOM() {
             <div id="event-modal-body"></div>
         </div>`;
     document.body.appendChild(overlay);
-
     overlay.addEventListener('click', e => { if (e.target === overlay) closeEventModal(); });
     document.getElementById('event-modal-close').addEventListener('click', closeEventModal);
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEventModal(); });
 }
-
 function openEventModal(eventId) {
     const event = allEvents.find(ev => ev.id === eventId);
     if (!event) return;
     ensureModalInDOM();
-
     const loggedIn = isLoggedIn();
     const userRole = getCurrentRole();
     const isPast = !isUpcomingEvent(event);
@@ -489,7 +421,6 @@ function openEventModal(eventId) {
     const actionArea = isPast
         ? `<div class="event-past-note">This event has already taken place.</div>`
         : `<div class="event-modal-action" id="event-modal-action-${event.id}">${buildRegisterButton(event, loggedIn, userRole, 'modal')}</div>`;
-
     const rows = [
         ['Date',       formattedDate + (formattedTime ? ' · ' + formattedTime : '')],
         ['Category',   event.category],
@@ -498,7 +429,6 @@ function openEventModal(eventId) {
         ['Organizer',  getOrganizerLabel(event)],
         ['Max seats',  event.maxParticipants != null ? String(event.maxParticipants) : null],
     ].filter(([, v]) => v);
-
     document.getElementById('event-modal-body').innerHTML = `
         <div class="event-modal-header">
             <h2>${escapeHtml(event.title)}</h2>
@@ -514,23 +444,19 @@ function openEventModal(eventId) {
                 </div>`).join('')}
         </div>
         ${actionArea}`;
-
     const overlay = document.getElementById('event-modal');
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
 }
-
 function closeEventModal() {
     const overlay = document.getElementById('event-modal');
     if (!overlay) return;
     overlay.classList.remove('open');
     document.body.style.overflow = '';
 }
-
 function displayEvents(events, isPastTab = false) {
     const container = document.getElementById('events-container');
     if (!container) return;
-
     if (!events.length) {
         container.innerHTML = isPastTab ? `
             <div class="empty-state">
@@ -545,14 +471,11 @@ function displayEvents(events, isPastTab = false) {
         `;
         return;
     }
-
     const loggedIn = isLoggedIn();
     const userRole = getCurrentRole();
-
     container.innerHTML = events.map(event => {
         const { formattedDate, formattedTime } = formatEventDate(event);
         const registerButton = isPastTab ? '' : buildRegisterButton(event, loggedIn, userRole, 'card');
-
         return `
             <div class="event-card${isPastTab ? ' event-card-past' : ''}" onclick="openEventModal(${event.id})" style="cursor:pointer;">
                 ${isPastTab ? '<span class="event-past-badge">Past</span>' : ''}
@@ -570,21 +493,15 @@ function displayEvents(events, isPastTab = false) {
         `;
     }).join('');
 }
-
-// Register for an event
 async function registerForEvent(eventId) {
     const token = getToken();
-    
     if (!token) {
         alert('Please sign in to register for events.');
         window.location.href = '/login';
         return;
     }
-
-    // Disable the button immediately to prevent double-clicks
     const btn = document.querySelector(`button[onclick="registerForEvent(${eventId})"]`);
     if (btn) { btn.disabled = true; btn.textContent = 'Registering…'; }
-
     try {
         const response = await fetch(`${API_URL}/api/registrations`, {
             method: 'POST',
@@ -594,15 +511,10 @@ async function registerForEvent(eventId) {
             },
             body: JSON.stringify({ eventId })
         });
-
         const data = await response.json();
-
         if (response.ok) {
-            // Mark as registered locally and swap every button for this event to the badge
             myRegisteredEventIds.add(eventId);
             const badge = `<div class="already-registered-badge" style="width:100%;">✓ Already Registered</div>`;
-
-            // Swap button in the card grid
             if (btn) {
                 const badgeEl = document.createElement('div');
                 badgeEl.className = 'already-registered-badge';
@@ -610,8 +522,6 @@ async function registerForEvent(eventId) {
                 badgeEl.textContent = '✓ Already Registered';
                 btn.replaceWith(badgeEl);
             }
-
-            // Swap button inside the modal (if open)
             const modalAction = document.getElementById(`event-modal-action-${eventId}`);
             if (modalAction) modalAction.innerHTML = badge;
         } else {
@@ -624,59 +534,44 @@ async function registerForEvent(eventId) {
         if (btn) { btn.disabled = false; btn.textContent = 'Register for Event'; }
     }
 }
-
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
-
-// Load events when page loads
 document.addEventListener('DOMContentLoaded', () => {
     initializeAppPage();
 });
-
 async function initializeAppPage() {
     await ensureUserContext();
     updateNavigation();
     loadPersistedEventFilters();
-
     if (document.getElementById('home-container')) {
         loadHomePage();
     }
-
     if (document.getElementById('events-container')) {
         fetchEvents();
     }
 }
-
-// Check if user is logged in
 function isLoggedIn() {
     return getToken() !== null;
 }
-
-// ── HOME PAGE ────────────────────────────────────────────────────────────────
-
 async function loadHomePage() {
     const container = document.getElementById('home-container');
     if (!container) return;
     container.innerHTML = '<div class="loading">Personalizing your experience…</div>';
-
     try {
         const loggedIn = isLoggedIn();
         const role = getCurrentRole();
-
         const fetchList = [fetch(`${API_URL}/api/events`)];
         if (loggedIn && role === 'STUDENT') {
             fetchList.push(fetch(`${API_URL}/api/registrations`, {
                 headers: { Authorization: `Bearer ${getToken()}` }
             }));
         }
-
         const results = await Promise.all(fetchList);
         if (!results[0].ok) throw new Error('events fetch failed');
         allEvents = await results[0].json();
-
         let registrations = [];
         if (results[1] && results[1].ok) {
             registrations = await results[1].json();
@@ -684,7 +579,6 @@ async function loadHomePage() {
                 registrations.filter(r => r.status !== 'CANCELLED').map(r => r.eventId)
             );
         }
-
         if (loggedIn && role === 'STUDENT') {
             renderStudentHome(container, registrations);
         } else if (loggedIn && role === 'ORGANIZER') {
@@ -697,7 +591,6 @@ async function loadHomePage() {
         container.innerHTML = `<div class="empty-state"><h3>Something went wrong</h3><p>Please refresh the page.</p></div>`;
     }
 }
-
 function getStudentLevel(count) {
     const levels = [
         { min: 0,  max: 0,        title: 'Newcomer',   emoji: '🌱', nextAt: 1  },
@@ -708,22 +601,18 @@ function getStudentLevel(count) {
     ];
     return levels.find(l => count >= l.min && count <= l.max) || levels[0];
 }
-
 function renderStudentHome(container, registrations) {
     const firstName = (localStorage.getItem('user_name') || 'there').split(' ')[0];
     const hour = new Date().getHours();
     const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-
     const activeRegs = registrations.filter(r => r.status !== 'CANCELLED');
     const upcoming = allEvents.filter(isUpcomingEvent);
     const myUpcoming = upcoming.filter(e => myRegisteredEventIds.has(e.id))
         .sort((a, b) => getEventTimestamp(a) - getEventTimestamp(b));
     const myPast = allEvents.filter(e => !isUpcomingEvent(e) && myRegisteredEventIds.has(e.id));
     const notRegistered = upcoming.filter(e => !myRegisteredEventIds.has(e.id));
-
     const { title: rankTitle, emoji, nextAt } = getStudentLevel(activeRegs.length);
     const progress = nextAt === null ? 100 : Math.min(100, Math.round((activeRegs.length / nextAt) * 100));
-
     const catCount = {};
     activeRegs.forEach(r => {
         const ev = allEvents.find(e => e.id === r.eventId);
@@ -731,7 +620,6 @@ function renderStudentHome(container, registrations) {
     });
     const cats = Object.entries(catCount).sort((a, b) => b[1] - a[1]);
     const maxCat = cats.length ? cats[0][1] : 1;
-
     const achievements = [
         activeRegs.length >= 1  ? { icon: '🎫', label: 'First Step'  } : null,
         activeRegs.length >= 3  ? { icon: '🔭', label: 'Explorer'    } : null,
@@ -740,10 +628,8 @@ function renderStudentHome(container, registrations) {
         activeRegs.length >= 5  ? { icon: '⚡', label: 'Enthusiast'   } : null,
         activeRegs.length >= 10 ? { icon: '🏆', label: 'Legend'       } : null,
     ].filter(Boolean);
-
     container.innerHTML = `
         <div class="home-wrap">
-
             <div class="home-greeting">
                 <div class="home-greeting-text">
                     <span class="home-greeting-sub">${greeting}</span>
@@ -767,7 +653,6 @@ function renderStudentHome(container, registrations) {
                     </div>
                 </div>
             </div>
-
             <div class="home-stats-grid">
                 <div class="home-stat-card">
                     <span class="home-stat-icon">🎫</span>
@@ -790,9 +675,7 @@ function renderStudentHome(container, registrations) {
                     <span class="home-stat-label">Categories</span>
                 </div>
             </div>
-
             <div class="home-panels">
-
                 <div class="home-panel">
                     <div class="home-panel-hdr">
                         <h3>Your Upcoming Events</h3>
@@ -820,7 +703,6 @@ function renderStudentHome(container, registrations) {
                         </div>`;
                     }).join('')}
                 </div>
-
                 <div class="home-panel">
                     <div class="home-panel-hdr">
                         <h3>Your Profile</h3>
@@ -853,7 +735,6 @@ function renderStudentHome(container, registrations) {
                     ` : ''}
                 </div>
             </div>
-
             ${notRegistered.length > 0 ? `
             <div class="home-discover">
                 <div class="home-panel-hdr" style="margin-bottom:1.25rem;">
@@ -889,7 +770,6 @@ function renderStudentHome(container, registrations) {
     `;
     ensureModalInDOM();
 }
-
 function renderOrganizerHome(container) {
     const firstName = (localStorage.getItem('user_name') || 'there').split(' ')[0];
     const userId = getCurrentUserId();
@@ -897,7 +777,6 @@ function renderOrganizerHome(container) {
     const myUpcoming = myEvents.filter(isUpcomingEvent).sort((a, b) => getEventTimestamp(a) - getEventTimestamp(b));
     const myPast = myEvents.filter(e => !isUpcomingEvent(e));
     const totalSeats = myEvents.reduce((s, e) => s + (e.maxParticipants || 0), 0);
-
     container.innerHTML = `
         <div class="home-wrap">
             <div class="home-greeting">
@@ -918,7 +797,6 @@ function renderOrganizerHome(container) {
                     </div>
                 </div>
             </div>
-
             <div class="home-stats-grid">
                 <div class="home-stat-card">
                     <span class="home-stat-icon">📅</span>
@@ -941,7 +819,6 @@ function renderOrganizerHome(container) {
                     <span class="home-stat-label">Platform Events</span>
                 </div>
             </div>
-
             <div class="home-discover">
                 <div class="home-panel-hdr" style="margin-bottom:1.25rem;">
                     <h3>Your Upcoming Events</h3>
@@ -971,12 +848,10 @@ function renderOrganizerHome(container) {
     `;
     ensureModalInDOM();
 }
-
 function renderGuestHome(container) {
     const upcoming = allEvents.filter(isUpcomingEvent);
     const organizers = [...new Set(allEvents.map(e => e.organizerName).filter(Boolean))];
     const cats = [...new Set(allEvents.map(e => e.category).filter(Boolean))];
-
     container.innerHTML = `
         <div class="home-wrap">
             <div class="home-guest-banner">
@@ -1007,7 +882,6 @@ function renderGuestHome(container) {
                     <a href="/login" class="btn btn-secondary">Sign In</a>
                 </div>
             </div>
-
             <div class="home-discover">
                 <div class="home-panel-hdr" style="margin-bottom:1.25rem;">
                     <h3>What's Coming Up</h3>
@@ -1032,33 +906,25 @@ function renderGuestHome(container) {
     `;
     ensureModalInDOM();
 }
-
-
-
-// Update navigation based on authentication status
 function updateNavigation() {
     const navUl = document.querySelector('nav ul');
     if (!navUl) return;
-
     if (isLoggedIn()) {
         const userEmail = localStorage.getItem('user_email');
         const userRole = getCurrentRole();
         const loginLi = Array.from(navUl.querySelectorAll('li')).find(li => li.querySelector('a[href="/login"]'));
-
         if (loginLi) {
             loginLi.innerHTML = `
                 <span class="user-chip">${escapeHtml(userEmail || 'User')}</span>
                 <a href="#" onclick="logout(); return false;">Logout</a>
             `;
         }
-
         if (userRole === 'ORGANIZER' && !document.getElementById('nav-organizer-link')) {
             const organizerLi = document.createElement('li');
             organizerLi.id = 'nav-organizer-link';
             organizerLi.innerHTML = '<a href="/organizer-panel">Organizer Panel</a>';
             navUl.appendChild(organizerLi);
         }
-
         if (userRole === 'ADMIN') {
             if (!document.getElementById('nav-organizer-link')) {
                 const organizerLi = document.createElement('li');
@@ -1066,21 +932,18 @@ function updateNavigation() {
                 organizerLi.innerHTML = '<a href="/organizer-panel">Organizer Panel</a>';
                 navUl.appendChild(organizerLi);
             }
-
             if (!document.getElementById('nav-admin-dashboard-link')) {
                 const dashLi = document.createElement('li');
                 dashLi.id = 'nav-admin-dashboard-link';
                 dashLi.innerHTML = '<a href="/admin-dashboard">📊 Dashboard</a>';
                 navUl.appendChild(dashLi);
             }
-
             if (!document.getElementById('nav-admin-organizers-link')) {
                 const adminLi = document.createElement('li');
                 adminLi.id = 'nav-admin-organizers-link';
                 adminLi.innerHTML = '<a href="/admin-organizers">Admin Organizers</a>';
                 navUl.appendChild(adminLi);
             }
-
             if (!document.getElementById('nav-admin-taxonomy-link')) {
                 const taxonomyLi = document.createElement('li');
                 taxonomyLi.id = 'nav-admin-taxonomy-link';
@@ -1090,14 +953,11 @@ function updateNavigation() {
         }
     }
 }
-
-// Logout function
 function logout() {
     clearSession();
     alert('You have been signed out successfully.');
     window.location.href = '/';
 }
-
 function clearSession() {
     localStorage.removeItem('jwt_token');
     localStorage.removeItem('user_email');

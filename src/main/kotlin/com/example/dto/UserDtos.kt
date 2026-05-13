@@ -1,7 +1,5 @@
 package com.example.dto
-
 import kotlinx.serialization.Serializable
-
 @Serializable
 data class UserResponse(
     val id: Long,
@@ -11,7 +9,6 @@ data class UserResponse(
     val role: String,
     val departmentId: Long? = null
 )
-
 @Serializable
 data class UpdateProfileRequest(
     val firstName: String? = null,
@@ -20,7 +17,6 @@ data class UpdateProfileRequest(
     val currentPassword: String? = null,
     val newPassword: String? = null
 )
-
 @Serializable
 data class CreateOrganizerRequest(
     val email: String,

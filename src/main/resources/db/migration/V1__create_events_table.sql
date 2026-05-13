@@ -6,4 +6,3 @@ CREATE TABLE IF NOT EXISTS events (
     category VARCHAR(120) NOT NULL,
     department VARCHAR(120) NOT NULL
 );
-

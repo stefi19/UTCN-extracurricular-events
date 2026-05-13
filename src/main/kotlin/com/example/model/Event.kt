@@ -1,5 +1,4 @@
 package com.example.model
-
 data class Event(
     val id: Long,
     val title: String,

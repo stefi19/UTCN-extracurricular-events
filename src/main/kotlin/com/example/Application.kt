@@ -1,5 +1,4 @@
 package com.example
-
 import com.example.controller.AdminStatsController
 import com.example.controller.AuthController
 import com.example.controller.CategoryController
@@ -49,14 +48,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.html.*
 import org.slf4j.LoggerFactory
-
 fun Application.module() {
     val logger = LoggerFactory.getLogger("Application")
-
     install(ContentNegotiation) {
         json()
     }
-
     install(CORS) {
         allowHost("localhost:4200")
         allowHost("127.0.0.1:4200")
@@ -68,7 +64,6 @@ fun Application.module() {
         allowMethod(HttpMethod.Delete)
         allowMethod(HttpMethod.Options)
     }
-
     install(StatusPages) {
         exception<IllegalArgumentException> { call, cause ->
             val status = HttpStatusCode.BadRequest
@@ -84,9 +79,7 @@ fun Application.module() {
             call.respond(status, ErrorResponse("Internal server error", status.value))
         }
     }
-
     val jwtManager = JwtManager()
-
     install(Authentication) {
         jwt {
             realm = jwtManager.realm
@@ -102,37 +95,30 @@ fun Application.module() {
             }
         }
     }
-
     val dataSource = DatabaseFactory.createPostgresDataSource()
     DatabaseFactory.runMigrations(dataSource)
-
     val userDao = JdbcUserDao(dataSource)
     val eventDao = JdbcEventDao(dataSource)
     val registrationDao = JdbcRegistrationDao(dataSource)
     val reminderOutboxDao = JdbcReminderOutboxDao(dataSource)
     val categoryDao = JdbcCategoryDao(dataSource)
     val departmentDao = JdbcDepartmentDao(dataSource)
-
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
     val notificationPublisher = try {
         RabbitMQNotificationPublisher(appScope)
     } catch (exception: Exception) {
         logger.warn("RabbitMQ unavailable, falling back to log publisher: {}", exception.message)
         LogNotificationPublisher()
     }
-
     val authService = AuthService(userDao, jwtManager, notificationPublisher)
     val userService = UserService(userDao)
     val eventService = EventService(eventDao, userDao)
     val registrationService = RegistrationService(registrationDao, eventDao, userDao, reminderOutboxDao, notificationPublisher)
     val categoryService = CategoryService(categoryDao)
     val departmentService = DepartmentService(departmentDao)
-
     if (notificationPublisher is RabbitMQNotificationPublisher) {
         ReminderOutboxDispatcher(reminderOutboxDao, notificationPublisher).start(appScope)
     }
-
     val authController = AuthController(authService)
     val userController = UserController(userService)
     val eventController = EventController(eventService)
@@ -142,12 +128,8 @@ fun Application.module() {
     val adminStatsController = AdminStatsController(
         userService, eventService, registrationService, categoryService, departmentService
     )
-
     routing {
-        // Serve static files (CSS, JS)
         staticResources("/static", "static")
-
-        // Home page
         get("/") {
             call.respondHtml {
                 head {
@@ -204,8 +186,6 @@ fun Application.module() {
                 }
             }
         }
-
-        // Events page
         get("/events") {
             call.respondHtml {
                 head {
@@ -249,8 +229,6 @@ fun Application.module() {
                 }
             }
         }
-
-        // Login page
         get("/login") {
             call.respondHtml {
                 head {
@@ -329,8 +307,6 @@ fun Application.module() {
                 }
             }
         }
-
-        // Signup page
         get("/signup") {
             call.respondHtml {
                 head {
@@ -442,8 +418,6 @@ fun Application.module() {
                 }
             }
         }
-
-        // My Registrations page
         get("/my-registrations") {
             call.respondHtml {
                 head {
@@ -488,8 +462,6 @@ fun Application.module() {
                 }
             }
         }
-
-        // Profile page
         get("/profile") {
             call.respondHtml {
                 head {
@@ -516,14 +488,12 @@ fun Application.module() {
                     main {
                         div(classes = "container") {
                             h2 { +"My Profile" }
-                            
                             div {
                                 id = "profile-container"
                                 div(classes = "loading") {
                                     +"Loading your profile."
                                 }
                             }
-                            
                             div(classes = "profile-section") {
                                 h3 { +"Recent Registrations" }
                                 div {
@@ -545,8 +515,6 @@ fun Application.module() {
                 }
             }
         }
-
-        // Organizer dashboard page
         get("/organizer-panel") {
             call.respondHtml {
                 head {
@@ -576,7 +544,6 @@ fun Application.module() {
                             p(classes = "section-intro") {
                                 +"Create and update events, then manage participant attendance and registration statuses."
                             }
-
                             div {
                                 id = "organizer-panel-container"
                                 div(classes = "loading") {
@@ -595,8 +562,6 @@ fun Application.module() {
                 }
             }
         }
-
-        // Admin organizer management page
         get("/admin-organizers") {
             call.respondHtml {
                 head {
@@ -626,7 +591,6 @@ fun Application.module() {
                             p(classes = "section-intro") {
                                 +"Create new organizer accounts and review the current organizer list."
                             }
-
                             div {
                                 id = "admin-organizers-container"
                                 div(classes = "loading") {
@@ -645,8 +609,6 @@ fun Application.module() {
                 }
             }
         }
-
-        // Admin taxonomy management page
         get("/admin-taxonomy") {
             call.respondHtml {
                 head {
@@ -676,7 +638,6 @@ fun Application.module() {
                             p(classes = "section-intro") {
                                 +"Create, edit, and delete categories and departments used by event organizers."
                             }
-
                             div {
                                 id = "admin-taxonomy-container"
                                 div(classes = "loading") {
@@ -695,12 +656,9 @@ fun Application.module() {
                 }
             }
         }
-
         get("/health") {
             call.respond(mapOf("status" to "ok"))
         }
-
-        // Admin Dashboard page
         get("/admin-dashboard") {
             call.respondHtml {
                 head {
@@ -744,15 +702,11 @@ fun Application.module() {
                 }
             }
         }
-
         authController.register(this)
-        
-        // Public events API (GET only - no authentication required)
         eventController.registerPublic(this)
-
         authenticate {
             authController.registerProtected(this)
-            eventController.register(this)  // Protected operations (POST, PUT, DELETE)
+            eventController.register(this)  
             userController.register(this)
             registrationController.register(this)
             categoryController.register(this)
@@ -760,6 +714,5 @@ fun Application.module() {
             adminStatsController.register(this)
         }
     }
-
     logger.info("Application started")
 }

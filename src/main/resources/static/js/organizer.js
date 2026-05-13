@@ -1,5 +1,4 @@
 const ORGANIZER_API = 'http://localhost:8080';
-
 let organizerCurrentUser = null;
 let organizerEvents = [];
 let organizerCategories = [];
@@ -9,42 +8,33 @@ let eventParticipants = [];
 let participantSearchTerm = '';
 let participantStatusFilter = 'ALL';
 let participantSortOrder = 'NEWEST';
-
 function organizerToken() {
     return localStorage.getItem('jwt_token');
 }
-
 function organizerAuthHeaders(extra = {}) {
     return {
         Authorization: `Bearer ${organizerToken()}`,
         ...extra
     };
 }
-
 document.addEventListener('DOMContentLoaded', () => {
     initOrganizerPanel();
 });
-
 async function initOrganizerPanel() {
     const container = document.getElementById('organizer-panel-container');
     if (!container) return;
-
     if (!organizerToken()) {
         window.location.href = '/login';
         return;
     }
-
     try {
         const meResponse = await fetch('/api/auth/me', {
             headers: organizerAuthHeaders()
         });
-
         if (!meResponse.ok) {
             throw new Error('Could not verify organizer session');
         }
-
         organizerCurrentUser = await meResponse.json();
-
         if (!['ORGANIZER', 'ADMIN'].includes(organizerCurrentUser.role)) {
             container.innerHTML = `
                 <div class="empty-state">
@@ -54,7 +44,6 @@ async function initOrganizerPanel() {
             `;
             return;
         }
-
         renderOrganizerShell();
         await Promise.all([
             fetchOrganizerLookups(),
@@ -72,7 +61,6 @@ async function initOrganizerPanel() {
         `;
     }
 }
-
 function renderOrganizerShell() {
     const container = document.getElementById('organizer-panel-container');
     container.innerHTML = `
@@ -80,20 +68,16 @@ function renderOrganizerShell() {
             <section class="dashboard-card">
                 <h3 id="organizer-form-title">Create Event</h3>
                 <p class="dashboard-muted">Fill in event details and publish directly to the events catalog.</p>
-
                 <form id="organizer-event-form" class="dashboard-form">
                     <input type="hidden" id="event-id" />
-
                     <div class="form-group">
                         <label for="event-title">Title</label>
                         <input id="event-title" type="text" required maxlength="255" />
                     </div>
-
                     <div class="form-group">
                         <label for="event-description">Description</label>
                         <textarea id="event-description" rows="4" required></textarea>
                     </div>
-
                     <div class="form-row">
                         <div class="form-group">
                             <label for="event-date">Date</label>
@@ -104,7 +88,6 @@ function renderOrganizerShell() {
                             <input id="event-max-participants" type="number" min="1" placeholder="Optional" />
                         </div>
                     </div>
-
                     <div class="form-row">
                         <div class="form-group">
                             <label for="event-category">Category</label>
@@ -115,30 +98,24 @@ function renderOrganizerShell() {
                             <select id="event-department" required></select>
                         </div>
                     </div>
-
                     <div class="form-group">
                         <label for="event-location">Location</label>
                         <input id="event-location" type="text" maxlength="255" placeholder="Optional" />
                     </div>
-
                     <div id="organizer-form-error" class="error" style="display:none;"></div>
                     <div id="organizer-form-success" class="success" style="display:none;"></div>
-
                     <div class="form-actions">
                         <button type="submit" class="btn-primary">Save Event</button>
                         <button type="button" id="organizer-form-reset" class="btn-secondary">Clear</button>
                     </div>
                 </form>
             </section>
-
             <section class="dashboard-card">
                 <h3>Event Management</h3>
                 <p class="dashboard-muted">Review your events, edit details, and manage participant statuses.</p>
-
                 <div id="organizer-events-list" class="dashboard-list loading">Loading events.</div>
             </section>
         </div>
-
         <section id="participants-section" class="dashboard-card" style="margin-top: 1rem; display: none;">
             <h3 id="participants-title">Participants</h3>
             <p class="dashboard-muted">Search by name or email, review attendance history, and update statuses quickly.</p>
@@ -146,16 +123,13 @@ function renderOrganizerShell() {
         </section>
     `;
 }
-
 async function fetchOrganizerLookups() {
     const [categoriesResponse, departmentsResponse] = await Promise.all([
         fetch(`${ORGANIZER_API}/api/categories`, { headers: organizerAuthHeaders() }),
         fetch(`${ORGANIZER_API}/api/departments`, { headers: organizerAuthHeaders() })
     ]);
-
     organizerCategories = categoriesResponse.ok ? await categoriesResponse.json() : [];
     organizerDepartments = departmentsResponse.ok ? await departmentsResponse.json() : [];
-
     if (organizerCategories.length === 0) {
         organizerCategories = [{ id: null, name: 'Workshop' }, { id: null, name: 'Seminar' }, { id: null, name: 'Conference' }];
     }
@@ -163,52 +137,40 @@ async function fetchOrganizerLookups() {
         organizerDepartments = [{ id: null, name: 'Computer Science' }, { id: null, name: 'Automation' }];
     }
 }
-
 async function fetchOrganizerEvents() {
     const response = await fetch(`${ORGANIZER_API}/api/events`, { headers: organizerAuthHeaders() });
     if (!response.ok) {
         throw new Error('Failed to load events');
     }
-
     const allEvents = await response.json();
-
     if (organizerCurrentUser.role === 'ADMIN') {
         organizerEvents = allEvents;
         return;
     }
-
     organizerEvents = allEvents.filter(event => event.organizerId === organizerCurrentUser.id);
 }
-
 function attachOrganizerHandlers() {
     const form = document.getElementById('organizer-event-form');
     const resetBtn = document.getElementById('organizer-form-reset');
-
     form?.addEventListener('submit', handleOrganizerEventSubmit);
     resetBtn?.addEventListener('click', resetOrganizerForm);
 }
-
 function renderOrganizerData() {
     renderOrganizerSelects();
     renderOrganizerEventCards();
 }
-
 function renderOrganizerSelects() {
     const categorySelect = document.getElementById('event-category');
     const departmentSelect = document.getElementById('event-department');
-
     categorySelect.innerHTML = organizerCategories
         .map(category => `<option value="${escapeHtml(String(category.name))}">${escapeHtml(category.name)}</option>`)
         .join('');
-
     departmentSelect.innerHTML = organizerDepartments
         .map(department => `<option value="${escapeHtml(String(department.name))}">${escapeHtml(department.name)}</option>`)
         .join('');
 }
-
 function renderOrganizerEventCards() {
     const container = document.getElementById('organizer-events-list');
-
     if (!organizerEvents.length) {
         container.className = 'dashboard-list';
         container.innerHTML = `
@@ -219,7 +181,6 @@ function renderOrganizerEventCards() {
         `;
         return;
     }
-
     container.className = 'dashboard-list';
     container.innerHTML = organizerEvents
         .map(event => `
@@ -243,17 +204,13 @@ function renderOrganizerEventCards() {
         `)
         .join('');
 }
-
 async function handleOrganizerEventSubmit(event) {
     event.preventDefault();
-
     const errorDiv = document.getElementById('organizer-form-error');
     const successDiv = document.getElementById('organizer-form-success');
     errorDiv.style.display = 'none';
     successDiv.style.display = 'none';
-
     const eventId = document.getElementById('event-id').value;
-
     const payload = {
         title: document.getElementById('event-title').value.trim(),
         description: document.getElementById('event-description').value.trim(),
@@ -266,29 +223,24 @@ async function handleOrganizerEventSubmit(event) {
             ? Number(document.getElementById('event-max-participants').value)
             : null
     };
-
     try {
         const isEdit = Boolean(eventId);
         const endpoint = isEdit
             ? `${ORGANIZER_API}/api/events/${eventId}`
             : `${ORGANIZER_API}/api/events`;
-
         const response = await fetch(endpoint, {
             method: isEdit ? 'PUT' : 'POST',
             headers: organizerAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(payload)
         });
-
         if (!response.ok) {
             const apiError = await response.json().catch(() => ({}));
             throw new Error(apiError.error || 'Failed to save event');
         }
-
         successDiv.textContent = isEdit
             ? 'Event updated successfully.'
             : 'Event created successfully.';
         successDiv.style.display = 'block';
-
         resetOrganizerForm();
         await fetchOrganizerEvents();
         renderOrganizerEventCards();
@@ -297,11 +249,9 @@ async function handleOrganizerEventSubmit(event) {
         errorDiv.style.display = 'block';
     }
 }
-
 function editOrganizerEvent(eventId) {
     const event = organizerEvents.find(item => item.id === eventId);
     if (!event) return;
-
     document.getElementById('event-id').value = event.id;
     document.getElementById('event-title').value = event.title || '';
     document.getElementById('event-description').value = event.description || '';
@@ -310,11 +260,9 @@ function editOrganizerEvent(eventId) {
     document.getElementById('event-department').value = event.department || '';
     document.getElementById('event-location').value = event.location || '';
     document.getElementById('event-max-participants').value = event.maxParticipants || '';
-
     document.getElementById('organizer-form-title').textContent = `Edit Event #${event.id}`;
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-
 function resetOrganizerForm() {
     const form = document.getElementById('organizer-event-form');
     form?.reset();
@@ -322,64 +270,53 @@ function resetOrganizerForm() {
     document.getElementById('organizer-form-title').textContent = 'Create Event';
     document.getElementById('organizer-form-error').style.display = 'none';
 }
-
 async function deleteOrganizerEvent(eventId) {
     if (!confirm('Delete this event? This operation cannot be undone.')) {
         return;
     }
-
     try {
         const response = await fetch(`${ORGANIZER_API}/api/events/${eventId}`, {
             method: 'DELETE',
             headers: organizerAuthHeaders()
         });
-
         if (!response.ok && response.status !== 204) {
             const apiError = await response.json().catch(() => ({}));
             throw new Error(apiError.error || 'Failed to delete event');
         }
-
         if (selectedEventId === eventId) {
             selectedEventId = null;
             document.getElementById('participants-section').style.display = 'none';
         }
-
         await fetchOrganizerEvents();
         renderOrganizerEventCards();
     } catch (error) {
         alert(error.message);
     }
 }
-
 async function showParticipants(eventId) {
     selectedEventId = eventId;
     const section = document.getElementById('participants-section');
     const title = document.getElementById('participants-title');
     const container = document.getElementById('participants-list');
     const selectedEvent = organizerEvents.find(event => event.id === eventId);
-
     section.style.display = 'block';
     title.textContent = selectedEvent?.title
         ? `Participants · ${selectedEvent.title}`
         : `Participants for Event #${eventId}`;
     container.innerHTML = '<div class="loading">Loading participants.</div>';
-
     try {
         const response = await fetch(`${ORGANIZER_API}/api/registrations/event/${eventId}/details`, {
             headers: organizerAuthHeaders()
         });
-
         if (!response.ok) {
             const apiError = await response.json().catch(() => ({}));
             throw new Error(apiError.error || 'Failed to load participants');
         }
-
         eventParticipants = await response.json();
         participantSearchTerm = '';
         participantStatusFilter = 'ALL';
         participantSortOrder = 'NEWEST';
         renderParticipantsPanel();
-
         section.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (error) {
         container.innerHTML = `
@@ -389,12 +326,10 @@ async function showParticipants(eventId) {
         `;
     }
 }
-
 function renderParticipantsPanel() {
     const container = document.getElementById('participants-list');
     const filteredParticipants = applyParticipantFilters();
     const summary = summarizeParticipants(eventParticipants);
-
     if (!eventParticipants.length) {
         container.innerHTML = `
             <div class="empty-state">
@@ -404,7 +339,6 @@ function renderParticipantsPanel() {
         `;
         return;
     }
-
     container.innerHTML = `
         <div class="participants-toolbar">
             <div class="manage-summary-grid">
@@ -414,7 +348,6 @@ function renderParticipantsPanel() {
                 <div class="manage-summary-card"><strong>${summary.noShow}</strong><span>No Show</span></div>
                 <div class="manage-summary-card"><strong>${summary.cancelled}</strong><span>Cancelled</span></div>
             </div>
-
             <div class="participants-controls">
                 <div class="manage-control-group">
                     <label for="participant-search">Search participant</label>
@@ -439,13 +372,10 @@ function renderParticipantsPanel() {
                 </div>
             </div>
         </div>
-
         ${renderParticipantsTable(filteredParticipants)}
     `;
-
     attachParticipantControlListeners();
 }
-
 function renderParticipantsTable(participants) {
     if (!participants.length) {
         return `
@@ -455,7 +385,6 @@ function renderParticipantsTable(participants) {
             </div>
         `;
     }
-
     return `
         <div class="table-wrap">
             <table class="dashboard-table participants-table">
@@ -504,31 +433,25 @@ function renderParticipantsTable(participants) {
         </div>
     `;
 }
-
 function attachParticipantControlListeners() {
     const searchInput = document.getElementById('participant-search');
     const statusSelect = document.getElementById('participant-status-filter');
     const sortSelect = document.getElementById('participant-sort');
-
     searchInput?.addEventListener('input', (event) => {
         participantSearchTerm = event.target.value;
         renderParticipantsPanel();
     });
-
     statusSelect?.addEventListener('change', (event) => {
         participantStatusFilter = event.target.value;
         renderParticipantsPanel();
     });
-
     sortSelect?.addEventListener('change', (event) => {
         participantSortOrder = event.target.value;
         renderParticipantsPanel();
     });
 }
-
 function applyParticipantFilters() {
     const searchLower = participantSearchTerm.trim().toLowerCase();
-
     const filtered = eventParticipants.filter(participant => {
         const fullName = `${participant.studentFirstName} ${participant.studentLastName}`.toLowerCase();
         const email = (participant.studentEmail || '').toLowerCase();
@@ -536,19 +459,16 @@ function applyParticipantFilters() {
         const searchMatch = !searchLower || fullName.includes(searchLower) || email.includes(searchLower);
         return statusMatch && searchMatch;
     });
-
     const byRegisteredAt = (left, right) => {
         const leftTime = left.registeredAt ? new Date(left.registeredAt).getTime() : 0;
         const rightTime = right.registeredAt ? new Date(right.registeredAt).getTime() : 0;
         return leftTime - rightTime;
     };
-
     const byName = (left, right) => {
         const leftName = `${left.studentFirstName} ${left.studentLastName}`.trim().toLowerCase();
         const rightName = `${right.studentFirstName} ${right.studentLastName}`.trim().toLowerCase();
         return leftName.localeCompare(rightName);
     };
-
     if (participantSortOrder === 'NEWEST') {
         return filtered.sort((left, right) => byRegisteredAt(right, left));
     }
@@ -560,7 +480,6 @@ function applyParticipantFilters() {
     }
     return filtered.sort((left, right) => byName(right, left));
 }
-
 function summarizeParticipants(participants) {
     return {
         total: participants.length,
@@ -570,7 +489,6 @@ function summarizeParticipants(participants) {
         cancelled: participants.filter(item => item.status === 'CANCELLED').length
     };
 }
-
 function statusBadgeClass(status) {
     const map = {
         REGISTERED: 'badge-registered',
@@ -580,28 +498,23 @@ function statusBadgeClass(status) {
     };
     return map[status] || 'badge';
 }
-
 function formatDateTime(value) {
     if (!value) return '-';
     return new Date(value).toLocaleString('en-US');
 }
-
 async function updateParticipantStatus(registrationId) {
     const statusElement = document.getElementById(`status-${registrationId}`);
     const status = statusElement?.value;
-
     try {
         const response = await fetch(`${ORGANIZER_API}/api/registrations/${registrationId}/status`, {
             method: 'PUT',
             headers: organizerAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ status })
         });
-
         if (!response.ok) {
             const apiError = await response.json().catch(() => ({}));
             throw new Error(apiError.error || 'Could not update status');
         }
-
         const participant = eventParticipants.find(item => item.id === registrationId);
         if (participant) {
             participant.status = status;
@@ -609,14 +522,12 @@ async function updateParticipantStatus(registrationId) {
                 participant.cancelledAt = new Date().toISOString();
             }
         }
-
         renderParticipantsPanel();
         alert('Participant status updated.');
     } catch (error) {
         alert(error.message);
     }
 }
-
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;

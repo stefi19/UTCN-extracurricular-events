@@ -1,5 +1,4 @@
 package com.example.service
-
 import com.example.dto.RegisterRequest
 import com.example.fake.FakeEventDao
 import com.example.fake.FakeNotificationPublisher
@@ -11,16 +10,12 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 class NotificationPublisherTest {
-
     private lateinit var publisher: FakeNotificationPublisher
-
     @BeforeTest
     fun setUp() {
         publisher = FakeNotificationPublisher()
     }
-
     @Test
     fun authServicePublishesUserRegisteredOnRegister() {
         val service = AuthService(FakeUserDao(), JwtManager("test-secret-key-for-tests"), publisher)
@@ -28,7 +23,6 @@ class NotificationPublisherTest {
         assertEquals(1, publisher.countByType("USER_REGISTERED"))
         assertEquals("a@b.com", publisher.published[0].userEmail)
     }
-
     @Test
     fun authServiceDoesNotPublishOnLogin() {
         val service = AuthService(FakeUserDao(), JwtManager("test-secret-key-for-tests"), publisher)
@@ -37,7 +31,6 @@ class NotificationPublisherTest {
         service.login(com.example.dto.LoginRequest(email = "a@b.com", password = "Password1!"))
         assertTrue(publisher.published.isEmpty())
     }
-
     @Test
     fun registrationServicePublishesEventRegistrationOnRegister() {
         val eventDao = FakeEventDao()
@@ -47,7 +40,6 @@ class NotificationPublisherTest {
         assertEquals(1, publisher.countByType("EVENT_REGISTRATION"))
         assertEquals(5L, publisher.published[0].userId)
     }
-
     @Test
     fun registrationServicePublishesRegistrationCancelledOnCancel() {
         val eventDao = FakeEventDao()
@@ -58,7 +50,6 @@ class NotificationPublisherTest {
         service.cancelRegistration(studentId = 5L, registrationId = reg.id)
         assertEquals(1, publisher.countByType("REGISTRATION_CANCELLED"))
     }
-
     @Test
     fun noPublisherDoesNotCrash() {
         val service = AuthService(FakeUserDao(), JwtManager("test-secret-key-for-tests"), notificationPublisher = null)

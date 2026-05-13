@@ -1,5 +1,4 @@
 package com.example.integration
-
 import com.example.dto.AuthResponse
 import com.example.dto.CreateOrganizerRequest
 import com.example.dto.RegisterRequest
@@ -19,9 +18,7 @@ import io.ktor.server.testing.testApplication
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 class AdminUserIntegrationTest {
-
     private suspend fun registerAndGetToken(
         client: HttpClient,
         email: String,
@@ -41,13 +38,11 @@ class AdminUserIntegrationTest {
         }
         return response.body<AuthResponse>().token
     }
-
     @Test
     fun adminCanCreateOrganizerAndReadOrganizerList() = testApplication {
         setupTestApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
         val adminToken = registerAndGetToken(client, "admin-users@example.com", "ADMIN")
-
         val createResponse = client.post("/api/users/organizers") {
             bearerAuth(adminToken)
             contentType(ContentType.Application.Json)
@@ -62,20 +57,17 @@ class AdminUserIntegrationTest {
         }
         assertEquals(HttpStatusCode.Created, createResponse.status)
         assertEquals("ORGANIZER", createResponse.body<UserResponse>().role)
-
         val roleResponse = client.get("/api/users/organizer") {
             bearerAuth(adminToken)
         }
         assertEquals(HttpStatusCode.OK, roleResponse.status)
         assertTrue(roleResponse.body<List<UserResponse>>().any { it.email == "new-organizer@example.com" })
     }
-
     @Test
     fun nonAdminCannotCreateOrganizer() = testApplication {
         setupTestApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
         val studentToken = registerAndGetToken(client, "student-users@example.com", "STUDENT")
-
         val response = client.post("/api/users/organizers") {
             bearerAuth(studentToken)
             contentType(ContentType.Application.Json)
@@ -88,16 +80,13 @@ class AdminUserIntegrationTest {
                 )
             )
         }
-
         assertEquals(HttpStatusCode.Forbidden, response.status)
     }
-
     @Test
     fun createOrganizerWithWeakPasswordReturnsBadRequest() = testApplication {
         setupTestApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
         val adminToken = registerAndGetToken(client, "admin-weak-pass@example.com", "ADMIN")
-
         val response = client.post("/api/users/organizers") {
             bearerAuth(adminToken)
             contentType(ContentType.Application.Json)
@@ -110,34 +99,27 @@ class AdminUserIntegrationTest {
                 )
             )
         }
-
         assertEquals(HttpStatusCode.BadRequest, response.status)
     }
-
     @Test
     fun invalidRoleFilterReturnsBadRequest() = testApplication {
         setupTestApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
         val adminToken = registerAndGetToken(client, "admin-invalid-role@example.com", "ADMIN")
-
         val response = client.get("/api/users/notarole") {
             bearerAuth(adminToken)
         }
-
         assertEquals(HttpStatusCode.BadRequest, response.status)
     }
-
     @Test
     fun adminCanGetUsersGroupedByRole() = testApplication {
         setupTestApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
         val adminToken = registerAndGetToken(client, "admin-list-users@example.com", "ADMIN")
         registerAndGetToken(client, "student-list-users@example.com", "STUDENT")
-
         val response = client.get("/api/users") {
             bearerAuth(adminToken)
         }
-
         assertEquals(HttpStatusCode.OK, response.status)
         val body = response.body<Map<String, List<UserResponse>>>()
         assertTrue(body.containsKey("students"))

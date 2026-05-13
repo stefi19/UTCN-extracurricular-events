@@ -1,5 +1,4 @@
 package com.example.model
-
 data class ReminderOutboxItem(
     val id: Long,
     val registrationId: Long,

@@ -1,7 +1,5 @@
 package com.example.db.dao
-
 import com.example.model.Department
-
 interface DepartmentDao {
     fun findAll(): List<Department>
     fun findById(id: Long): Department?
@@ -10,4 +8,3 @@ interface DepartmentDao {
     fun delete(id: Long): Boolean
     fun findByName(name: String): Department?
 }
-

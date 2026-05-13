@@ -1,7 +1,5 @@
 package com.example.db.dao
-
 import com.example.model.Registration
-
 interface RegistrationDao {
     fun create(registration: Registration): Registration
     fun findById(id: Long): Registration?
@@ -14,4 +12,3 @@ interface RegistrationDao {
     fun updateStatus(id: Long, status: String): Boolean
     fun delete(id: Long): Boolean
 }
-

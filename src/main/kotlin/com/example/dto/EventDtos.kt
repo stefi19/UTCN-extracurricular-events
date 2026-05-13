@@ -1,7 +1,5 @@
 package com.example.dto
-
 import kotlinx.serialization.Serializable
-
 @Serializable
 data class EventRequest(
     val title: String,
@@ -16,7 +14,6 @@ data class EventRequest(
     val endTime: String? = null,
     val maxParticipants: Int? = null
 )
-
 @Serializable
 data class EventResponse(
     val id: Long,

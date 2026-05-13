@@ -1,9 +1,7 @@
 package com.example.db.dao
-
 import com.example.model.User
 import com.example.model.UserRole
 import javax.sql.DataSource
-
 class JdbcUserDao(private val dataSource: DataSource) : UserDao {
     override fun findByEmail(email: String): User? = dataSource.connection.use { connection ->
         connection.prepareStatement(
@@ -20,7 +18,6 @@ class JdbcUserDao(private val dataSource: DataSource) : UserDao {
             }
         }
     }
-
     override fun findById(id: Long): User? = dataSource.connection.use { connection ->
         connection.prepareStatement(
             """
@@ -36,7 +33,6 @@ class JdbcUserDao(private val dataSource: DataSource) : UserDao {
             }
         }
     }
-
     override fun create(user: User): User = dataSource.connection.use { connection ->
         connection.prepareStatement(
             """
@@ -64,7 +60,6 @@ class JdbcUserDao(private val dataSource: DataSource) : UserDao {
             }
         }
     }
-
     override fun update(id: Long, user: User): User? = dataSource.connection.use { connection ->
         connection.prepareStatement(
             """
@@ -93,14 +88,12 @@ class JdbcUserDao(private val dataSource: DataSource) : UserDao {
             }
         }
     }
-
     override fun delete(id: Long): Boolean = dataSource.connection.use { connection ->
         connection.prepareStatement("DELETE FROM users WHERE id = ?").use { statement ->
             statement.setLong(1, id)
             statement.executeUpdate() > 0
         }
     }
-
     override fun findByRole(role: UserRole): List<User> = dataSource.connection.use { connection ->
         connection.prepareStatement(
             """
@@ -121,7 +114,6 @@ class JdbcUserDao(private val dataSource: DataSource) : UserDao {
             }
         }
     }
-
     private fun java.sql.ResultSet.toUser(): User = User(
         id = getLong("id"),
         email = getString("email"),
@@ -135,4 +127,3 @@ class JdbcUserDao(private val dataSource: DataSource) : UserDao {
         updatedAt = getString("updated_at")
     )
 }
-

@@ -1,7 +1,5 @@
 package com.example.db.dao
-
 import com.example.model.Category
-
 interface CategoryDao {
     fun findAll(): List<Category>
     fun findById(id: Long): Category?
@@ -10,4 +8,3 @@ interface CategoryDao {
     fun delete(id: Long): Boolean
     fun findByName(name: String): Category?
 }
-

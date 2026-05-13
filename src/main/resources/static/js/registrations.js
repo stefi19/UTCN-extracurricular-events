@@ -2,14 +2,10 @@ let allRegistrations = [];
 let allEventsById = new Map();
 let selectedStatusFilter = 'ALL';
 let selectedSortOrder = 'NEWEST';
-
-// Fetch and display user's event registrations
 async function fetchMyRegistrations() {
     const container = document.getElementById('registrations-container');
     if (!container) return;
-
     const token = localStorage.getItem('jwt_token');
-
     if (!token) {
         container.innerHTML = `
             <div class="empty-state">
@@ -20,16 +16,13 @@ async function fetchMyRegistrations() {
         `;
         return;
     }
-
     try {
         container.innerHTML = '<div class="loading">Loading your registrations.</div>';
-
         const response = await fetch(`${API_URL}/api/registrations`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
-
         if (!response.ok) {
             if (response.status === 401) {
                 localStorage.removeItem('jwt_token');
@@ -45,9 +38,7 @@ async function fetchMyRegistrations() {
             }
             throw new Error('Failed to fetch registrations');
         }
-
         const registrations = await response.json();
-
         if (registrations.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
@@ -58,13 +49,10 @@ async function fetchMyRegistrations() {
             `;
             return;
         }
-
         const eventsResponse = await fetch(`${API_URL}/api/events`);
         const events = eventsResponse.ok ? await eventsResponse.json() : [];
-
         allRegistrations = registrations;
         allEventsById = new Map(events.map(event => [event.id, event]));
-
         renderRegistrationsPage();
     } catch (error) {
         console.error('Error fetching registrations:', error);
@@ -76,14 +64,11 @@ async function fetchMyRegistrations() {
         `;
     }
 }
-
 function renderRegistrationsPage() {
     const container = document.getElementById('registrations-container');
     if (!container) return;
-
     const filteredRegistrations = applyFiltersAndSorting(allRegistrations);
     const summary = calculateSummary(allRegistrations);
-
     container.innerHTML = `
         <div class="manage-panel">
             <div class="manage-panel-header">
@@ -124,21 +109,17 @@ function renderRegistrationsPage() {
             ${renderRegistrationCards(filteredRegistrations)}
         </div>
     `;
-
     attachManagePanelListeners();
 }
-
 function applyFiltersAndSorting(registrations) {
     const statusFiltered = selectedStatusFilter === 'ALL'
         ? [...registrations]
         : registrations.filter(registration => registration.status === selectedStatusFilter);
-
     const sortByRegisteredAt = (left, right) => {
         const leftTime = left.registeredAt ? new Date(left.registeredAt).getTime() : 0;
         const rightTime = right.registeredAt ? new Date(right.registeredAt).getTime() : 0;
         return leftTime - rightTime;
     };
-
     const sortByEventName = (left, right) => {
         const leftEvent = allEventsById.get(left.eventId);
         const rightEvent = allEventsById.get(right.eventId);
@@ -146,7 +127,6 @@ function applyFiltersAndSorting(registrations) {
         const rightName = (rightEvent?.title || `Event #${right.eventId}`).toLowerCase();
         return leftName.localeCompare(rightName);
     };
-
     if (selectedSortOrder === 'NEWEST') {
         return statusFiltered.sort((left, right) => sortByRegisteredAt(right, left));
     }
@@ -158,11 +138,9 @@ function applyFiltersAndSorting(registrations) {
     }
     return statusFiltered.sort((left, right) => sortByEventName(right, left));
 }
-
 function calculateSummary(registrations) {
     const isActiveStatus = status => status === 'REGISTERED' || status === 'CONFIRMED' || status === 'PENDING';
     const isCompletedStatus = status => status === 'ATTENDED' || status === 'NO_SHOW';
-
     return {
         total: registrations.length,
         active: registrations.filter(registration => isActiveStatus(registration.status)).length,
@@ -170,7 +148,6 @@ function calculateSummary(registrations) {
         completed: registrations.filter(registration => isCompletedStatus(registration.status)).length
     };
 }
-
 function renderRegistrationCards(registrations) {
     if (registrations.length === 0) {
         return `
@@ -180,12 +157,10 @@ function renderRegistrationCards(registrations) {
             </div>
         `;
     }
-
     return registrations.map(registration => {
         const event = allEventsById.get(registration.eventId);
         const eventTitle = event?.title || `Event #${registration.eventId}`;
         const eventDescription = event?.description || 'Event details are currently unavailable.';
-
         let formattedDate = 'TBA';
         let formattedTime = '';
         if (event?.date) {
@@ -203,7 +178,6 @@ function renderRegistrationCards(registrations) {
                 minute: '2-digit'
             });
         }
-
         const registeredDate = registration.registeredAt
             ? new Date(registration.registeredAt).toLocaleDateString('en-US', {
                 year: 'numeric',
@@ -211,11 +185,9 @@ function renderRegistrationCards(registrations) {
                 day: 'numeric'
             })
             : 'Unknown';
-
         const cancelButton = registration.status === 'REGISTERED' || registration.status === 'CONFIRMED'
             ? `<button class="btn btn-manage-cancel" onclick="cancelRegistration(${registration.id})">Cancel Registration</button>`
             : '';
-
         return `
             <div class="reg-card">
                 <div class="reg-card-main">
@@ -239,18 +211,15 @@ function renderRegistrationCards(registrations) {
         `;
     }).join('');
 }
-
 function attachManagePanelListeners() {
     const statusFilterElement = document.getElementById('status-filter');
     const sortOrderElement = document.getElementById('sort-order');
-
     if (statusFilterElement) {
         statusFilterElement.addEventListener('change', event => {
             selectedStatusFilter = event.target.value;
             renderRegistrationsPage();
         });
     }
-
     if (sortOrderElement) {
         sortOrderElement.addEventListener('change', event => {
             selectedSortOrder = event.target.value;
@@ -258,7 +227,6 @@ function attachManagePanelListeners() {
         });
     }
 }
-
 function getStatusBadge(status) {
     const badgeConfig = {
         REGISTERED: 'badge-registered',
@@ -268,26 +236,20 @@ function getStatusBadge(status) {
         ATTENDED: 'badge-attended',
         NO_SHOW: 'badge-no-show'
     };
-
     const cssClass = badgeConfig[status] || 'badge-default';
     const statusLabel = status.replace('_', ' ');
     return `<span class="badge ${cssClass}">${statusLabel}</span>`;
 }
-
-// Cancel a registration
 async function cancelRegistration(registrationId) {
     if (!confirm('Are you sure you want to cancel this registration?')) {
         return;
     }
-
     const token = localStorage.getItem('jwt_token');
-
     if (!token) {
         alert('Please sign in to cancel registrations.');
         window.location.href = '/login';
         return;
     }
-
     try {
         const response = await fetch(`${API_URL}/api/registrations/${registrationId}`, {
             method: 'DELETE',
@@ -295,7 +257,6 @@ async function cancelRegistration(registrationId) {
                 Authorization: `Bearer ${token}`
             }
         });
-
         if (response.ok || response.status === 204) {
             alert('Registration cancelled successfully.');
             fetchMyRegistrations();
@@ -308,8 +269,6 @@ async function cancelRegistration(registrationId) {
         alert('An error occurred while cancelling. Please try again.');
     }
 }
-
-// Load registrations when page loads
 document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('registrations-container')) {
         fetchMyRegistrations();

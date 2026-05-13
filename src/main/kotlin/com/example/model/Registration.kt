@@ -1,5 +1,4 @@
 package com.example.model
-
 data class Registration(
     val id: Long,
     val studentId: Long,

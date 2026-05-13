@@ -1,12 +1,9 @@
 package com.example.db.dao
-
 import com.example.model.ReminderOutboxItem
 import java.sql.Types
 import java.time.LocalDateTime
 import javax.sql.DataSource
-
 class JdbcReminderOutboxDao(private val dataSource: DataSource) : ReminderOutboxDao {
-
     override fun schedule(item: ReminderOutboxItem): ReminderOutboxItem = dataSource.connection.use { connection ->
         connection.prepareStatement(
             """
@@ -50,14 +47,12 @@ class JdbcReminderOutboxDao(private val dataSource: DataSource) : ReminderOutbox
             setNullable(statement, 10, item.eventDepartment)
             setNullable(statement, 11, item.studentFirstName)
             statement.setObject(12, LocalDateTime.parse(item.sendAt))
-
             statement.executeQuery().use { rs ->
                 rs.next()
                 rs.toReminderOutboxItem()
             }
         }
     }
-
     override fun claimDue(now: LocalDateTime, limit: Int): List<ReminderOutboxItem> = dataSource.connection.use { connection ->
         connection.autoCommit = false
         try {
@@ -93,7 +88,6 @@ class JdbcReminderOutboxDao(private val dataSource: DataSource) : ReminderOutbox
                     }
                 }
             }
-
             connection.commit()
             claimed
         } catch (exception: Exception) {
@@ -103,7 +97,6 @@ class JdbcReminderOutboxDao(private val dataSource: DataSource) : ReminderOutbox
             connection.autoCommit = true
         }
     }
-
     override fun markSent(id: Long): Boolean = dataSource.connection.use { connection ->
         connection.prepareStatement(
             """
@@ -119,7 +112,6 @@ class JdbcReminderOutboxDao(private val dataSource: DataSource) : ReminderOutbox
             statement.executeUpdate() > 0
         }
     }
-
     override fun markFailedForRetry(id: Long, error: String, retryAt: LocalDateTime): Boolean = dataSource.connection.use { connection ->
         connection.prepareStatement(
             """
@@ -137,7 +129,6 @@ class JdbcReminderOutboxDao(private val dataSource: DataSource) : ReminderOutbox
             statement.executeUpdate() > 0
         }
     }
-
     override fun markCancelledByRegistrationId(registrationId: Long): Boolean = dataSource.connection.use { connection ->
         connection.prepareStatement(
             """
@@ -152,11 +143,9 @@ class JdbcReminderOutboxDao(private val dataSource: DataSource) : ReminderOutbox
             statement.executeUpdate() > 0
         }
     }
-
     private fun setNullable(statement: java.sql.PreparedStatement, index: Int, value: String?) {
         if (value == null) statement.setNull(index, Types.VARCHAR) else statement.setString(index, value)
     }
-
     private fun java.sql.ResultSet.toReminderOutboxItem(): ReminderOutboxItem = ReminderOutboxItem(
         id = getLong("id"),
         registrationId = getLong("registration_id"),

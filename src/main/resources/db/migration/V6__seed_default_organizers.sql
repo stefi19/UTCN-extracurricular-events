@@ -1,5 +1,3 @@
--- Seed default organizer accounts (idempotent)
--- Password for all organizer accounts: password123
 INSERT INTO users (email, password_hash, first_name, last_name, role, is_active)
 VALUES
 ('osut@utcn.ro', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'OSUT', 'Organizer', 'ORGANIZER', true),

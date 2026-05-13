@@ -1,5 +1,4 @@
 package com.example.integration
-
 import com.example.controller.AuthController
 import com.example.controller.CategoryController
 import com.example.controller.DepartmentController
@@ -32,9 +31,7 @@ import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
-
 private const val TEST_JWT_SECRET = "test-secret-key-for-tests"
-
 fun ApplicationTestBuilder.setupTestApplication(
     userDao: FakeUserDao = FakeUserDao(),
     eventDao: FakeEventDao = FakeEventDao(),
@@ -55,7 +52,6 @@ fun ApplicationTestBuilder.setupTestApplication(
     )
     val categoryService = CategoryService(categoryDao)
     val departmentService = DepartmentService(departmentDao)
-
     application {
         install(ContentNegotiation) { json() }
         install(StatusPages) {
@@ -86,6 +82,5 @@ fun ApplicationTestBuilder.setupTestApplication(
             }
         }
     }
-
     return Triple(authService, eventService, registrationService)
 }
