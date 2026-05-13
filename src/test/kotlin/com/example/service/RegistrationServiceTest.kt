@@ -102,4 +102,32 @@ class RegistrationServiceTest {
             service.updateRegistrationStatus(1L, "INVALID", "ADMIN")
         }
     }
+    @Test
+    fun getAllRegistrationsReturnsAllAcrossStudents() {
+        eventDao.create(Event(id = 0, title = "Event 2", description = "Desc", date = "2026-07-01", category = "C", department = "D"))
+        service.registerStudent(10L, 1L)
+        service.registerStudent(20L, 2L)
+        assertEquals(2, service.getAllRegistrations().size)
+    }
+    @Test
+    fun getAllRegistrationsReturnsEmptyInitially() {
+        assertTrue(service.getAllRegistrations().isEmpty())
+    }
+    @Test
+    fun getEventParticipantsDetailedIncludesStudentFallback() {
+        service.registerStudent(99L, 1L)
+        val details = service.getEventParticipantsDetailed(1L)
+        assertEquals(1, details.size)
+        assertEquals(99L, details[0].studentId)
+        assertTrue(details[0].studentFirstName.isNotBlank())
+        assertTrue(details[0].studentLastName.isNotBlank())
+    }
+    @Test
+    fun reactivatesCancelledRegistrationInsteadOfCreatingNew() {
+        val first = service.registerStudent(10L, 1L)
+        service.cancelRegistration(10L, first.id)
+        val reactivated = service.registerStudent(10L, 1L)
+        assertEquals("REGISTERED", reactivated.status)
+        assertEquals(1, service.getStudentRegistrations(10L).count { it.status == "REGISTERED" })
+    }
 }

@@ -1,4 +1,5 @@
 package com.example.integration
+import com.example.controller.AdminStatsController
 import com.example.controller.AuthController
 import com.example.controller.CategoryController
 import com.example.controller.DepartmentController
@@ -79,6 +80,7 @@ fun ApplicationTestBuilder.setupTestApplication(
                 RegistrationController(registrationService).register(this)
                 CategoryController(categoryService).register(this)
                 DepartmentController(departmentService).register(this)
+                AdminStatsController(userService, eventService, registrationService, categoryService, departmentService).register(this)
             }
         }
     }

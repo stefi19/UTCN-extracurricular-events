@@ -137,6 +137,108 @@ class AuthServiceTest {
     fun getUserByIdReturnsNullForMissing() {
         assertEquals(null, service.getUserById(999L))
     }
+    @Test
+    fun updateProfileChangesFirstAndLastName() {
+        service.register(validRegister())
+        val updated = service.updateProfile(1L, com.example.dto.UpdateProfileRequest(firstName = "Jane", lastName = "Smith"))
+        assertEquals("Jane", updated.firstName)
+        assertEquals("Smith", updated.lastName)
+    }
+    @Test
+    fun updateProfileChangesEmailSuccessfully() {
+        service.register(validRegister())
+        val updated = service.updateProfile(1L, com.example.dto.UpdateProfileRequest(email = "new@example.com"))
+        assertEquals("new@example.com", updated.email)
+    }
+    @Test
+    fun updateProfileChangesPasswordSuccessfully() {
+        service.register(validRegister())
+        val updated = service.updateProfile(
+            1L, com.example.dto.UpdateProfileRequest(
+                currentPassword = "Password1!",
+                newPassword = "NewPass2@"
+            )
+        )
+        assertNotNull(updated)
+        val loginAfterChange = service.login(LoginRequest("test@example.com", "NewPass2@"))
+        assertTrue(loginAfterChange.token.isNotBlank())
+    }
+    @Test
+    fun updateProfileFailsWhenUserNotFound() {
+        assertFailsWith<IllegalArgumentException> {
+            service.updateProfile(999L, com.example.dto.UpdateProfileRequest(firstName = "X"))
+        }
+    }
+    @Test
+    fun updateProfileFailsOnBlankFirstName() {
+        service.register(validRegister())
+        assertFailsWith<IllegalArgumentException> {
+            service.updateProfile(1L, com.example.dto.UpdateProfileRequest(firstName = "   "))
+        }
+    }
+    @Test
+    fun updateProfileFailsOnBlankLastName() {
+        service.register(validRegister())
+        assertFailsWith<IllegalArgumentException> {
+            service.updateProfile(1L, com.example.dto.UpdateProfileRequest(lastName = ""))
+        }
+    }
+    @Test
+    fun updateProfileFailsOnInvalidNewEmail() {
+        service.register(validRegister())
+        assertFailsWith<IllegalArgumentException> {
+            service.updateProfile(1L, com.example.dto.UpdateProfileRequest(email = "not-an-email"))
+        }
+    }
+    @Test
+    fun updateProfileFailsWhenEmailAlreadyInUse() {
+        service.register(validRegister("user1@example.com"))
+        service.register(validRegister("user2@example.com"))
+        assertFailsWith<IllegalArgumentException> {
+            service.updateProfile(1L, com.example.dto.UpdateProfileRequest(email = "user2@example.com"))
+        }
+    }
+    @Test
+    fun updateProfileFailsOnPasswordChangeWithoutCurrentPassword() {
+        service.register(validRegister())
+        assertFailsWith<IllegalArgumentException> {
+            service.updateProfile(1L, com.example.dto.UpdateProfileRequest(newPassword = "NewPass2@"))
+        }
+    }
+    @Test
+    fun updateProfileFailsOnPasswordChangeWithWrongCurrentPassword() {
+        service.register(validRegister())
+        assertFailsWith<IllegalArgumentException> {
+            service.updateProfile(
+                1L, com.example.dto.UpdateProfileRequest(
+                    currentPassword = "WrongPass1!",
+                    newPassword = "NewPass2@"
+                )
+            )
+        }
+    }
+    @Test
+    fun updateProfileFailsOnWeakNewPassword() {
+        service.register(validRegister())
+        assertFailsWith<IllegalArgumentException> {
+            service.updateProfile(
+                1L, com.example.dto.UpdateProfileRequest(
+                    currentPassword = "Password1!",
+                    newPassword = "short"
+                )
+            )
+        }
+    }
+    @Test
+    fun updateProfilePublishesProfileUpdatedNotification() {
+        val publisher = CapturingNotificationPublisher()
+        service = AuthService(FakeUserDao(), JwtManager("test-secret-key-for-tests"), publisher)
+        service.register(validRegister())
+        publisher.messages.clear()
+        service.updateProfile(1L, com.example.dto.UpdateProfileRequest(firstName = "Updated"))
+        assertEquals(1, publisher.messages.size)
+        assertEquals("USER_PROFILE_UPDATED", publisher.messages[0].eventType)
+    }
     private class CapturingNotificationPublisher : NotificationPublisher {
         val messages = mutableListOf<NotificationMessage>()
         override suspend fun publish(message: NotificationMessage) {
