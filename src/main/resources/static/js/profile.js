@@ -93,6 +93,7 @@ function displayProfile(user) {
     document.getElementById('edit-profile-btn').addEventListener('click', showEditForm);
     document.getElementById('cancel-edit-btn').addEventListener('click', hideEditForm);
     document.getElementById('edit-profile-form').addEventListener('submit', handleProfileUpdate);
+    injectProfilePasswordUX();
 }
 function showEditForm() {
     document.getElementById('edit-profile-btn').style.display = 'none';
@@ -265,4 +266,70 @@ function displayProfileRegistrations(registrations, eventsById) {
             </a>
         ` : ''}
     `;
+}
+const PROFILE_PW_RULES = [
+    { key: 'length',  label: 'At least 8 characters',                  test: p => p.length >= 8 },
+    { key: 'upper',   label: 'At least one uppercase letter (A–Z)',     test: p => /[A-Z]/.test(p) },
+    { key: 'lower',   label: 'At least one lowercase letter (a–z)',     test: p => /[a-z]/.test(p) },
+    { key: 'special', label: 'At least one digit or special character', test: p => /[\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(p) },
+];
+function injectProfilePasswordUX() {
+    profileWrapToggle('currentPassword');
+    profileWrapToggle('newPassword');
+    profileWrapToggle('confirmPassword');
+    const newPwInput = document.getElementById('newPassword');
+    if (newPwInput) {
+        const box = document.createElement('div');
+        box.className = 'pw-requirements';
+        box.id = 'profile-pw-requirements';
+        box.innerHTML = `<p class="pw-req-title">Password requirements</p><ul>${PROFILE_PW_RULES.map(r => `<li class="pw-req-item" id="profile-rule-${r.key}">${r.label}</li>`).join('')}</ul>`;
+        newPwInput.closest('.form-group').appendChild(box);
+        newPwInput.addEventListener('input', () => {
+            PROFILE_PW_RULES.forEach(r => {
+                const el = document.getElementById(`profile-rule-${r.key}`);
+                if (el) el.classList.toggle('met', r.test(newPwInput.value));
+            });
+            updateProfileConfirmHint();
+        });
+    }
+    const confirmInput = document.getElementById('confirmPassword');
+    if (confirmInput) {
+        const hint = document.createElement('span');
+        hint.id = 'profile-confirm-hint';
+        hint.className = 'confirm-hint';
+        confirmInput.closest('.form-group').appendChild(hint);
+        confirmInput.addEventListener('input', updateProfileConfirmHint);
+    }
+}
+function updateProfileConfirmHint() {
+    const hint = document.getElementById('profile-confirm-hint');
+    const pw = document.getElementById('newPassword')?.value || '';
+    const confirm = document.getElementById('confirmPassword')?.value || '';
+    if (!hint) return;
+    if (!confirm) { hint.textContent = ''; return; }
+    if (confirm === pw) {
+        hint.textContent = '✓ Passwords match';
+        hint.className = 'confirm-hint confirm-ok';
+    } else {
+        hint.textContent = '✗ Passwords do not match';
+        hint.className = 'confirm-hint confirm-err';
+    }
+}
+function profileWrapToggle(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'pw-input-wrap';
+    input.parentNode.insertBefore(wrap, input);
+    wrap.appendChild(input);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pw-toggle';
+    btn.textContent = 'Show';
+    btn.addEventListener('click', () => {
+        const isText = input.type === 'text';
+        input.type = isText ? 'password' : 'text';
+        btn.textContent = isText ? 'Show' : 'Hide';
+    });
+    wrap.appendChild(btn);
 }

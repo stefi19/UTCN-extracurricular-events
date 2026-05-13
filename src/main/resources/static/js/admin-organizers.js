@@ -91,6 +91,54 @@ function renderAdminOrganizerShell() {
 function attachAdminOrganizerHandlers() {
     const form = document.getElementById('create-organizer-form');
     form?.addEventListener('submit', handleCreateOrganizer);
+    injectAdminOrganizerUX();
+}
+function injectAdminOrganizerUX() {
+    const emailInput = document.getElementById('organizer-email');
+    if (emailInput) {
+        const hint = document.createElement('span');
+        hint.className = 'input-hint';
+        hint.textContent = 'Use the organizer team email, e.g. team@utcn.ro';
+        emailInput.parentNode.appendChild(hint);
+    }
+    adminWrapToggle('organizer-password');
+    const pwInput = document.getElementById('organizer-password');
+    if (pwInput) {
+        const rules = [
+            { key: 'length',  label: 'At least 8 characters',                  test: p => p.length >= 8 },
+            { key: 'upper',   label: 'Uppercase letter (A–Z)',                  test: p => /[A-Z]/.test(p) },
+            { key: 'lower',   label: 'Lowercase letter (a–z)',                  test: p => /[a-z]/.test(p) },
+            { key: 'special', label: 'Digit or special character',              test: p => /[\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(p) },
+        ];
+        const box = document.createElement('div');
+        box.className = 'pw-requirements';
+        box.innerHTML = `<p class="pw-req-title">Password requirements</p><ul>${rules.map(r => `<li class="pw-req-item" id="aorg-rule-${r.key}">${r.label}</li>`).join('')}</ul>`;
+        pwInput.closest('.form-group').appendChild(box);
+        pwInput.addEventListener('input', () => {
+            rules.forEach(r => {
+                const el = document.getElementById(`aorg-rule-${r.key}`);
+                if (el) el.classList.toggle('met', r.test(pwInput.value));
+            });
+        });
+    }
+}
+function adminWrapToggle(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'pw-input-wrap';
+    input.parentNode.insertBefore(wrap, input);
+    wrap.appendChild(input);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pw-toggle';
+    btn.textContent = 'Show';
+    btn.addEventListener('click', () => {
+        const isText = input.type === 'text';
+        input.type = isText ? 'password' : 'text';
+        btn.textContent = isText ? 'Show' : 'Hide';
+    });
+    wrap.appendChild(btn);
 }
 async function handleCreateOrganizer(event) {
     event.preventDefault();

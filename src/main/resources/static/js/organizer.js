@@ -154,6 +154,40 @@ function attachOrganizerHandlers() {
     const resetBtn = document.getElementById('organizer-form-reset');
     form?.addEventListener('submit', handleOrganizerEventSubmit);
     resetBtn?.addEventListener('click', resetOrganizerForm);
+    injectOrganizerFormUX();
+}
+function injectOrganizerFormUX() {
+    const dateInput = document.getElementById('event-date');
+    if (dateInput) {
+        const hint = document.createElement('span');
+        hint.className = 'input-hint';
+        hint.textContent = 'Format: YYYY-MM-DD HH:MM — e.g. 2026-06-15 14:00';
+        dateInput.parentNode.appendChild(hint);
+    }
+    const maxPart = document.getElementById('event-max-participants');
+    if (maxPart) {
+        const hint = document.createElement('span');
+        hint.className = 'input-hint';
+        hint.textContent = 'Leave empty for unlimited registrations.';
+        maxPart.parentNode.appendChild(hint);
+    }
+    attachCharCounter('event-title', 255);
+    attachCharCounter('event-description', 2000);
+    attachCharCounter('event-location', 255);
+}
+function attachCharCounter(inputId, maxLen) {
+    const el = document.getElementById(inputId);
+    if (!el) return;
+    const counter = document.createElement('span');
+    counter.className = 'char-counter';
+    const update = () => {
+        const remaining = maxLen - el.value.length;
+        counter.textContent = `${el.value.length} / ${maxLen}`;
+        counter.className = 'char-counter' + (remaining < 20 ? ' warn' : '') + (remaining < 0 ? ' over' : '');
+    };
+    el.addEventListener('input', update);
+    el.parentNode.appendChild(counter);
+    update();
 }
 function renderOrganizerData() {
     renderOrganizerSelects();
