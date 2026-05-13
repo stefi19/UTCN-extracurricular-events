@@ -27,6 +27,7 @@ import com.example.service.UserService
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.auth.HttpAuthHeader
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
@@ -35,6 +36,7 @@ import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
+import io.ktor.server.auth.parseAuthorizationHeader
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.plugins.statuspages.StatusPages
@@ -58,11 +60,13 @@ fun Application.module() {
         allowHost("127.0.0.1:4200")
         allowHeader(HttpHeaders.ContentType)
         allowHeader(HttpHeaders.Authorization)
+        allowHeader(HttpHeaders.Cookie)
         allowMethod(HttpMethod.Get)
         allowMethod(HttpMethod.Post)
         allowMethod(HttpMethod.Put)
         allowMethod(HttpMethod.Delete)
         allowMethod(HttpMethod.Options)
+        allowCredentials = true
     }
     install(StatusPages) {
         exception<IllegalArgumentException> { call, cause ->
@@ -84,6 +88,14 @@ fun Application.module() {
         jwt {
             realm = jwtManager.realm
             verifier(jwtManager.verifier)
+            authHeader { applicationCall ->
+                val cookieToken = applicationCall.request.cookies["auth_token"]
+                if (cookieToken != null) {
+                    HttpAuthHeader.Single("Bearer", cookieToken)
+                } else {
+                    applicationCall.request.parseAuthorizationHeader()
+                }
+            }
             validate { jwtCredential ->
                 JWTPrincipal(jwtCredential.payload)
             }

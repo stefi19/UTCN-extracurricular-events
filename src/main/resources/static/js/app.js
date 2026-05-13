@@ -953,9 +953,9 @@ function updateNavigation() {
         }
     }
 }
-function logout() {
+async function logout() {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     clearSession();
-    alert('You have been signed out successfully.');
     window.location.href = '/';
 }
 function clearSession() {
