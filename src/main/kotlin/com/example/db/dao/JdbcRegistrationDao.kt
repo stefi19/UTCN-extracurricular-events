@@ -1,11 +1,8 @@
 package com.example.db.dao
-
 import com.example.model.Registration
 import javax.sql.DataSource
 import java.time.LocalDateTime
-
 class JdbcRegistrationDao(private val dataSource: DataSource) : RegistrationDao {
-    
     override fun create(registration: Registration): Registration = dataSource.connection.use { connection ->
         connection.prepareStatement(
             """
@@ -23,7 +20,6 @@ class JdbcRegistrationDao(private val dataSource: DataSource) : RegistrationDao 
             }
         }
     }
-
     override fun findById(id: Long): Registration? = dataSource.connection.use { connection ->
         connection.prepareStatement(
             """
@@ -38,7 +34,23 @@ class JdbcRegistrationDao(private val dataSource: DataSource) : RegistrationDao 
             }
         }
     }
-
+    override fun findAll(): List<Registration> = dataSource.connection.use { connection ->
+        connection.prepareStatement(
+            """
+            SELECT id, student_id, event_id, status, registered_at, cancelled_at
+            FROM registrations
+            ORDER BY registered_at DESC
+            """.trimIndent()
+        ).use { statement ->
+            statement.executeQuery().use { rs ->
+                buildList {
+                    while (rs.next()) {
+                        add(rs.toRegistration())
+                    }
+                }
+            }
+        }
+    }
     override fun findByStudentId(studentId: Long): List<Registration> = dataSource.connection.use { connection ->
         connection.prepareStatement(
             """
@@ -58,7 +70,6 @@ class JdbcRegistrationDao(private val dataSource: DataSource) : RegistrationDao 
             }
         }
     }
-
     override fun findByEventId(eventId: Long): List<Registration> = dataSource.connection.use { connection ->
         connection.prepareStatement(
             """
@@ -78,7 +89,6 @@ class JdbcRegistrationDao(private val dataSource: DataSource) : RegistrationDao 
             }
         }
     }
-
     override fun findByStudentAndEvent(studentId: Long, eventId: Long): Registration? = 
         dataSource.connection.use { connection ->
             connection.prepareStatement(
@@ -95,7 +105,37 @@ class JdbcRegistrationDao(private val dataSource: DataSource) : RegistrationDao 
                 }
             }
         }
-
+    override fun findByStudentAndEventAny(studentId: Long, eventId: Long): Registration? =
+        dataSource.connection.use { connection ->
+            connection.prepareStatement(
+                """
+                SELECT id, student_id, event_id, status, registered_at, cancelled_at
+                FROM registrations
+                WHERE student_id = ? AND event_id = ?
+                """.trimIndent()
+            ).use { statement ->
+                statement.setLong(1, studentId)
+                statement.setLong(2, eventId)
+                statement.executeQuery().use { rs ->
+                    if (rs.next()) rs.toRegistration() else null
+                }
+            }
+        }
+    override fun reactivate(id: Long): Registration? = dataSource.connection.use { connection ->
+        connection.prepareStatement(
+            """
+            UPDATE registrations
+            SET status = 'REGISTERED', cancelled_at = NULL, registered_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            RETURNING id, student_id, event_id, status, registered_at, cancelled_at
+            """.trimIndent()
+        ).use { statement ->
+            statement.setLong(1, id)
+            statement.executeQuery().use { rs ->
+                if (rs.next()) rs.toRegistration() else null
+            }
+        }
+    }
     override fun updateStatus(id: Long, status: String): Boolean = dataSource.connection.use { connection ->
         connection.prepareStatement(
             """
@@ -110,14 +150,12 @@ class JdbcRegistrationDao(private val dataSource: DataSource) : RegistrationDao 
             statement.executeUpdate() > 0
         }
     }
-
     override fun delete(id: Long): Boolean = dataSource.connection.use { connection ->
         connection.prepareStatement("DELETE FROM registrations WHERE id = ?").use { statement ->
             statement.setLong(1, id)
             statement.executeUpdate() > 0
         }
     }
-
     private fun java.sql.ResultSet.toRegistration(): Registration = Registration(
         id = getLong("id"),
         studentId = getLong("student_id"),
@@ -127,4 +165,3 @@ class JdbcRegistrationDao(private val dataSource: DataSource) : RegistrationDao 
         cancelledAt = getString("cancelled_at")
     )
 }
-

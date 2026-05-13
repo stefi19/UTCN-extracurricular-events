@@ -1,7 +1,7 @@
 package com.example.controller
-
 import com.example.dto.LoginRequest
 import com.example.dto.RegisterRequest
+import com.example.dto.UpdateProfileRequest
 import com.example.service.AuthService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
@@ -12,36 +12,65 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import io.ktor.server.routing.put
 import io.ktor.server.routing.route
+
+private fun appendAuthCookie(call: io.ktor.server.application.ApplicationCall, token: String) {
+    call.response.cookies.append(
+        name = "auth_token",
+        value = token,
+        httpOnly = true,
+        path = "/",
+        maxAge = 86400L,
+        extensions = mapOf("SameSite" to "Strict")
+    )
+}
 
 class AuthController(private val authService: AuthService) {
     fun register(routing: Route) {
-        routing.route("/auth") {
+        routing.route("/api/auth") {
             post("/register") {
                 val request = call.receive<RegisterRequest>()
                 val response = authService.register(request)
+                appendAuthCookie(call, response.token)
                 call.respond(HttpStatusCode.Created, response)
             }
-
             post("/login") {
                 val request = call.receive<LoginRequest>()
                 val response = authService.login(request)
+                appendAuthCookie(call, response.token)
                 call.respond(response)
+            }
+            post("/logout") {
+                call.response.cookies.append(
+                    name = "auth_token",
+                    value = "",
+                    httpOnly = true,
+                    path = "/",
+                    maxAge = 0L,
+                    extensions = mapOf("SameSite" to "Strict")
+                )
+                call.respond(HttpStatusCode.NoContent)
             }
         }
     }
-
     fun registerProtected(routing: Route) {
-        routing.route("/auth") {
+        routing.route("/api/auth") {
             get("/me") {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal?.subject?.toLongOrNull()
                     ?: throw IllegalArgumentException("Invalid token")
-
                 val userResponse = authService.getUserById(userId)
                     ?: throw IllegalArgumentException("User not found")
-
                 call.respond(userResponse)
+            }
+            put("/profile") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.subject?.toLongOrNull()
+                    ?: throw IllegalArgumentException("Invalid token")
+                val request = call.receive<UpdateProfileRequest>()
+                val updatedUser = authService.updateProfile(userId, request)
+                call.respond(updatedUser)
             }
         }
     }

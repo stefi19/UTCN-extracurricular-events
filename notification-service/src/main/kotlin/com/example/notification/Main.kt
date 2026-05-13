@@ -3,7 +3,9 @@ package com.example.notification
 import dev.kourier.amqp.connection.AMQPConfig
 import dev.kourier.amqp.connection.AMQPConfig.Connection
 import dev.kourier.amqp.connection.AMQPConfig.Server
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
@@ -12,11 +14,12 @@ private val logger = LoggerFactory.getLogger("NotificationServiceMain")
 
 fun main() {
     val config = buildConfig()
+    val emailSender = SmtpEmailSender()
+    val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     logger.info("Notification service starting")
 
     runBlocking {
-        launch { UserNotificationConsumer(GlobalScope, config).start() }
-        launch { RegistrationNotificationConsumer(GlobalScope, config).start() }
+        launch { EmailNotificationConsumer(serviceScope, config, emailSender).start() }
     }
 }
 

@@ -1,15 +1,11 @@
 package com.example.db.dao
-
 import com.example.model.Event
 import javax.sql.DataSource
-
 class JdbcEventDao(private val dataSource: DataSource) : EventDao {
-
     private val selectColumns = """
         id, title, description, date, category, department,
         organizer_id, category_id, location, start_time, end_time, max_participants
     """.trimIndent()
-
     override fun findAll(): List<Event> = dataSource.connection.use { connection ->
         connection.prepareStatement(
             "SELECT $selectColumns FROM events ORDER BY id"
@@ -23,7 +19,6 @@ class JdbcEventDao(private val dataSource: DataSource) : EventDao {
             }
         }
     }
-
     override fun findById(id: Long): Event? = dataSource.connection.use { connection ->
         connection.prepareStatement(
             "SELECT $selectColumns FROM events WHERE id = ?"
@@ -34,7 +29,6 @@ class JdbcEventDao(private val dataSource: DataSource) : EventDao {
             }
         }
     }
-
     override fun create(event: Event): Event = dataSource.connection.use { connection ->
         connection.prepareStatement(
             """
@@ -51,7 +45,6 @@ class JdbcEventDao(private val dataSource: DataSource) : EventDao {
             }
         }
     }
-
     override fun update(id: Long, event: Event): Event? = dataSource.connection.use { connection ->
         connection.prepareStatement(
             """
@@ -70,14 +63,12 @@ class JdbcEventDao(private val dataSource: DataSource) : EventDao {
             }
         }
     }
-
     override fun delete(id: Long): Boolean = dataSource.connection.use { connection ->
         connection.prepareStatement("DELETE FROM events WHERE id = ?").use { statement ->
             statement.setLong(1, id)
             statement.executeUpdate() > 0
         }
     }
-
     private fun bindEvent(statement: java.sql.PreparedStatement, event: Event) {
         statement.setString(1, event.title)
         statement.setString(2, event.description)
@@ -91,7 +82,6 @@ class JdbcEventDao(private val dataSource: DataSource) : EventDao {
         if (event.endTime != null) statement.setString(10, event.endTime) else statement.setNull(10, java.sql.Types.TIMESTAMP)
         if (event.maxParticipants != null) statement.setInt(11, event.maxParticipants) else statement.setNull(11, java.sql.Types.INTEGER)
     }
-
     private fun java.sql.ResultSet.toEvent(): Event = Event(
         id = getLong("id"),
         title = getString("title"),

@@ -1,7 +1,5 @@
 package com.example.messaging
-
 import kotlinx.serialization.Serializable
-
 @Serializable
 data class NotificationMessage(
     val eventType: String,

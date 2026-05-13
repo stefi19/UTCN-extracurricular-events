@@ -40,6 +40,10 @@ dependencies {
     // CORS
     implementation("io.ktor:ktor-server-cors-jvm:$ktorVersion")
 
+    // HTML rendering
+    implementation("io.ktor:ktor-server-html-builder-jvm:$ktorVersion")
+    implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.11.0")
+
     // Testing
     testImplementation(kotlin("test"))
     testImplementation("io.ktor:ktor-server-test-host-jvm:$ktorVersion")
@@ -47,7 +51,7 @@ dependencies {
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
 }
 
 application {

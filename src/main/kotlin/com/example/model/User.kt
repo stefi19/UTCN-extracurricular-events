@@ -1,9 +1,7 @@
 package com.example.model
-
 enum class UserRole {
     STUDENT, ORGANIZER, ADMIN
 }
-
 data class User(
     val id: Long,
     val email: String,

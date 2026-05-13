@@ -1,0 +1,22 @@
+# Build output
+build/
+.gradle/
+bin/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Other
+frontend/
+notification-service/
+docs/
+kotlin-sample/
+*.md
+.git/
+.gitignore

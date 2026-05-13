@@ -1,8 +1,8 @@
 # UTCN Extracurricular Events Platform
 
-REST API for managing extracurricular events at the Technical University of Cluj-Napoca.
-The server handles user authentication, event CRUD, student registrations, and admin operations for departments and categories.
-Built with Kotlin and Ktor, backed by PostgreSQL.
+A full-stack web application for managing extracurricular events at the Technical University of Cluj-Napoca.
+Students can browse, register for, and track events. Organizers can create and manage their events. Admins manage users, categories, and departments.
+Built with Kotlin and Ktor (backend), vanilla JavaScript and CSS (frontend), backed by PostgreSQL with RabbitMQ for async notifications.
 
 ## Table of Contents
 
@@ -13,15 +13,17 @@ Built with Kotlin and Ktor, backed by PostgreSQL.
 5. [Architecture](#architecture)
 6. [Microservices](#microservices)
 7. [Design Patterns](#design-patterns)
-8. [Database Schema](#database-schema)
-9. [API Endpoints](#api-endpoints)
-10. [Authentication](#authentication)
-11. [Request and Response Examples](#request-and-response-examples)
-12. [Validation Rules](#validation-rules)
-13. [Error Handling](#error-handling)
-14. [Postman Screenshots](#postman-screenshots)
-15. [Tech Stack](#tech-stack)
-16. [Environment Variables](#environment-variables)
+8. [Frontend](#frontend)
+9. [Authentication & Security](#authentication--security)
+10. [Cookie Policy & Consent](#cookie-policy--consent)
+11. [Database Schema](#database-schema)
+12. [API Endpoints](#api-endpoints)
+13. [Request and Response Examples](#request-and-response-examples)
+14. [Validation Rules](#validation-rules)
+15. [Error Handling](#error-handling)
+16. [Postman Screenshots](#postman-screenshots)
+17. [Tech Stack](#tech-stack)
+18. [Environment Variables](#environment-variables)
 
 ---
 
@@ -33,29 +35,41 @@ Built with Kotlin and Ktor, backed by PostgreSQL.
 ## How to Run
 
 ```bash
-# 1. Start the database
-docker-compose up -d
+# Start all services (database, RabbitMQ, notification-service, backend)
+docker compose up -d
 
-# 2. Build the project
-./gradlew build -x test
-
-# 3. Start the server
-./gradlew run
+# Open the app
+open http://localhost:8080
 ```
 
-The API will be available at http://localhost:8080.
+To rebuild after source changes:
 
-To verify it is running:
+```bash
+docker compose build backend
+docker compose up -d backend
+```
+
+To verify the backend is running:
 
 ```bash
 curl http://localhost:8080/health
 # {"status":"ok"}
 ```
 
-To stop the database:
+To stop all services:
 
 ```bash
-docker-compose down
+docker compose down
+```
+
+### Running locally (without Docker)
+
+```bash
+# Start only the database and RabbitMQ
+docker compose up -d db rabbitmq
+
+# Build and run the backend
+./gradlew run
 ```
 
 ## Running Tests
@@ -64,35 +78,36 @@ docker-compose down
 ./gradlew test
 ```
 
-The test suite includes unit tests covering all service classes, JWT token handling, password hashing, and notification publishing.
+The test suite includes unit tests for all service classes, JWT token handling, password hashing, and notification publishing.
 It also includes HTTP integration tests using Ktor's `testApplication` for auth and event routes.
-Tests use in-memory fake DAOs and a `FakeNotificationPublisher` so they run without any external dependencies.
+Tests use in-memory fake DAOs and a `FakeNotificationPublisher` — no external dependencies required.
 
 ## Project Structure
 
 ```
 src/
   main/kotlin/com/example/
-    Application.kt              Ktor plugin setup, routing, dependency wiring
+    Application.kt              Ktor plugin setup, routing, HTML page rendering, dependency wiring
     Main.kt                     Entry point (embedded Netty server)
     controller/
-      AuthController.kt         /auth/register, /auth/login, /auth/me
+      AuthController.kt         /api/auth/register, /api/auth/login, /api/auth/logout, /api/auth/me, /api/auth/profile
       EventController.kt        /api/events CRUD
       RegistrationController.kt /api/registrations
       CategoryController.kt     /api/categories CRUD (admin)
       DepartmentController.kt   /api/departments CRUD (admin)
       UserController.kt         /api/users (admin)
+      AdminStatsController.kt   /api/admin/stats (admin)
     service/
       AuthService.kt            Registration, login, token generation
       EventService.kt           Event CRUD with validation
-      RegistrationService.kt    Student registration logic
+      RegistrationService.kt    Student registration logic (register, cancel, re-register)
       CategoryService.kt        Category CRUD with validation
       DepartmentService.kt      Department CRUD with validation
       UserService.kt            User listing by role
-    messaging/                  Notification port + adapters
-      NotificationPublisher.kt  Port (interface)
-      NotificationMessage.kt    Message DTO
-      RabbitMQConnectionFactory.kt  Singleton config (env vars)
+    messaging/
+      NotificationPublisher.kt          Port (interface)
+      NotificationMessage.kt            Message DTO
+      RabbitMQConnectionFactory.kt      Singleton config (env vars)
       RabbitMQNotificationPublisher.kt  Real adapter (AMQP)
       LogNotificationPublisher.kt       Fallback adapter (logs only)
     db/
@@ -103,34 +118,44 @@ src/
         RegistrationDao.kt / JdbcRegistrationDao.kt
         CategoryDao.kt / JdbcCategoryDao.kt
         DepartmentDao.kt / JdbcDepartmentDao.kt
+        ReminderOutboxDao.kt / JdbcReminderOutboxDao.kt
     model/
-      Event.kt, User.kt, Registration.kt, Category.kt, Department.kt
+      Event.kt, User.kt, Registration.kt, Category.kt, Department.kt, ReminderOutboxItem.kt
     dto/
-      AuthDtos.kt, EventDtos.kt, RegistrationDtos.kt, AdminDtos.kt, UserDtos.kt
-      ErrorResponse.kt
+      AuthDtos.kt, EventDtos.kt, RegistrationDtos.kt, AdminDtos.kt, UserDtos.kt, ErrorResponse.kt
     security/
       JwtManager.kt, PasswordUtil.kt, AuthorizationUtil.kt
-  main/resources/db/migration/
-    V1__create_events_table.sql
-    V2__create_users_table.sql
-    V3__create_registrations_table.sql
-    V4__add_cascade_delete_registrations.sql
+  main/resources/
+    db/migration/               Flyway SQL migrations (V1-V7)
+    static/
+      css/style.css             Dark-themed SPA stylesheet (includes cookie banner styles)
+      js/
+        app.js                  Main SPA logic (home, events, registrations)
+        organizer.js            Organizer panel
+        registrations.js        My registrations page
+        profile.js              Profile page
+        login.js                Login page
+        signup.js               Signup page
+        admin-dashboard.js      Admin dashboard
+        admin-organizers.js     Admin organizer management
+        admin-taxonomy.js       Admin category/department management
+        cookies.js              Cookie consent banner (shown once per browser)
   test/kotlin/com/example/
-    fake/                       In-memory DAO + publisher stubs (no external deps)
-    service/                    Unit tests for all services + publisher
+    fake/                       In-memory DAO + publisher stubs
+    service/                    Unit tests for all services
     security/                   Unit tests for JwtManager and PasswordUtil
     integration/                HTTP integration tests using testApplication
 notification-service/           Standalone microservice (separate Gradle project)
   src/main/kotlin/com/example/notification/
-    Main.kt                     Entry point
-    NotificationConsumer.kt     Abstract base (Template Method pattern)
-    UserNotificationConsumer.kt     Handles USER_REGISTERED events
-    RegistrationNotificationConsumer.kt  Handles registration events
-    NotificationMessage.kt      Shared DTO
+    Main.kt
+    NotificationConsumer.kt
+    UserNotificationConsumer.kt
+    RegistrationNotificationConsumer.kt
+    NotificationMessage.kt
   Dockerfile
   build.gradle.kts
 build.gradle.kts
-docker-compose.yml              postgres + rabbitmq + pgadmin + notification-service
+docker-compose.yml
 docs/README.md
 ```
 
@@ -139,31 +164,31 @@ docs/README.md
 The backend follows **Hexagonal Architecture** (Ports and Adapters):
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Ktor HTTP Server                         │
-│                                                                 │
-│  Angular / Postman                                              │
-│       │                                                         │
-│  Controllers  ──────────────────────────────────────────────►  │
-│  (HTTP Adapter)          Services (Domain Core)                 │
-│                          - AuthService                          │
-│                          - EventService                         │
-│                          - RegistrationService                  │
-│                               │               │                 │
-│                      DAO Port │    Notification Port            │
-│                       (Interface)    (Interface)                │
-│                          │               │                      │
-│                    JdbcDao          RabbitMQPublisher           │
-│                   (Adapter)      or LogPublisher (fallback)     │
-│                          │               │                      │
-│                     PostgreSQL       RabbitMQ ──► notification- │
-│                                                   service       │
-└─────────────────────────────────────────────────────────────────┘
++-----------------------------------------------------------------+
+|                        Ktor HTTP Server                         |
+|                                                                 |
+|  Browser (Vanilla JS SPA)                                       |
+|       |                                                         |
+|  Controllers  ------------------------------------------------> |
+|  (HTTP Adapter)          Services (Domain Core)                 |
+|                          - AuthService                          |
+|                          - EventService                         |
+|                          - RegistrationService                  |
+|                               |               |                 |
+|                      DAO Port |    Notification Port            |
+|                       (Interface)    (Interface)                |
+|                          |               |                      |
+|                    JdbcDao          RabbitMQPublisher           |
+|                   (Adapter)      or LogPublisher (fallback)     |
+|                          |               |                      |
+|                     PostgreSQL       RabbitMQ --> notification- |
+|                                                   service       |
++-----------------------------------------------------------------+
 ```
 
-**Ports** are Kotlin interfaces (`UserDao`, `EventDao`, `NotificationPublisher`) that the domain core depends on.  
-**Adapters** are concrete implementations (`JdbcUserDao`, `RabbitMQNotificationPublisher`) that are wired at startup in `Application.kt`.  
-**Fake adapters** (`FakeUserDao`, `FakeNotificationPublisher`) are used exclusively in tests with no external dependencies.
+**Ports** are Kotlin interfaces (`UserDao`, `EventDao`, `NotificationPublisher`) that the domain core depends on.
+**Adapters** are concrete implementations (`JdbcUserDao`, `RabbitMQNotificationPublisher`) wired at startup in `Application.kt`.
+**Fake adapters** (`FakeUserDao`, `FakeNotificationPublisher`) are used in tests with no external dependencies.
 
 StatusPages intercepts all service exceptions and maps them to consistent JSON error responses.
 
@@ -173,13 +198,13 @@ The platform consists of two independently deployable services:
 
 | Service | Language | Responsibility |
 |---|---|---|
-| `utcn-events-api` | Kotlin / Ktor | REST API — auth, events, registrations |
+| `utcn-events-api` | Kotlin / Ktor | REST API + SPA frontend |
 | `notification-service` | Kotlin | Async consumer — processes notification events from RabbitMQ |
 
 **Message flow:**
 
 ```
-utcn-events-api  ──(publish)──►  RabbitMQ  ──(consume)──►  notification-service
+utcn-events-api  --(publish)-->  RabbitMQ  --(consume)-->  notification-service
                                 queue: notifications
 ```
 
@@ -191,162 +216,302 @@ Events published to the `notifications` queue:
 | `EVENT_REGISTRATION` | A student registers for an event |
 | `REGISTRATION_CANCELLED` | A student cancels a registration |
 
-Both services connect to RabbitMQ using environment variables `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USER`, `RABBITMQ_PASS`.
-
 ## Design Patterns
 
 | Pattern | Where | Purpose |
 |---|---|---|
 | **Hexagonal / Ports & Adapters** | `dao/` interfaces + `Jdbc*Dao` implementations | Decouple domain logic from persistence; swap real DAO for fake in tests |
 | **Singleton** | `RabbitMQConnectionFactory` | Single point of RabbitMQ config; reads env vars once |
-| **Strategy** | `NotificationPublisher` interface | Swap `RabbitMQNotificationPublisher` for `LogNotificationPublisher` (fallback) or `FakeNotificationPublisher` (tests) without changing service code |
-| **Template Method** | `NotificationConsumer` (abstract) | Fixed consume loop; subclasses (`UserNotificationConsumer`, `RegistrationNotificationConsumer`) override `handleMessage()` |
+| **Strategy** | `NotificationPublisher` interface | Swap `RabbitMQNotificationPublisher` for `LogNotificationPublisher` or `FakeNotificationPublisher` without changing service code |
+| **Template Method** | `NotificationConsumer` (abstract) | Fixed consume loop; subclasses override `handleMessage()` |
 
-## Database Schema
+## Frontend
 
-### departments
-| Column     | Type         | Constraints       |
-|------------|--------------|-------------------|
-| id         | BIGSERIAL    | PRIMARY KEY       |
-| name       | VARCHAR(255) | NOT NULL, UNIQUE  |
-| created_at | TIMESTAMP    | DEFAULT now()     |
+The frontend is a vanilla JavaScript SPA served directly by the Ktor backend from `src/main/resources/static/`.
 
-### categories
-| Column     | Type         | Constraints       |
-|------------|--------------|-------------------|
-| id         | BIGSERIAL    | PRIMARY KEY       |
-| name       | VARCHAR(255) | NOT NULL, UNIQUE  |
-| description| TEXT         |                   |
-| created_at | TIMESTAMP    | DEFAULT now()     |
+### Pages
 
-### users
-| Column        | Type         | Constraints                          |
-|---------------|--------------|--------------------------------------|
-| id            | BIGSERIAL    | PRIMARY KEY                          |
-| email         | VARCHAR(255) | NOT NULL, UNIQUE                     |
-| password_hash | VARCHAR(255) | NOT NULL                             |
-| first_name    | VARCHAR(255) | NOT NULL                             |
-| last_name     | VARCHAR(255) | NOT NULL                             |
-| role          | user_role    | ENUM: STUDENT, ORGANIZER, ADMIN      |
-| department_id | BIGINT       | FK -> departments(id), nullable      |
-| is_active     | BOOLEAN      | DEFAULT true                         |
-| created_at    | TIMESTAMP    | DEFAULT now()                        |
-| updated_at    | TIMESTAMP    | DEFAULT now()                        |
+| URL | File | Access |
+|---|---|---|
+| `/` | `app.js` | All — gamified home page (role-aware) |
+| `/events` | `app.js` | All — event browser with upcoming/past tabs |
+| `/login` | `login.js` | Guest |
+| `/signup` | `signup.js` | Guest |
+| `/my-registrations` | `registrations.js` | Student |
+| `/profile` | `profile.js` | Authenticated |
+| `/organizer-panel` | `organizer.js` | Organizer |
+| `/admin-dashboard` | `admin-dashboard.js` | Admin |
+| `/admin-organizers` | `admin-organizers.js` | Admin |
+| `/admin-taxonomy` | `admin-taxonomy.js` | Admin |
 
-### events
-| Column           | Type         | Constraints                  |
-|------------------|--------------|------------------------------|
-| id               | BIGSERIAL    | PRIMARY KEY                  |
-| title            | VARCHAR(255) | NOT NULL                     |
-| description      | TEXT         | NOT NULL                     |
-| date             | VARCHAR(32)  | NOT NULL                     |
-| category         | VARCHAR(120) | NOT NULL                     |
-| department       | VARCHAR(120) | NOT NULL                     |
-| organizer_id     | BIGINT       | FK -> users(id), nullable    |
-| category_id      | BIGINT       | FK -> categories(id), nullable|
-| location         | VARCHAR(255) | nullable                     |
-| start_time       | TIMESTAMP    | nullable                     |
-| end_time         | TIMESTAMP    | nullable                     |
-| max_participants | INT          | nullable                     |
-| created_at       | TIMESTAMP    | DEFAULT now()                |
-| updated_at       | TIMESTAMP    | DEFAULT now()                |
+### Key Frontend Features
 
-### registrations
-| Column        | Type         | Constraints                          |
-|---------------|--------------|--------------------------------------|
-| id            | BIGSERIAL    | PRIMARY KEY                          |
-| student_id    | BIGINT       | NOT NULL, FK -> users(id)            |
-| event_id      | BIGINT       | NOT NULL, FK -> events(id)           |
-| status        | VARCHAR(50)  | DEFAULT 'REGISTERED'                 |
-| registered_at | TIMESTAMP    | DEFAULT now()                        |
-| cancelled_at  | TIMESTAMP    | nullable                             |
+- **Gamified home page**: Students see a rank card (Newcomer → Legend) based on registration count, stat cards, upcoming event countdown panel, category breakdown, and a discover section. Organizers see their event stats. Guests see platform highlights.
+- **Upcoming / Past event tabs**: The events page splits events into two tabs — upcoming and past — with automatic classification based on event start time.
+- **Re-registration**: Students who previously cancelled a registration can re-register for the same event.
+- **Dark cyber theme**: Full dark UI with CSS grid background, UTCN red accent (`#c8102e`), Space Grotesk + Inter typography.
+- **Password strength UX**: The signup form shows a live strength bar (Weak → Fair → Strong → Very Strong), a show/hide toggle for the password field, and inline field hints. Strength is computed from length, uppercase, lowercase, digit, and special character rules.
+- **Cookie consent banner**: Shown on the first visit to any page. Displays a details table of every cookie set by the platform. The user's choice is stored in `localStorage` and the banner is never shown again. See [Cookie Policy & Consent](#cookie-policy--consent).
 
-UNIQUE constraint on (student_id, event_id).
+---
 
-## API Endpoints
+## Authentication & Security
 
-### Health Check
+### How it works
 
-| Method | Path    | Auth | Description          |
-|--------|---------|------|----------------------|
-| GET    | /health | No   | Returns server status|
+Authentication is **dual-mode**: every protected endpoint accepts the JWT via either an **HttpOnly cookie** (browser flow) or a standard **`Authorization: Bearer <token>` header** (API / test flow). Both are verified by the same JWT verifier — the cookie is just a different transport.
 
-### Authentication
+#### Browser login flow
 
-| Method | Path           | Auth  | Description                              |
-|--------|----------------|-------|------------------------------------------|
-| POST   | /auth/register | No    | Create a new user account                |
-| POST   | /auth/login    | No    | Authenticate and receive a JWT token     |
-| GET    | /auth/me       | JWT   | Get the currently authenticated user     |
+```
+1. User submits login form  →  POST /api/auth/login  (credentials: 'include')
+2. Backend validates credentials
+3. Backend sets:
+     Set-Cookie: auth_token=<JWT>; HttpOnly; Path=/; SameSite=Strict; Max-Age=86400
+4. Browser stores the cookie — JavaScript cannot read it (HttpOnly)
+5. All subsequent same-origin requests automatically carry the cookie
+6. Backend JWT plugin reads the cookie first, then falls back to Authorization header
+```
 
-### Events
-
-| Method | Path              | Auth | Description                          |
-|--------|-------------------|------|--------------------------------------|
-| GET    | /api/events       | JWT  | List all events                      |
-| GET    | /api/events/{id}  | JWT  | Get a single event by ID             |
-| POST   | /api/events       | JWT  | Create a new event                   |
-| PUT    | /api/events/{id}  | JWT  | Update an existing event             |
-| DELETE | /api/events/{id}  | JWT  | Delete an event                      |
-
-### Registrations
-
-| Method | Path                                | Auth | Description                        |
-|--------|-------------------------------------|------|------------------------------------|
-| GET    | /api/registrations                  | JWT  | List current user's registrations  |
-| POST   | /api/registrations                  | JWT  | Register for an event              |
-| DELETE | /api/registrations/{registrationId} | JWT  | Cancel a registration              |
-| GET    | /api/registrations/event/{eventId}  | JWT  | List participants of an event      |
-| PUT    | /api/registrations/{id}/status      | JWT  | Update registration status         |
-
-### Categories (admin)
-
-| Method | Path                   | Auth | Description              |
-|--------|------------------------|------|--------------------------|
-| GET    | /api/categories        | JWT  | List all categories      |
-| GET    | /api/categories/{id}   | JWT  | Get category by ID       |
-| POST   | /api/categories        | JWT  | Create a category        |
-| PUT    | /api/categories/{id}   | JWT  | Update a category        |
-| DELETE | /api/categories/{id}   | JWT  | Delete a category        |
-
-### Departments (admin)
-
-| Method | Path                    | Auth | Description              |
-|--------|-------------------------|------|--------------------------|
-| GET    | /api/departments        | JWT  | List all departments     |
-| GET    | /api/departments/{id}   | JWT  | Get department by ID     |
-| POST   | /api/departments        | JWT  | Create a department      |
-| PUT    | /api/departments/{id}   | JWT  | Update a department      |
-| DELETE | /api/departments/{id}   | JWT  | Delete a department      |
-
-### Users (admin)
-
-| Method | Path                | Auth | Description              |
-|--------|---------------------|------|--------------------------|
-| GET    | /api/users          | JWT  | List all users           |
-| GET    | /api/users/{role}   | JWT  | List users by role       |
-
-## Authentication
-
-The API uses JWT (JSON Web Token) for authentication.
-
-1. Register a user via `POST /auth/register`
-2. Login via `POST /auth/login` to receive a token
-3. Include the token in subsequent requests as a header:
+#### API / test flow (Bearer header)
 
 ```
 Authorization: Bearer <token>
 ```
 
-Tokens expire after 24 hours. Requests without a valid token to protected endpoints return 401.
+Integration tests continue to use `bearerAuth(token)` — no changes required there.
+
+#### Logout
+
+```
+POST /api/auth/logout
+```
+
+The server responds with `Set-Cookie: auth_token=; Max-Age=0` which immediately expires the cookie in the browser. The frontend also clears all localStorage session keys.
+
+### JWT Details
+
+| Property | Value |
+|---|---|
+| Algorithm | HMAC-SHA256 (HS256) |
+| Expiry | 24 hours |
+| Claim: `sub` | User ID (string) |
+| Secret | `JWT_SECRET` env var (fallback hardcoded for local dev) |
+
+### Password Rules
+
+Passwords must satisfy **all** of the following:
+
+| Rule | Requirement |
+|---|---|
+| Length | At least 8 characters |
+| Uppercase | At least one A–Z character |
+| Lowercase | At least one a–z character |
+| Digit | At least one 0–9 character |
+| Special character | At least one of `!@#$%^&*()_+-=[]{};\|':",./<>?` |
+
+Passwords are hashed with **bcrypt** (jBCrypt, cost factor 10) before storage. Plain-text passwords are never persisted.
+
+### Role-Based Access
+
+| Role | Permissions |
+|---|---|
+| `STUDENT` | Browse events, register / cancel registrations, view own profile |
+| `ORGANIZER` | All student permissions + create / edit / delete own events, view participant lists |
+| `ADMIN` | All organizer permissions + manage users, categories, departments, view platform stats |
+
+---
+
+## Cookie Policy & Consent
+
+### Cookies set by this platform
+
+| Cookie | Purpose | Type | HttpOnly | Duration |
+|---|---|---|---|---|
+| `auth_token` | Keeps the user securely signed in. Carries the JWT so the browser does not need to manage it in JavaScript. | Strictly Necessary | ✅ Yes | 24 hours |
+
+No tracking, advertising, analytics, or third-party cookies are set at any point.
+
+### Why HttpOnly?
+
+`HttpOnly` means the cookie **cannot be read or modified by JavaScript** (`document.cookie` returns nothing for it). This eliminates the most common XSS attack vector — a malicious script injected into the page cannot steal the session token.
+
+### Cookie Consent Banner
+
+The platform shows a **GDPR-style consent banner** on the first visit to any page. It is implemented entirely in `cookies.js` with no external dependencies.
+
+**Behaviour:**
+- Appears as a bottom-anchored modal card with a semi-transparent overlay
+- A **Details ▼** toggle expands a table listing every cookie: name, purpose, type, and duration
+- Two action buttons: **Accept All** and **Necessary Only** (functionally identical since only strictly necessary cookies are used)
+- On click, the choice is saved to `localStorage` under the key `cookies_consent` and the banner fades out
+- On subsequent page loads, the banner is skipped entirely
+- Fully accessible: keyboard focus is trapped inside the banner, the first button receives focus automatically, ARIA roles and labels are set correctly
+
+**To reset the consent (for testing):**
+
+```javascript
+localStorage.removeItem('cookies_consent');
+location.reload();
+```
+
+---
+
+## Database Schema
+
+### departments
+| Column     | Type         | Constraints      |
+|------------|--------------|------------------|
+| id         | BIGSERIAL    | PRIMARY KEY      |
+| name       | VARCHAR(255) | NOT NULL, UNIQUE |
+| created_at | TIMESTAMP    | DEFAULT now()    |
+
+### categories
+| Column      | Type         | Constraints      |
+|-------------|--------------|------------------|
+| id          | BIGSERIAL    | PRIMARY KEY      |
+| name        | VARCHAR(255) | NOT NULL, UNIQUE |
+| description | TEXT         |                  |
+| created_at  | TIMESTAMP    | DEFAULT now()    |
+
+### users
+| Column        | Type         | Constraints                     |
+|---------------|--------------|---------------------------------|
+| id            | BIGSERIAL    | PRIMARY KEY                     |
+| email         | VARCHAR(255) | NOT NULL, UNIQUE                |
+| password_hash | VARCHAR(255) | NOT NULL                        |
+| first_name    | VARCHAR(255) | NOT NULL                        |
+| last_name     | VARCHAR(255) | NOT NULL                        |
+| role          | user_role    | ENUM: STUDENT, ORGANIZER, ADMIN |
+| department_id | BIGINT       | FK -> departments(id), nullable |
+| is_active     | BOOLEAN      | DEFAULT true                    |
+| created_at    | TIMESTAMP    | DEFAULT now()                   |
+| updated_at    | TIMESTAMP    | DEFAULT now()                   |
+
+### events
+| Column           | Type         | Constraints                    |
+|------------------|--------------|--------------------------------|
+| id               | BIGSERIAL    | PRIMARY KEY                    |
+| title            | VARCHAR(255) | NOT NULL                       |
+| description      | TEXT         | NOT NULL                       |
+| date             | VARCHAR(32)  | NOT NULL                       |
+| category         | VARCHAR(120) | NOT NULL                       |
+| department       | VARCHAR(120) | NOT NULL                       |
+| organizer_id     | BIGINT       | FK -> users(id), nullable      |
+| category_id      | BIGINT       | FK -> categories(id), nullable |
+| location         | VARCHAR(255) | nullable                       |
+| start_time       | TIMESTAMP    | nullable                       |
+| end_time         | TIMESTAMP    | nullable                       |
+| max_participants | INT          | nullable                       |
+| created_at       | TIMESTAMP    | DEFAULT now()                  |
+| updated_at       | TIMESTAMP    | DEFAULT now()                  |
+
+### registrations
+| Column        | Type        | Constraints                |
+|---------------|-------------|----------------------------|
+| id            | BIGSERIAL   | PRIMARY KEY                |
+| student_id    | BIGINT      | NOT NULL, FK -> users(id)  |
+| event_id      | BIGINT      | NOT NULL, FK -> events(id) |
+| status        | VARCHAR(50) | DEFAULT 'REGISTERED'       |
+| registered_at | TIMESTAMP   | DEFAULT now()              |
+| cancelled_at  | TIMESTAMP   | nullable                   |
+
+UNIQUE constraint on `(student_id, event_id)`. Re-registration after cancellation reactivates the existing row instead of inserting a new one.
+
+### reminder_outbox
+| Column     | Type      | Constraints   |
+|------------|-----------|---------------|
+| id         | BIGSERIAL | PRIMARY KEY   |
+| event_id   | BIGINT    | NOT NULL      |
+| student_id | BIGINT    | NOT NULL      |
+| send_at    | TIMESTAMP | NOT NULL      |
+| sent       | BOOLEAN   | DEFAULT false |
+| created_at | TIMESTAMP | DEFAULT now() |
+
+---
+
+## API Endpoints
+
+### Health Check
+
+| Method | Path    | Auth | Description           |
+|--------|---------|------|-----------------------|
+| GET    | /health | No   | Returns server status |
+
+### Authentication
+
+| Method | Path               | Auth | Description                                              |
+|--------|--------------------|------|----------------------------------------------------------|
+| POST   | /api/auth/register | No   | Create a new user account; sets `auth_token` cookie      |
+| POST   | /api/auth/login    | No   | Authenticate and receive a JWT; sets `auth_token` cookie |
+| POST   | /api/auth/logout   | No   | Expires the `auth_token` cookie (Max-Age=0)              |
+| GET    | /api/auth/me       | JWT  | Get the currently authenticated user                     |
+| PUT    | /api/auth/profile  | JWT  | Update profile (name, department)                        |
+
+### Events
+
+| Method | Path             | Auth | Description                    |
+|--------|------------------|------|--------------------------------|
+| GET    | /api/events      | No   | List all events                |
+| GET    | /api/events/{id} | No   | Get a single event by ID       |
+| POST   | /api/events      | JWT  | Create a new event (organizer) |
+| PUT    | /api/events/{id} | JWT  | Update an existing event       |
+| DELETE | /api/events/{id} | JWT  | Delete an event                |
+
+### Registrations
+
+| Method | Path                                       | Auth | Description                            |
+|--------|--------------------------------------------|------|----------------------------------------|
+| GET    | /api/registrations                         | JWT  | List current user's registrations      |
+| POST   | /api/registrations                         | JWT  | Register for an event (or re-register) |
+| DELETE | /api/registrations/{registrationId}        | JWT  | Cancel a registration                  |
+| GET    | /api/registrations/event/{eventId}         | JWT  | List participant IDs of an event       |
+| GET    | /api/registrations/event/{eventId}/details | JWT  | List participant details of an event   |
+| PUT    | /api/registrations/{registrationId}/status | JWT  | Update registration status             |
+
+### Categories (admin)
+
+| Method | Path                 | Auth | Description         |
+|--------|----------------------|------|---------------------|
+| GET    | /api/categories      | JWT  | List all categories |
+| GET    | /api/categories/{id} | JWT  | Get category by ID  |
+| POST   | /api/categories      | JWT  | Create a category   |
+| PUT    | /api/categories/{id} | JWT  | Update a category   |
+| DELETE | /api/categories/{id} | JWT  | Delete a category   |
+
+### Departments (admin)
+
+| Method | Path                  | Auth | Description          |
+|--------|-----------------------|------|----------------------|
+| GET    | /api/departments      | JWT  | List all departments |
+| GET    | /api/departments/{id} | JWT  | Get department by ID |
+| POST   | /api/departments      | JWT  | Create a department  |
+| PUT    | /api/departments/{id} | JWT  | Update a department  |
+| DELETE | /api/departments/{id} | JWT  | Delete a department  |
+
+### Users (admin)
+
+| Method | Path                  | Auth | Description                 |
+|--------|-----------------------|------|-----------------------------|
+| GET    | /api/users/{role}     | JWT  | List users by role          |
+| POST   | /api/users/organizers | JWT  | Create an organizer account |
+
+### Admin Stats (admin)
+
+| Method | Path             | Auth | Description                         |
+|--------|------------------|------|-------------------------------------|
+| GET    | /api/admin/stats | JWT  | Platform statistics (users, events) |
+
+---
 
 ## Request and Response Examples
 
 ### Register
 
-Request:
 ```json
-POST /auth/register
+POST /api/auth/register
+Content-Type: application/json
+
 {
   "email": "student@utcn.ro",
   "password": "Secret123!",
@@ -356,7 +521,7 @@ POST /auth/register
 }
 ```
 
-Response (201):
+Response `201 Created`:
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIs...",
@@ -371,18 +536,21 @@ Response (201):
 }
 ```
 
+Also sets: `Set-Cookie: auth_token=eyJ...; HttpOnly; Path=/; SameSite=Strict; Max-Age=86400`
+
 ### Login
 
-Request:
 ```json
-POST /auth/login
+POST /api/auth/login
+Content-Type: application/json
+
 {
   "email": "student@utcn.ro",
   "password": "Secret123!"
 }
 ```
 
-Response (200):
+Response `200 OK`:
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIs...",
@@ -397,14 +565,26 @@ Response (200):
 }
 ```
 
+Also sets: `Set-Cookie: auth_token=eyJ...; HttpOnly; Path=/; SameSite=Strict; Max-Age=86400`
+
+### Logout
+
+```
+POST /api/auth/logout
+```
+
+Response `204 No Content`
+
+Sets: `Set-Cookie: auth_token=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0`
+
 ### Get Current User
 
 ```
-GET /auth/me
-Authorization: Bearer <token>
+GET /api/auth/me
+Authorization: Bearer <token>        (or via auth_token cookie)
 ```
 
-Response (200):
+Response `200 OK`:
 ```json
 {
   "id": 1,
@@ -418,112 +598,110 @@ Response (200):
 
 ### Create Event
 
-Request:
 ```json
 POST /api/events
 Authorization: Bearer <token>
+
 {
   "title": "AI Workshop",
   "description": "Introduction to machine learning",
-  "date": "2026-05-15",
+  "date": "2026-09-15",
   "category": "Workshop",
   "department": "Computer Science",
   "location": "Room 101",
+  "startTime": "2026-09-15T10:00:00",
+  "endTime": "2026-09-15T12:00:00",
   "maxParticipants": 30
 }
 ```
 
-Response (201):
+Response `201 Created`:
 ```json
 {
   "id": 1,
   "title": "AI Workshop",
   "description": "Introduction to machine learning",
-  "date": "2026-05-15",
+  "date": "2026-09-15",
   "category": "Workshop",
   "department": "Computer Science",
-  "organizerId": null,
-  "categoryId": null,
+  "organizerId": 6,
+  "categoryId": 6,
   "location": "Room 101",
-  "startTime": null,
-  "endTime": null,
+  "startTime": "2026-09-15T10:00:00",
+  "endTime": "2026-09-15T12:00:00",
   "maxParticipants": 30
 }
 ```
 
 ### Register for Event
 
-Request:
 ```json
 POST /api/registrations
 Authorization: Bearer <token>
+
 {
   "eventId": 1
 }
 ```
 
-Response (201):
+Response `201 Created`:
 ```json
 {
   "id": 1,
   "studentId": 1,
   "eventId": 1,
   "status": "REGISTERED",
-  "registeredAt": "2026-04-20T10:30:00",
+  "registeredAt": "2026-05-12T10:30:00",
   "cancelledAt": null
 }
 ```
 
 ### Create Category (admin)
 
-Request:
 ```json
 POST /api/categories
 Authorization: Bearer <token>
+
 {
   "name": "Workshop"
 }
 ```
 
-Response (201):
+Response `201 Created`:
 ```json
-{
-  "id": 1,
-  "name": "Workshop"
-}
+{ "id": 1, "name": "Workshop" }
 ```
 
 ### Create Department (admin)
 
-Request:
 ```json
 POST /api/departments
 Authorization: Bearer <token>
+
 {
   "name": "Computer Science"
 }
 ```
 
-Response (201):
+Response `201 Created`:
 ```json
-{
-  "id": 1,
-  "name": "Computer Science"
-}
+{ "id": 1, "name": "Computer Science" }
 ```
+
+---
 
 ## Validation Rules
 
 ### User Registration
-- Email must contain @ and a domain
-- Password must be at least 8 characters, with uppercase, lowercase, digit, and special character
+- Email must contain `@` and a domain
+- Password must be at least 8 characters with uppercase, lowercase, digit, and special character
 - First name and last name cannot be blank
-- Role must be one of: STUDENT, ORGANIZER, ADMIN
+- Role must be one of: `STUDENT`, `ORGANIZER`, `ADMIN`
 
 ### Events
 - Title and description cannot be blank
 - Title must be at most 255 characters
-- maxParticipants, if provided, must be positive
+- `maxParticipants`, if provided, must be positive
 
 ### Categories and Departments
 - Name cannot be blank
@@ -531,9 +709,11 @@ Response (201):
 - Name must be unique (duplicate returns 409 Conflict)
 
 ### Registrations
-- Cannot register for the same event twice
+- Students cannot register for the same event twice (re-registration after cancellation is allowed)
 - Only the student who registered can cancel
-- Status updates accept: REGISTERED, CANCELLED, WAITLISTED, ATTENDED
+- Status updates accept: `REGISTERED`, `CANCELLED`, `WAITLISTED`, `ATTENDED`
+
+---
 
 ## Error Handling
 
@@ -546,17 +726,17 @@ All errors return a consistent JSON shape:
 }
 ```
 
-| HTTP Status | Meaning                                              |
-|-------------|------------------------------------------------------|
-| 400         | Validation error (bad input, missing fields)         |
-| 401         | Missing or invalid JWT token                         |
-| 404         | Resource not found                                   |
-| 409         | Conflict (duplicate email, duplicate registration)   |
-| 500         | Unexpected server error                              |
+| HTTP Status | Meaning                                            |
+|-------------|----------------------------------------------------|
+| 400         | Validation error (bad input, missing fields)       |
+| 401         | Missing or invalid JWT token                       |
+| 404         | Resource not found                                 |
+| 409         | Conflict (duplicate email, duplicate registration) |
+| 500         | Unexpected server error                            |
+
+---
 
 ## Postman Screenshots
-
-The following screenshots demonstrate the main API flows tested in Postman.
 
 ### Health Check
 ![Health](screenshots/health.png)
@@ -630,39 +810,53 @@ The following screenshots demonstrate the main API flows tested in Postman.
 ### List Users by Role
 ![List Users by Role](screenshots/list_users_byRole.png)
 
+---
+
 ## Tech Stack
 
-| Component      | Technology         | Version  |
-|----------------|--------------------|----------|
-| Language       | Kotlin             | 1.9.10   |
-| Framework      | Ktor               | 2.3.12   |
-| HTTP Server    | Netty              | embedded |
-| Database       | PostgreSQL         | 15       |
-| Connection Pool| HikariCP           | 5.0.1    |
-| Migrations     | Flyway             | 10.10.0  |
-| Authentication | Auth0 java-jwt     | 4.4.0    |
-| Password Hash  | jBCrypt            | 0.4      |
-| Serialization  | kotlinx-serialization | 1.6.0 |
-| Logging        | Logback (SLF4J)    | 1.5.6    |
-| Build Tool     | Gradle             | 8.10.2   |
-| JDK            | 17+                | required |
+| Component       | Technology            | Version  |
+|-----------------|-----------------------|----------|
+| Language        | Kotlin                | 1.9.10   |
+| Framework       | Ktor                  | 2.3.12   |
+| HTTP Server     | Netty                 | embedded |
+| Database        | PostgreSQL            | 15       |
+| Connection Pool | HikariCP              | 5.0.1    |
+| Migrations      | Flyway                | 10.10.0  |
+| Authentication  | Auth0 java-jwt        | 4.4.0    |
+| Password Hash   | jBCrypt               | 0.4      |
+| Serialization   | kotlinx-serialization | 1.6.0    |
+| Logging         | Logback (SLF4J)       | 1.5.6    |
+| Build Tool      | Gradle                | 8.10.2   |
+| JDK             | 17+                   | required |
+| Frontend        | Vanilla JS / CSS      | —        |
+
+---
 
 ## Environment Variables
 
-| Variable          | Default                                      | Description             |
-|-------------------|----------------------------------------------|-------------------------|
-| PORT              | 8080                                         | Server port             |
-| DATABASE_URL      | jdbc:postgresql://localhost:5432/utcnevents   | JDBC connection URL     |
-| DATABASE_USER     | postgres                                     | Database username       |
-| DATABASE_PASSWORD | postgres                                     | Database password       |
-| JWT_SECRET        | (hardcoded)                                  | Secret for signing JWTs |
+| Variable          | Default                                     | Description             |
+|-------------------|---------------------------------------------|-------------------------|
+| PORT              | 8080                                        | Server port             |
+| DATABASE_URL      | jdbc:postgresql://localhost:5432/utcnevents | JDBC connection URL     |
+| DATABASE_USER     | postgres                                    | Database username       |
+| DATABASE_PASSWORD | postgres                                    | Database password       |
+| JWT_SECRET        | (hardcoded fallback)                        | Secret for signing JWTs |
+| RABBITMQ_HOST     | localhost                                   | RabbitMQ host           |
+| RABBITMQ_PORT     | 5672                                        | RabbitMQ port           |
+| RABBITMQ_USER     | guest                                       | RabbitMQ username       |
+| RABBITMQ_PASS     | guest                                       | RabbitMQ password       |
 
 ## Docker Services
 
 ```bash
-docker-compose up -d    # start PostgreSQL + pgAdmin
-docker-compose down     # stop all
+docker compose up -d    # start all services
+docker compose down     # stop all
 ```
 
-- PostgreSQL: localhost:5432 (user: postgres, password: postgres, database: utcnevents)
-- pgAdmin: localhost:5050 (email: admin@example.com, password: admin)
+| Service             | Port  | Credentials                          |
+|---------------------|-------|--------------------------------------|
+| PostgreSQL          | 5432  | user: postgres / password: postgres  |
+| pgAdmin             | 5050  | email: admin@example.com / pw: admin |
+| RabbitMQ            | 5672  | user: guest / password: guest        |
+| RabbitMQ Management | 15672 | user: guest / password: guest        |
+| Backend API         | 8080  | —                                    |

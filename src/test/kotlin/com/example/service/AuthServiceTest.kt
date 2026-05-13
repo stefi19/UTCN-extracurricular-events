@@ -1,8 +1,9 @@
 package com.example.service
-
 import com.example.dto.LoginRequest
 import com.example.dto.RegisterRequest
 import com.example.fake.FakeUserDao
+import com.example.messaging.NotificationMessage
+import com.example.messaging.NotificationPublisher
 import com.example.security.JwtManager
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -10,19 +11,15 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 class AuthServiceTest {
     private lateinit var service: AuthService
-
     private fun validRegister(email: String = "test@example.com") = RegisterRequest(
         email = email, password = "Password1!", firstName = "John", lastName = "Doe"
     )
-
     @BeforeTest
     fun setUp() {
         service = AuthService(FakeUserDao(), JwtManager("test-secret-key-for-tests"))
     }
-
     @Test
     fun registerReturnsTokenAndUser() {
         val response = service.register(validRegister())
@@ -30,13 +27,23 @@ class AuthServiceTest {
         assertEquals("test@example.com", response.user.email)
         assertEquals("STUDENT", response.user.role)
     }
-
+    @Test
+    fun registerPublishesWelcomeNotification() {
+        val publisher = CapturingNotificationPublisher()
+        service = AuthService(FakeUserDao(), JwtManager("test-secret-key-for-tests"), publisher)
+        service.register(validRegister())
+        assertEquals(1, publisher.messages.size)
+        val message = publisher.messages.first()
+        assertEquals("USER_REGISTERED", message.eventType)
+        assertEquals("test@example.com", message.userEmail)
+        assertEquals("John", message.payload["firstName"])
+        assertEquals("Doe", message.payload["lastName"])
+    }
     @Test
     fun registerAssignsRole() {
         val response = service.register(validRegister().copy(role = "ORGANIZER"))
         assertEquals("ORGANIZER", response.user.role)
     }
-
     @Test
     fun registerFailsOnDuplicateEmail() {
         service.register(validRegister())
@@ -44,56 +51,48 @@ class AuthServiceTest {
             service.register(validRegister())
         }
     }
-
     @Test
     fun registerFailsOnInvalidEmail() {
         assertFailsWith<IllegalArgumentException> {
             service.register(validRegister(email = "not-an-email"))
         }
     }
-
     @Test
     fun registerFailsOnWeakPassword() {
         assertFailsWith<IllegalArgumentException> {
             service.register(validRegister().copy(password = "short"))
         }
     }
-
     @Test
     fun registerFailsOnPasswordWithoutUppercase() {
         assertFailsWith<IllegalArgumentException> {
             service.register(validRegister().copy(password = "password1!"))
         }
     }
-
     @Test
     fun registerFailsOnPasswordWithoutSpecialChar() {
         assertFailsWith<IllegalArgumentException> {
             service.register(validRegister().copy(password = "Password1"))
         }
     }
-
     @Test
     fun registerFailsOnBlankFirstName() {
         assertFailsWith<IllegalArgumentException> {
             service.register(validRegister().copy(firstName = "  "))
         }
     }
-
     @Test
     fun registerFailsOnBlankLastName() {
         assertFailsWith<IllegalArgumentException> {
             service.register(validRegister().copy(lastName = ""))
         }
     }
-
     @Test
     fun registerFailsOnInvalidRole() {
         assertFailsWith<IllegalArgumentException> {
             service.register(validRegister().copy(role = "SUPERUSER"))
         }
     }
-
     @Test
     fun loginReturnsTokenAndUser() {
         service.register(validRegister())
@@ -101,7 +100,6 @@ class AuthServiceTest {
         assertTrue(response.token.isNotBlank())
         assertEquals("test@example.com", response.user.email)
     }
-
     @Test
     fun loginFailsOnWrongEmail() {
         service.register(validRegister())
@@ -109,7 +107,6 @@ class AuthServiceTest {
             service.login(LoginRequest("wrong@example.com", "Password1!"))
         }
     }
-
     @Test
     fun loginFailsOnWrongPassword() {
         service.register(validRegister())
@@ -117,21 +114,18 @@ class AuthServiceTest {
             service.login(LoginRequest("test@example.com", "WrongPass1!"))
         }
     }
-
     @Test
     fun loginFailsOnBlankEmail() {
         assertFailsWith<IllegalArgumentException> {
             service.login(LoginRequest("", "Password1!"))
         }
     }
-
     @Test
     fun loginFailsOnBlankPassword() {
         assertFailsWith<IllegalArgumentException> {
             service.login(LoginRequest("test@example.com", ""))
         }
     }
-
     @Test
     fun getUserByIdReturnsUser() {
         service.register(validRegister())
@@ -139,9 +133,116 @@ class AuthServiceTest {
         assertNotNull(user)
         assertEquals("test@example.com", user.email)
     }
-
     @Test
     fun getUserByIdReturnsNullForMissing() {
         assertEquals(null, service.getUserById(999L))
+    }
+    @Test
+    fun updateProfileChangesFirstAndLastName() {
+        service.register(validRegister())
+        val updated = service.updateProfile(1L, com.example.dto.UpdateProfileRequest(firstName = "Jane", lastName = "Smith"))
+        assertEquals("Jane", updated.firstName)
+        assertEquals("Smith", updated.lastName)
+    }
+    @Test
+    fun updateProfileChangesEmailSuccessfully() {
+        service.register(validRegister())
+        val updated = service.updateProfile(1L, com.example.dto.UpdateProfileRequest(email = "new@example.com"))
+        assertEquals("new@example.com", updated.email)
+    }
+    @Test
+    fun updateProfileChangesPasswordSuccessfully() {
+        service.register(validRegister())
+        val updated = service.updateProfile(
+            1L, com.example.dto.UpdateProfileRequest(
+                currentPassword = "Password1!",
+                newPassword = "NewPass2@"
+            )
+        )
+        assertNotNull(updated)
+        val loginAfterChange = service.login(LoginRequest("test@example.com", "NewPass2@"))
+        assertTrue(loginAfterChange.token.isNotBlank())
+    }
+    @Test
+    fun updateProfileFailsWhenUserNotFound() {
+        assertFailsWith<IllegalArgumentException> {
+            service.updateProfile(999L, com.example.dto.UpdateProfileRequest(firstName = "X"))
+        }
+    }
+    @Test
+    fun updateProfileFailsOnBlankFirstName() {
+        service.register(validRegister())
+        assertFailsWith<IllegalArgumentException> {
+            service.updateProfile(1L, com.example.dto.UpdateProfileRequest(firstName = "   "))
+        }
+    }
+    @Test
+    fun updateProfileFailsOnBlankLastName() {
+        service.register(validRegister())
+        assertFailsWith<IllegalArgumentException> {
+            service.updateProfile(1L, com.example.dto.UpdateProfileRequest(lastName = ""))
+        }
+    }
+    @Test
+    fun updateProfileFailsOnInvalidNewEmail() {
+        service.register(validRegister())
+        assertFailsWith<IllegalArgumentException> {
+            service.updateProfile(1L, com.example.dto.UpdateProfileRequest(email = "not-an-email"))
+        }
+    }
+    @Test
+    fun updateProfileFailsWhenEmailAlreadyInUse() {
+        service.register(validRegister("user1@example.com"))
+        service.register(validRegister("user2@example.com"))
+        assertFailsWith<IllegalArgumentException> {
+            service.updateProfile(1L, com.example.dto.UpdateProfileRequest(email = "user2@example.com"))
+        }
+    }
+    @Test
+    fun updateProfileFailsOnPasswordChangeWithoutCurrentPassword() {
+        service.register(validRegister())
+        assertFailsWith<IllegalArgumentException> {
+            service.updateProfile(1L, com.example.dto.UpdateProfileRequest(newPassword = "NewPass2@"))
+        }
+    }
+    @Test
+    fun updateProfileFailsOnPasswordChangeWithWrongCurrentPassword() {
+        service.register(validRegister())
+        assertFailsWith<IllegalArgumentException> {
+            service.updateProfile(
+                1L, com.example.dto.UpdateProfileRequest(
+                    currentPassword = "WrongPass1!",
+                    newPassword = "NewPass2@"
+                )
+            )
+        }
+    }
+    @Test
+    fun updateProfileFailsOnWeakNewPassword() {
+        service.register(validRegister())
+        assertFailsWith<IllegalArgumentException> {
+            service.updateProfile(
+                1L, com.example.dto.UpdateProfileRequest(
+                    currentPassword = "Password1!",
+                    newPassword = "short"
+                )
+            )
+        }
+    }
+    @Test
+    fun updateProfilePublishesProfileUpdatedNotification() {
+        val publisher = CapturingNotificationPublisher()
+        service = AuthService(FakeUserDao(), JwtManager("test-secret-key-for-tests"), publisher)
+        service.register(validRegister())
+        publisher.messages.clear()
+        service.updateProfile(1L, com.example.dto.UpdateProfileRequest(firstName = "Updated"))
+        assertEquals(1, publisher.messages.size)
+        assertEquals("USER_PROFILE_UPDATED", publisher.messages[0].eventType)
+    }
+    private class CapturingNotificationPublisher : NotificationPublisher {
+        val messages = mutableListOf<NotificationMessage>()
+        override suspend fun publish(message: NotificationMessage) {
+            messages += message
+        }
     }
 }
