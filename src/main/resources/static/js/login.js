@@ -1,3 +1,11 @@
+// Cookie consent banner — loads once, skipped if user already chose
+(function () {
+    if (localStorage.getItem('cookies_consent')) return;
+    var s = document.createElement('script');
+    s.src = '/static/js/cookies.js';
+    document.head.appendChild(s);
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
     injectLoginUX();
     const loginForm = document.getElementById('login-form');

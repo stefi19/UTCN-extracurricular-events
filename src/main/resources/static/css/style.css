@@ -1338,3 +1338,157 @@ footer {
     margin-bottom: .75rem;
     line-height: 1.5;
 }
+
+/* =========================================================
+   Cookie Consent Banner
+   ========================================================= */
+#cookie-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 9000;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 1.5rem;
+    animation: cookieFadeIn .3s ease;
+}
+#cookie-overlay.cookie-fade-out {
+    animation: cookieFadeOut .35s ease forwards;
+}
+@keyframes cookieFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes cookieFadeOut {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+#cookie-banner {
+    background: var(--card-bg, #1e1e2e);
+    border: 1px solid var(--border, rgba(255,255,255,.1));
+    border-radius: 14px;
+    padding: 1.5rem 1.75rem;
+    max-width: 760px;
+    width: 100%;
+    box-shadow: 0 8px 40px rgba(0,0,0,.55);
+    animation: cookieSlideUp .3s ease;
+}
+@keyframes cookieSlideUp {
+    from { transform: translateY(24px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+.cookie-banner-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: .75rem;
+    gap: 1rem;
+}
+.cookie-banner-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary, #f0f0f0);
+}
+.cookie-details-toggle {
+    background: transparent;
+    border: 1px solid var(--border, rgba(255,255,255,.15));
+    color: var(--text-muted, #aaa);
+    border-radius: 6px;
+    padding: .3rem .75rem;
+    font-size: .8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    transition: border-color .2s, color .2s;
+    white-space: nowrap;
+}
+.cookie-details-toggle:hover {
+    border-color: var(--utcn-red, #c8102e);
+    color: var(--text-primary, #f0f0f0);
+}
+.cookie-chevron {
+    font-size: .7rem;
+    transition: transform .2s;
+}
+.cookie-banner-desc {
+    font-size: .88rem;
+    color: var(--text-muted, #aaa);
+    margin: 0 0 1rem;
+    line-height: 1.55;
+}
+.cookie-details-panel {
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--border, rgba(255,255,255,.08));
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+}
+.cookie-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .82rem;
+    color: var(--text-primary, #f0f0f0);
+}
+.cookie-table th {
+    text-align: left;
+    padding: .45rem .7rem;
+    font-weight: 600;
+    color: var(--text-muted, #aaa);
+    border-bottom: 1px solid var(--border, rgba(255,255,255,.1));
+    white-space: nowrap;
+}
+.cookie-table td {
+    padding: .55rem .7rem;
+    vertical-align: top;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+    line-height: 1.45;
+}
+.cookie-table tr:last-child td {
+    border-bottom: none;
+}
+.cookie-table code {
+    background: rgba(200,16,46,.15);
+    color: var(--utcn-red, #c8102e);
+    padding: .1rem .35rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: .82rem;
+}
+.cookie-badge {
+    display: inline-block;
+    background: rgba(74,222,128,.12);
+    color: #4ade80;
+    border: 1px solid rgba(74,222,128,.25);
+    border-radius: 20px;
+    padding: .15rem .6rem;
+    font-size: .75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.cookie-note {
+    margin: .75rem 0 0;
+    font-size: .78rem;
+    color: var(--text-muted, #888);
+    line-height: 1.5;
+}
+.cookie-actions {
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+.cookie-btn {
+    min-width: 140px;
+    padding: .55rem 1.25rem;
+    font-size: .9rem;
+}
+@media (max-width: 520px) {
+    #cookie-overlay { padding: .75rem; }
+    #cookie-banner  { padding: 1.1rem 1.1rem; border-radius: 10px; }
+    .cookie-actions { flex-direction: column; }
+    .cookie-btn     { width: 100%; min-width: unset; }
+    .cookie-banner-header { flex-wrap: wrap; }
+}

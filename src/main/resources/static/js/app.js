@@ -1,4 +1,13 @@
 const API_URL = 'http://localhost:8080';
+
+// Cookie consent banner — loads once, skipped if user already chose
+(function () {
+    if (localStorage.getItem('cookies_consent')) return;
+    var s = document.createElement('script');
+    s.src = '/static/js/cookies.js';
+    document.head.appendChild(s);
+})();
+
 let allEvents = [];
 let myRegisteredEventIds = new Set(); 
 let activeEventsTab = 'upcoming'; 
