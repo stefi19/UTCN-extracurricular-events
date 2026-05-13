@@ -9,13 +9,13 @@ async function initDashboard() {
     try {
         const me = await apiFetch('/api/auth/me');
         if (me.role !== 'ADMIN') {
-            root.innerHTML = errorState('Acces interzis', 'Numai administratorii pot accesa dashboard-ul.');
+            root.innerHTML = errorState('Access denied', 'Only administrators can access this dashboard.');
             return;
         }
         root.innerHTML = skeletonHTML();
         await loadAll(me);
     } catch (e) {
-        root.innerHTML = errorState('Eroare la încărcare', e.message || 'Încearcă să reîncarci pagina.');
+        root.innerHTML = errorState('Failed to load', e.message || 'Please try refreshing the page.');
     }
 }
 async function loadAll(me) {
@@ -51,12 +51,12 @@ function renderGreeting(me) {
     const el = document.getElementById('dash-greeting');
     if (!el) return;
     const hour = new Date().getHours();
-    const salut = hour < 12 ? 'Bună dimineața' : hour < 18 ? 'Bună ziua' : 'Bună seara';
+    const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
     el.innerHTML = `
       <div class="dash-greeting">
         <div>
-          <h2 class="dash-greeting-title">${salut}, ${me.firstName}! 👋</h2>
-          <p class="dash-greeting-sub">Iată un rezumat al activității platformei UTCN Events.</p>
+          <h2 class="dash-greeting-title">${greeting}, ${me.firstName}!</h2>
+          <p class="dash-greeting-sub">Here is a summary of UTCN Events platform activity.</p>
         </div>
         <span class="badge badge-admin">Administrator</span>
       </div>`;
@@ -66,29 +66,28 @@ function renderStatCards(stats) {
     if (!el) return;
     const cards = [
         {
-            icon: '👥', label: 'Utilizatori totali', value: stats.users.total,
-            sub: `${stats.users.students} studenți · ${stats.users.organizers} organizatori`,
+            icon: 'users', label: 'Total Users', value: stats.users.total,
+            sub: `${stats.users.students} students · ${stats.users.organizers} organizers`,
             color: 'blue'
         },
         {
-            icon: '📅', label: 'Evenimente', value: stats.events.total,
-            sub: `${stats.events.upcoming} viitoare`,
+            icon: 'calendar', label: 'Events', value: stats.events.total,
+            sub: `${stats.events.upcoming} upcoming`,
             color: 'green'
         },
         {
-            icon: '✅', label: 'Înscrieri totale', value: stats.registrations.total,
-            sub: `${stats.registrations.registered} active · ${stats.registrations.attended} participated`,
+            icon: 'check', label: 'Total Registrations', value: stats.registrations.total,
+            sub: `${stats.registrations.registered} active · ${stats.registrations.attended} attended`,
             color: 'purple'
         },
         {
-            icon: '🗂️', label: 'Taxonomie', value: stats.taxonomy.categories + stats.taxonomy.departments,
-            sub: `${stats.taxonomy.categories} categorii · ${stats.taxonomy.departments} departamente`,
+            icon: 'tag', label: 'Taxonomy', value: stats.taxonomy.categories + stats.taxonomy.departments,
+            sub: `${stats.taxonomy.categories} categories · ${stats.taxonomy.departments} departments`,
             color: 'orange'
         },
     ];
     el.innerHTML = cards.map(c => `
       <div class="dash-stat-card dash-stat-${c.color}">
-        <div class="dash-stat-icon">${c.icon}</div>
         <div class="dash-stat-body">
           <div class="dash-stat-value">${c.value}</div>
           <div class="dash-stat-label">${c.label}</div>
@@ -101,30 +100,30 @@ function renderCharts(stats, events) {
     if (!el) return;
     el.innerHTML = `
       <div class="dash-chart-card">
-        <h3 class="dash-chart-title">📊 Utilizatori după rol</h3>
+        <h3 class="dash-chart-title">Users by Role</h3>
         ${barChart([
-            { label: 'Studenți',      value: stats.users.students,   color: '#3b82f6' },
-            { label: 'Organizatori',  value: stats.users.organizers, color: '#8b5cf6' },
-            { label: 'Admini',        value: stats.users.admins,     color: '#f59e0b' },
+            { label: 'Students',    value: stats.users.students,   color: '#3b82f6' },
+            { label: 'Organizers',  value: stats.users.organizers, color: '#8b5cf6' },
+            { label: 'Admins',      value: stats.users.admins,     color: '#f59e0b' },
         ], Math.max(stats.users.total, 1))}
       </div>
       <div class="dash-chart-card">
-        <h3 class="dash-chart-title">📋 Înscrieri după status</h3>
+        <h3 class="dash-chart-title">Registrations by Status</h3>
         ${barChart([
-            { label: 'Înscris',   value: stats.registrations.registered, color: '#10b981' },
-            { label: 'Participat',value: stats.registrations.attended,   color: '#3b82f6' },
-            { label: 'Anulat',    value: stats.registrations.cancelled,  color: '#ef4444' },
-            { label: 'Absent',    value: stats.registrations.noShow,     color: '#6b7280' },
+            { label: 'Registered',  value: stats.registrations.registered, color: '#10b981' },
+            { label: 'Attended',    value: stats.registrations.attended,   color: '#3b82f6' },
+            { label: 'Cancelled',   value: stats.registrations.cancelled,  color: '#ef4444' },
+            { label: 'No-show',     value: stats.registrations.noShow,     color: '#6b7280' },
         ], Math.max(stats.registrations.total, 1))}
       </div>
       <div class="dash-chart-card">
-        <h3 class="dash-chart-title">🏷️ Evenimente după categorie</h3>
+        <h3 class="dash-chart-title">Events by Category</h3>
         ${categoryChart(stats.events.byCategory)}
       </div>`;
 }
 function barChart(rows, total) {
     if (rows.every(r => r.value === 0)) {
-        return `<p class="dash-chart-empty">Nicio dată disponibilă.</p>`;
+        return `<p class="dash-chart-empty">No data available.</p>`;
     }
     return `<div class="dash-bar-list">` +
         rows.map(r => {
@@ -141,7 +140,7 @@ function barChart(rows, total) {
 }
 function categoryChart(byCategory) {
     const entries = Object.entries(byCategory || {}).sort((a, b) => b[1] - a[1]).slice(0, 6);
-    if (!entries.length) return `<p class="dash-chart-empty">Nicio dată disponibilă.</p>`;
+    if (!entries.length) return `<p class="dash-chart-empty">No data available.</p>`;
     const maxVal = entries[0][1] || 1;
     const colors = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4'];
     return `<div class="dash-bar-list">` +
@@ -161,17 +160,16 @@ function renderQuickActions() {
     const el = document.getElementById('dash-quick-actions');
     if (!el) return;
     const actions = [
-        { icon: '➕', label: 'Adaugă Organizator',  href: '/admin-organizers' },
-        { icon: '🗂️', label: 'Gestionează Taxonomie', href: '/admin-taxonomy' },
-        { icon: '📅', label: 'Vezi Evenimente',       href: '/events' },
-        { icon: '👤', label: 'Profil Admin',           href: '/profile' },
+        { label: 'Add Organizer',      href: '/admin-organizers' },
+        { label: 'Manage Taxonomy',    href: '/admin-taxonomy' },
+        { label: 'View Events',        href: '/events' },
+        { label: 'Admin Profile',      href: '/profile' },
     ];
     el.innerHTML = `
-      <h3 class="dash-section-title">⚡ Acțiuni rapide</h3>
+      <h3 class="dash-section-title">Quick Actions</h3>
       <div class="dash-quick-grid">
         ${actions.map(a => `
           <a href="${a.href}" class="dash-quick-btn">
-            <span class="dash-quick-icon">${a.icon}</span>
             <span>${a.label}</span>
           </a>`).join('')}
       </div>`;
@@ -184,7 +182,7 @@ function renderRecentEvents(events) {
         .slice(0, 8);
     const tableHTML = recent.length
         ? `<table class="dash-table">
-             <thead><tr><th>Titlu</th><th>Dată</th><th>Categorie</th><th>Departament</th><th>Organizator</th></tr></thead>
+             <thead><tr><th>Title</th><th>Date</th><th>Category</th><th>Department</th><th>Organizer</th></tr></thead>
              <tbody>${recent.map(e => `
                <tr>
                  <td><strong>${escHtml(e.title)}</strong></td>
@@ -194,12 +192,12 @@ function renderRecentEvents(events) {
                  <td>${escHtml(e.organizerName || '-')}</td>
                </tr>`).join('')}</tbody>
            </table>`
-        : `<p class="dash-chart-empty">Nu există evenimente.</p>`;
+        : `<p class="dash-chart-empty">No events found.</p>`;
     el.innerHTML = `
       <div class="dash-table-card">
         <div class="dash-table-header">
-          <h3 class="dash-chart-title">📅 Evenimente recente</h3>
-          <a href="/events" class="dash-link">Vezi toate →</a>
+          <h3 class="dash-chart-title">Recent Events</h3>
+          <a href="/events" class="dash-link">View all →</a>
         </div>
         ${tableHTML}
       </div>
@@ -216,7 +214,7 @@ function renderUsersTable(users) {
     const roleColor = { STUDENT: 'badge-student', ORGANIZER: 'badge-organizer', ADMIN: 'badge-admin' };
     const tableHTML = allUsers.length
         ? `<table class="dash-table">
-             <thead><tr><th>Nume</th><th>Email</th><th>Rol</th></tr></thead>
+             <thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead>
              <tbody>${allUsers.map(u => `
                <tr>
                  <td><strong>${escHtml(u.firstName)} ${escHtml(u.lastName)}</strong></td>
@@ -224,11 +222,11 @@ function renderUsersTable(users) {
                  <td><span class="badge ${roleColor[u.role] || ''}">${u.role}</span></td>
                </tr>`).join('')}</tbody>
            </table>`
-        : `<p class="dash-chart-empty">Nu există utilizatori.</p>`;
+        : `<p class="dash-chart-empty">No users found.</p>`;
     el.innerHTML = `
       <div class="dash-table-header">
-        <h3 class="dash-chart-title">👥 Utilizatori recenți</h3>
-        <a href="/admin-organizers" class="dash-link">Gestionează →</a>
+        <h3 class="dash-chart-title">Recent Users</h3>
+        <a href="/admin-organizers" class="dash-link">Manage →</a>
       </div>
       ${tableHTML}`;
 }

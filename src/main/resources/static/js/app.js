@@ -3,8 +3,8 @@ let allEvents = [];
 let myRegisteredEventIds = new Set(); 
 let activeEventsTab = 'upcoming'; 
 const EVENT_FILTERS_STORAGE_KEY = 'events_filters_v2';
-const ORGANIZER_LABEL_ASSIGNED = 'Organizator desemnat';
-const ORGANIZER_LABEL_UNSPECIFIED = 'Fără organizator specificat';
+const ORGANIZER_LABEL_ASSIGNED = 'Assigned Organizer';
+const ORGANIZER_LABEL_UNSPECIFIED = 'No organizer specified';
 const eventFilters = {
     organizers: [],
     types: [],
@@ -935,7 +935,7 @@ function updateNavigation() {
             if (!document.getElementById('nav-admin-dashboard-link')) {
                 const dashLi = document.createElement('li');
                 dashLi.id = 'nav-admin-dashboard-link';
-                dashLi.innerHTML = '<a href="/admin-dashboard">📊 Dashboard</a>';
+                dashLi.innerHTML = '<a href="/admin-dashboard">Dashboard</a>';
                 navUl.appendChild(dashLi);
             }
             if (!document.getElementById('nav-admin-organizers-link')) {
