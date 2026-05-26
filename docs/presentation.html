@@ -465,8 +465,10 @@ ic{display:inline-block;font-family:'Space Grotesk',monospace;font-size:.68rem;b
           <div style="margin-top:.45rem;font-size:.69rem;color:var(--text-sec)">
             <span class="b bg">USER_REGISTERED</span> &nbsp;
             <span class="b bb">EVENT_REGISTRATION</span> &nbsp;
-            <span class="b by">REGISTRATION_CANCELLED</span>
+            <span class="b by">REGISTRATION_CANCELLED</span> &nbsp;
+            <span class="b bp">EVENT_REMINDER_DUE</span>
           </div>
+          <p style="font-size:.68rem;color:var(--text-muted);margin-top:.32rem">&#128336; Reminders are stored in <ic>reminder_outbox</ic> DB table and published by <ic>ReminderOutboxDispatcher</ic> — resilient to restarts.</p>
         </div>
         <div class="card" style="font-size:.71rem;color:var(--text-sec)"><strong style="color:var(--text)">&#128274; Fallback:</strong> if RabbitMQ is down, <ic>LogNotificationPublisher</ic> logs the message. The API never crashes due to messaging failures.</div>
       </div>
@@ -603,6 +605,7 @@ ic{display:inline-block;font-family:'Space Grotesk',monospace;font-size:.68rem;b
             <tr><td><ic>/profile</ic></td><td><span class="b bb">Authenticated</span></td></tr>
             <tr><td><ic>/organizer-panel</ic></td><td><span class="b bp">Organizer</span></td></tr>
             <tr><td><ic>/admin-dashboard</ic></td><td><span class="b br">Admin only</span></td></tr>
+            <tr><td><ic>/admin-organizers</ic></td><td><span class="b br">Admin only</span></td></tr>
             <tr><td><ic>/admin-taxonomy</ic></td><td><span class="b br">Admin only</span></td></tr>
           </tbody>
         </table>
@@ -880,11 +883,127 @@ curl http://localhost:8080/health
 </div>
 
 
+<div class="slide" id="s17">
+  <div class="blob" style="width:200px;height:200px;top:-30px;left:-40px;background:rgba(96,165,250,.1)"></div>
+  <div class="si" style="gap:.72rem">
+    <div class="tag">16 &middot; REST API</div>
+    <h2 class="h1" style="font-size:1.82rem"><span class="acc">20+ Endpoints</span> &mdash; Every Feature Exposed</h2>
+    <div class="g2" style="flex:1;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:.45rem">
+        <table class="pt">
+          <thead><tr><th>Method</th><th>Path</th><th>Auth</th></tr></thead>
+          <tbody>
+            <tr><td><span class="b bg">GET</span></td><td><ic>/health</ic></td><td>&#8212;</td></tr>
+            <tr><td><span class="b br">POST</span></td><td><ic>/api/auth/register</ic></td><td>&#8212;</td></tr>
+            <tr><td><span class="b br">POST</span></td><td><ic>/api/auth/login</ic></td><td>&#8212;</td></tr>
+            <tr><td><span class="b br">POST</span></td><td><ic>/api/auth/logout</ic></td><td>&#8212;</td></tr>
+            <tr><td><span class="b bg">GET</span></td><td><ic>/api/auth/me</ic></td><td><span class="b bb">JWT</span></td></tr>
+            <tr><td><span class="b by">PUT</span></td><td><ic>/api/auth/profile</ic></td><td><span class="b bb">JWT</span></td></tr>
+            <tr><td><span class="b bg">GET</span></td><td><ic>/api/events</ic></td><td>&#8212;</td></tr>
+            <tr><td><span class="b bg">GET</span></td><td><ic>/api/events/{id}</ic></td><td>&#8212;</td></tr>
+            <tr><td><span class="b br">POST</span></td><td><ic>/api/events</ic></td><td><span class="b bb">JWT</span></td></tr>
+            <tr><td><span class="b by">PUT</span></td><td><ic>/api/events/{id}</ic></td><td><span class="b bb">JWT</span></td></tr>
+            <tr><td><span class="b br" style="background:rgba(239,68,68,.1);color:#f87171;border-color:rgba(239,68,68,.25)">DEL</span></td><td><ic>/api/events/{id}</ic></td><td><span class="b bb">JWT</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.45rem">
+        <table class="pt">
+          <thead><tr><th>Method</th><th>Path</th><th>Auth</th></tr></thead>
+          <tbody>
+            <tr><td><span class="b bg">GET</span></td><td><ic>/api/registrations</ic></td><td><span class="b bb">JWT</span></td></tr>
+            <tr><td><span class="b br">POST</span></td><td><ic>/api/registrations</ic></td><td><span class="b bb">JWT</span></td></tr>
+            <tr><td><span class="b br" style="background:rgba(239,68,68,.1);color:#f87171;border-color:rgba(239,68,68,.25)">DEL</span></td><td><ic>/api/registrations/{id}</ic></td><td><span class="b bb">JWT</span></td></tr>
+            <tr><td><span class="b bg">GET</span></td><td><ic>/api/registrations/event/{id}</ic></td><td><span class="b bb">JWT</span></td></tr>
+            <tr><td><span class="b bg">GET</span></td><td><ic>/api/categories</ic></td><td><span class="b bb">JWT</span></td></tr>
+            <tr><td><span class="b br">POST</span></td><td><ic>/api/categories</ic></td><td><span class="b br">Admin</span></td></tr>
+            <tr><td><span class="b by">PUT</span></td><td><ic>/api/categories/{id}</ic></td><td><span class="b br">Admin</span></td></tr>
+            <tr><td><span class="b bg">GET</span></td><td><ic>/api/departments</ic></td><td><span class="b bb">JWT</span></td></tr>
+            <tr><td><span class="b br">POST</span></td><td><ic>/api/departments</ic></td><td><span class="b br">Admin</span></td></tr>
+            <tr><td><span class="b bg">GET</span></td><td><ic>/api/users/{role}</ic></td><td><span class="b br">Admin</span></td></tr>
+            <tr><td><span class="b bg">GET</span></td><td><ic>/api/admin/stats</ic></td><td><span class="b br">Admin</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="slide" id="s18">
+  <div class="blob" style="width:200px;height:200px;bottom:-40px;right:-30px;background:rgba(200,16,46,.15)"></div>
+  <div class="si" style="gap:.78rem">
+    <div class="tag">17 &middot; Validation &amp; Error Handling</div>
+    <h2 class="h1" style="font-size:1.82rem">Every Input <span class="acc">Validated &amp; Every Error</span> Structured</h2>
+    <div class="g2" style="flex:1;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:.52rem">
+        <div class="card">
+          <strong style="font-size:.79rem">User Registration Rules</strong>
+          <ul style="padding-left:1rem;font-size:.71rem;color:var(--text-sec);line-height:2;margin-top:.28rem">
+            <li>Email must contain <ic>@</ic> and a domain</li>
+            <li>Password: min 8 chars, uppercase, lowercase, digit, special char</li>
+            <li>First name &amp; last name cannot be blank</li>
+            <li>Role must be <ic>STUDENT</ic>, <ic>ORGANIZER</ic>, or <ic>ADMIN</ic></li>
+          </ul>
+        </div>
+        <div class="card">
+          <strong style="font-size:.79rem">Event Rules</strong>
+          <ul style="padding-left:1rem;font-size:.71rem;color:var(--text-sec);line-height:2;margin-top:.28rem">
+            <li>Title and description cannot be blank</li>
+            <li>Title max 255 characters</li>
+            <li><ic>maxParticipants</ic>, if set, must be a positive number</li>
+          </ul>
+        </div>
+        <div class="card">
+          <strong style="font-size:.79rem">Registration Rules</strong>
+          <ul style="padding-left:1rem;font-size:.71rem;color:var(--text-sec);line-height:2;margin-top:.28rem">
+            <li>Cannot double-register for the same event (409 Conflict)</li>
+            <li>Re-registration after cancel is allowed (reactivates existing row)</li>
+            <li>Only the registering student can cancel their own registration</li>
+          </ul>
+        </div>
+        <div class="card">
+          <strong style="font-size:.79rem">Category &amp; Department Rules</strong>
+          <ul style="padding-left:1rem;font-size:.71rem;color:var(--text-sec);line-height:2;margin-top:.28rem">
+            <li>Name cannot be blank, max 255 characters</li>
+            <li>Name must be unique &mdash; duplicate returns <ic>409 Conflict</ic></li>
+          </ul>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.52rem">
+        <div class="card card-r">
+          <strong style="font-size:.79rem;color:var(--red-bright)">Consistent Error Shape (StatusPages)</strong>
+          <div class="cb" style="margin-top:.45rem;font-size:.71rem">
+{
+  <span class="st">"error"</span>: <span class="st">"Event not found"</span>,
+  <span class="st">"status"</span>: <span class="num">404</span>
+}
+          </div>
+          <p style="font-size:.7rem;color:var(--text-sec);margin-top:.35rem">Ktor's <ic>StatusPages</ic> plugin intercepts every thrown exception in services and maps it to this shape. <strong style="color:var(--text)">The frontend always gets the same JSON structure</strong> — no HTML error pages, no stack traces.</p>
+        </div>
+        <table class="pt">
+          <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><span class="b bb">200 / 201</span></td><td>Success / Created</td></tr>
+            <tr><td><span class="b by">400</span></td><td>Validation error, bad input</td></tr>
+            <tr><td><span class="b by">401</span></td><td>Missing or invalid JWT</td></tr>
+            <tr><td><span class="b by">403</span></td><td>Insufficient role / not your resource</td></tr>
+            <tr><td><span class="b by">404</span></td><td>Resource not found</td></tr>
+            <tr><td><span class="b br">409</span></td><td>Conflict (duplicate email, double registration)</td></tr>
+            <tr><td><span class="b br">500</span></td><td>Unexpected server error</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <div class="slide" id="s16">
   <div class="blob" style="width:300px;height:300px;top:-70px;right:-60px;background:rgba(200,16,46,.18)"></div>
   <div class="blob" style="width:220px;height:220px;bottom:-50px;left:-40px;background:rgba(59,130,246,.1)"></div>
   <div class="si" style="justify-content:center;gap:.95rem">
-    <div class="tag">Summary</div>
+    <div class="tag">18 &middot; Summary</div>
     <h2 class="h1" style="font-size:2rem;text-align:center">What I <span class="acc">Built &amp; Why It Matters</span></h2>
     <div class="g4">
       <div class="card" style="text-align:center;display:flex;flex-direction:column;gap:.28rem"><div style="font-size:1.55rem">&#127963;</div><strong style="font-size:.75rem">Hexagonal Arch</strong><span class="b bp" style="margin:0 auto;font-size:.6rem">Ports &amp; Adapters</span></div>
@@ -912,7 +1031,7 @@ curl http://localhost:8080/health
 <div id="controls">
   <button id="btn-prev">&larr; Prev</button>
   <div id="slide-dots"></div>
-  <span id="slide-counter">1 / 17</span>
+  <span id="slide-counter">1 / 19</span>
   <button id="btn-next" class="primary">Next &rarr;</button>
   <span style="color:var(--text-muted);font-size:.7rem;margin-left:.4rem">or <kbd>&larr;</kbd><kbd>&rarr;</kbd> keys</span>
   <button id="btn-fs" title="Fullscreen" style="margin-left:.5rem">&#x26F6;</button>
