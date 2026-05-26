@@ -1,46 +1,46 @@
 # Notification Service (RabbitMQ + SMTP)
 
-Acest serviciu consumă mesaje din coada RabbitMQ `notifications` și trimite emailuri pentru:
+This service consumes messages from the RabbitMQ `notifications` queue and sends emails for:
 
-- confirmare înscriere la eveniment (`EVENT_REGISTRATION`)
-- reminder cu `N` ore înainte de eveniment (`EVENT_REMINDER_DUE`)
-- confirmare anulare înscriere (`REGISTRATION_CANCELLED`)
-- welcome la creare cont (`USER_REGISTERED`)
+- event registration confirmation (`EVENT_REGISTRATION`)
+- reminder N hours before an event (`EVENT_REMINDER_DUE`)
+- registration cancellation confirmation (`REGISTRATION_CANCELLED`)
+- welcome email on account creation (`USER_REGISTERED`)
 
-## Cum funcționează
+## How it works
 
-1. Backend-ul publică evenimente în RabbitMQ.
-2. `EmailNotificationConsumer` consumă mesajele și trimite emailuri via SMTP.
-3. Reminder-ele sunt persistate în DB (`reminder_outbox`) și sunt publicate periodic de backend (`ReminderOutboxDispatcher`) ca `EVENT_REMINDER_DUE`.
+1. The backend publishes events to RabbitMQ.
+2. `EmailNotificationConsumer` consumes the messages and sends emails via SMTP.
+3. Reminders are persisted in the DB (`reminder_outbox`) and are periodically published by the backend (`ReminderOutboxDispatcher`) as `EVENT_REMINDER_DUE`.
 
-✅ Reminder-ele sunt reziliente la restart (nu se pierd la repornirea serviciilor).
+✅ Reminders are resilient to restarts — they are not lost if services are restarted.
 
-## Variabile de mediu
+## Environment variables
 
 ### RabbitMQ
 
-- `RABBITMQ_HOST` (implicit `localhost`)
-- `RABBITMQ_PORT` (implicit `5672`)
-- `RABBITMQ_USER` (implicit `guest`)
-- `RABBITMQ_PASS` (implicit `guest`)
+- `RABBITMQ_HOST` (default: `localhost`)
+- `RABBITMQ_PORT` (default: `5672`)
+- `RABBITMQ_USER` (default: `guest`)
+- `RABBITMQ_PASS` (default: `guest`)
 
 ### SMTP
 
-- `SMTP_HOST` (implicit `smtp.office365.com`)
-- `SMTP_PORT` (implicit `587`)
-- `SMTP_FROM` (implicit `noreply@utcn-events.local`)
-- `SMTP_AUTH` (`true`/`false`, implicit `true`)
-- `SMTP_STARTTLS` (`true`/`false`, implicit `true`)
-- `SMTP_USER` (obligatoriu pentru Outlook)
-- `SMTP_PASS` (obligatoriu pentru Outlook)
+- `SMTP_HOST` (default: `smtp.office365.com`)
+- `SMTP_PORT` (default: `587`)
+- `SMTP_FROM` (default: `noreply@utcn-events.local`)
+- `SMTP_AUTH` (`true`/`false`, default: `true`)
+- `SMTP_STARTTLS` (`true`/`false`, default: `true`)
+- `SMTP_USER` (required for Outlook)
+- `SMTP_PASS` (required for Outlook)
 
 ### Reminder
 
-- `REMINDER_HOURS_BEFORE` (implicit `3`)
+- `REMINDER_HOURS_BEFORE` (default: `3`)
 
 ## Build
 
-Din rădăcina proiectului:
+From the project root:
 
 ```bash
 ./gradlew -p notification-service build --no-daemon
@@ -48,18 +48,18 @@ Din rădăcina proiectului:
 
 ## Outlook live setup (local)
 
-1. Copiază template-ul:
+1. Copy the template:
 
 ```bash
 cp .env.example .env
 ```
 
-2. Completează în `.env`:
-	- `SMTP_USER`
-	- `SMTP_PASS` (app password / credential)
-	- `SMTP_FROM`
+2. Fill in `.env`:
+   - `SMTP_USER`
+   - `SMTP_PASS` (app password / credential)
+   - `SMTP_FROM`
 
-3. Repornește serviciile:
+3. Restart the services:
 
 ```bash
 docker compose up -d --build backend notification-service

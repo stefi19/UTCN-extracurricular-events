@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UTCN Events Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --red:#c8102e;--red-bright:#e8203e;--red-dim:rgba(200,16,46,0.15);
+  --bg:#0a0a0c;--bg-3:#16161c;--surface:#181820;--surface-alt:#1e1e28;--surface-2:#22222e;
+  --border:rgba(255,255,255,0.08);--border-soft:rgba(255,255,255,0.05);--border-accent:rgba(200,16,46,0.32);
+  --text:#f0f0f5;--text-sec:#8888a0;--text-muted:#555568;
+  --shadow-md:0 8px 32px rgba(0,0,0,.55);--r-sm:6px;--r-md:10px;--r-lg:16px;--r-xl:24px;
+  --grid-line:rgba(255,255,255,0.033);--grid-size:44px;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:#05050a;font-family:'Inter','Segoe UI',system-ui,sans-serif;color:var(--text)}
+#deck{width:100vw;height:100vh;display:flex;flex-direction:column}
+#stage{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+#progress-bar{position:absolute;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--red),var(--red-bright));transition:width .4s ease;border-radius:0 2px 2px 0;z-index:200}
+.slide-wrap{width:960px;height:540px;position:relative;flex-shrink:0;transform-origin:center center}
+.slide{position:absolute;inset:0;background:var(--bg);border-radius:var(--r-xl);border:1px solid var(--border);overflow:hidden;background-image:linear-gradient(var(--grid-line) 1px,transparent 1px),linear-gradient(90deg,var(--grid-line) 1px,transparent 1px);background-size:var(--grid-size) var(--grid-size);display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .4s ease,transform .4s ease;transform:translateX(56px);box-shadow:0 0 0 1px var(--border),var(--shadow-md),0 0 90px rgba(0,0,0,.8)}
+.slide.active{opacity:1;pointer-events:all;transform:translateX(0)}
+.slide.out-left{opacity:0;transform:translateX(-56px);transition:opacity .3s ease,transform .3s ease}
+.slide.out-right{opacity:0;transform:translateX(56px);transition:opacity .3s ease,transform .3s ease}
+#controls{display:flex;align-items:center;justify-content:center;gap:1rem;padding:.7rem 2rem;background:rgba(10,10,12,.95);border-top:1px solid var(--border);backdrop-filter:blur(12px)}
+#controls button{background:var(--surface-alt);border:1px solid var(--border);color:var(--text-sec);cursor:pointer;padding:.4rem 1rem;border-radius:var(--r-md);font-size:.8rem;font-family:inherit;transition:all .18s}
+#controls button:hover{background:var(--surface-2);color:var(--text);border-color:var(--border-accent)}
+#controls button.primary{background:var(--red-dim);border-color:var(--border-accent);color:var(--red-bright)}
+#controls button.primary:hover{background:var(--red);color:#fff}
+#slide-counter{font-size:.8rem;color:var(--text-muted);font-family:'Space Grotesk',sans-serif;min-width:54px;text-align:center}
+#slide-dots{display:flex;gap:.35rem;align-items:center}
+.dot-btn{width:7px;height:7px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border);cursor:pointer;transition:all .2s;padding:0}
+.dot-btn.active{background:var(--red);border-color:var(--red-bright);transform:scale(1.3)}
+kbd{display:inline-block;background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:.08rem .38rem;font-size:.67rem;color:var(--text-muted)}
+.si{padding:1.85rem 2.45rem;flex:1;display:flex;flex-direction:column;gap:.92rem;position:relative;z-index:1;overflow:hidden}
+.tag{display:inline-flex;align-items:center;gap:.35rem;font-size:.67rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--red-bright);background:var(--red-dim);border:1px solid var(--border-accent);padding:.22rem .65rem;border-radius:99px;width:fit-content}
+.h1{font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:-.025em;color:var(--text);line-height:1.15}
+.acc{color:var(--red-bright)}
+.sub{color:var(--text-sec);font-size:.87rem;line-height:1.65}
+.divider{width:44px;height:3px;background:var(--red);border-radius:2px;flex-shrink:0}
+.blob{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:.8rem .95rem}
+.card-r{border-color:var(--border-accent);background:var(--red-dim)}
+.card-g{border-color:rgba(52,211,153,.2);background:rgba(52,211,153,.06)}
+.b{display:inline-block;font-size:.67rem;font-weight:600;letter-spacing:.04em;padding:.13rem .5rem;border-radius:99px}
+.br{background:var(--red-dim);color:var(--red-bright);border:1px solid var(--border-accent)}
+.bg{background:rgba(52,211,153,.1);color:#34d399;border:1px solid rgba(52,211,153,.22)}
+.bb{background:rgba(96,165,250,.1);color:#60a5fa;border:1px solid rgba(96,165,250,.22)}
+.bp{background:rgba(167,139,250,.1);color:#a78bfa;border:1px solid rgba(167,139,250,.22)}
+.by{background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.22)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:.78rem}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.72rem}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:.62rem}
+.cb{background:var(--bg-3);border:1px solid var(--border);border-radius:var(--r-md);padding:.7rem .92rem;font-family:'Space Grotesk',monospace;font-size:.7rem;line-height:1.7;color:#c9d1d9;overflow:auto;flex-shrink:0}
+.cf{font-size:.62rem;color:var(--text-muted);margin-bottom:.32rem;font-family:'Space Grotesk',monospace;padding-left:.1rem}
+.kw{color:#ff7b72}.fn{color:#d2a8ff}.st{color:#a5d6ff}.cm{color:#6e7681;font-style:italic}.num{color:#79c0ff}.ty{color:#ffa657}.an{color:#8b949e}
+.pt{width:100%;border-collapse:collapse;font-size:.73rem}
+.pt th{background:var(--surface-2);color:var(--text-muted);font-weight:600;padding:.35rem .6rem;text-align:left;font-size:.62rem;letter-spacing:.06em;text-transform:uppercase}
+.pt td{padding:.35rem .6rem;border-top:1px solid var(--border-soft);color:var(--text-sec);vertical-align:top}
+.pt td:first-child{color:var(--text);font-weight:600}
+.pt tr:hover td{background:var(--surface)}
+.step{display:flex;align-items:flex-start;gap:.52rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:.52rem .72rem}
+.stepn{width:18px;height:18px;border-radius:50%;background:var(--red-dim);border:1px solid var(--border-accent);color:var(--red-bright);font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.1rem}
+.stept{font-size:.73rem;line-height:1.5;color:var(--text-sec)}
+.stept strong{color:var(--text)}
+ic{display:inline-block;font-family:'Space Grotesk',monospace;font-size:.68rem;background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:.02rem .32rem;color:var(--red-bright)}
+</style>
+</head>
+<body>
+<div id="deck">
+<div id="stage">
+<div id="progress-bar"></div>
+<div class="slide-wrap">
+
+<div class="slide active" id="s0">
+  <div class="blob" style="width:340px;height:340px;top:-90px;right:-70px;background:rgba(200,16,46,.18)"></div>
+  <div class="blob" style="width:260px;height:260px;bottom:-60px;left:-50px;background:rgba(59,130,246,.1)"></div>
+  <div class="si" style="justify-content:center;gap:1.2rem">
+    <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;color:var(--text-sec);letter-spacing:.06em">UTCN<span style="color:var(--red-bright)">.</span>events</div>
+    <div class="divider"></div>
+    <h1 class="h1" style="font-size:3.1rem">Extracurricular<br><span class="acc">Events Platform</span></h1>
+    <p class="sub" style="max-width:520px;font-size:.91rem">A full-stack web app for managing extracurricular events at UTCN — two microservices, async notifications, role-based access, and a gamified student dashboard.</p>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <span class="b br">Kotlin + Ktor</span>
+      <span class="b bb">PostgreSQL</span>
+      <span class="b bp">RabbitMQ</span>
+      <span class="b bg">Docker</span>
+      <span class="b by">Vanilla JS</span>
+    </div>
+    <div class="tag" style="margin-top:.2rem">&#127963; Software Design &middot; 2026</div>
+  </div>
+</div>
+
+
+<div class="slide" id="s1">
+  <div class="blob" style="width:200px;height:200px;top:-40px;left:-40px;background:rgba(200,16,46,.15)"></div>
+  <div class="si" style="gap:.8rem">
+    <div class="tag">01 &middot; The Problem</div>
+    <h2 class="h1" style="font-size:1.85rem">University Events are <span class="acc">Scattered &amp; Invisible</span></h2>
+    <div class="g3" style="flex:1;align-items:start">
+      <div class="card" style="display:flex;flex-direction:column;gap:.35rem">
+        <div style="font-size:1.4rem">&#128203;</div>
+        <strong style="font-size:.8rem">No Central Hub</strong>
+        <p style="font-size:.71rem;color:var(--text-sec)">Events spread across email chains, Facebook groups, and paper posters. Students miss out constantly.</p>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;gap:.35rem">
+        <div style="font-size:1.4rem">&#128221;</div>
+        <strong style="font-size:.8rem">Manual Registration</strong>
+        <p style="font-size:.71rem;color:var(--text-sec)">Google Forms or paper sign-ups — no capacity limits, no cancellations, no confirmation.</p>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;gap:.35rem">
+        <div style="font-size:1.4rem">&#128202;</div>
+        <strong style="font-size:.8rem">Zero Visibility</strong>
+        <p style="font-size:.71rem;color:var(--text-sec)">Organizers can't see who registered. Admins have no platform-wide stats at all.</p>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;gap:.35rem">
+        <div style="font-size:1.4rem">&#128276;</div>
+        <strong style="font-size:.8rem">No Notifications</strong>
+        <p style="font-size:.71rem;color:var(--text-sec)">Students forget about events. No automated reminders or confirmation emails exist anywhere.</p>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;gap:.35rem">
+        <div style="font-size:1.4rem">&#128274;</div>
+        <strong style="font-size:.8rem">No Role Separation</strong>
+        <p style="font-size:.71rem;color:var(--text-sec)">Anyone can post anything. No distinction between who organises, who attends, who administers.</p>
+      </div>
+      <div class="card card-r" style="display:flex;flex-direction:column;gap:.35rem">
+        <div style="font-size:1.4rem">&#9989;</div>
+        <strong style="font-size:.8rem;color:var(--text)">My Solution</strong>
+        <p style="font-size:.71rem;color:var(--text-sec)">One platform: roles, capacity limits, async emails, a gamified dashboard, and full admin control.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="slide" id="s2">
+  <div class="blob" style="width:220px;height:220px;top:-40px;right:-40px;background:rgba(167,139,250,.1)"></div>
+  <div class="si" style="gap:.85rem">
+    <div class="tag">02 &middot; Why Kotlin?</div>
+    <h2 class="h1" style="font-size:1.85rem">Kotlin is <span class="acc">Java — but Way Better</span></h2>
+    <div class="g2" style="flex:1;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:.55rem">
+        <div class="card" style="display:flex;gap:.7rem;align-items:flex-start">
+          <span style="font-size:1.2rem;flex-shrink:0">&#127919;</span>
+          <div><strong style="font-size:.79rem">Null Safety Built-In</strong><br><span style="font-size:.71rem;color:var(--text-sec)">Kotlin forces you to handle nulls at compile time. No more random <ic>NullPointerException</ic> crashes at runtime that you only discover in production.</span></div>
+        </div>
+        <div class="card" style="display:flex;gap:.7rem;align-items:flex-start">
+          <span style="font-size:1.2rem;flex-shrink:0">&#10024;</span>
+          <div><strong style="font-size:.79rem">Data Classes — Zero Boilerplate</strong><br><span style="font-size:.71rem;color:var(--text-sec)">One line gives you equals(), hashCode(), copy(), toString(). In Java that's 60+ lines of generated code nobody wants to write.</span></div>
+        </div>
+        <div class="card" style="display:flex;gap:.7rem;align-items:flex-start">
+          <span style="font-size:1.2rem;flex-shrink:0">&#9889;</span>
+          <div><strong style="font-size:.79rem">Coroutines for Async Code</strong><br><span style="font-size:.71rem;color:var(--text-sec)">Ktor is built on coroutines. Handle thousands of HTTP requests concurrently — written as simple, readable sequential code.</span></div>
+        </div>
+        <div class="card" style="display:flex;gap:.7rem;align-items:flex-start">
+          <span style="font-size:1.2rem;flex-shrink:0">&#128279;</span>
+          <div><strong style="font-size:.79rem">100% Java Interop</strong><br><span style="font-size:.71rem;color:var(--text-sec)">I use jBCrypt (a Java library) directly from Kotlin — no wrappers needed. All the Java ecosystem, none of the Java verbosity.</span></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.5rem">
+        <div class="cf">model/Event.kt &mdash; a data class in practice</div>
+        <div class="cb">
+<span class="cm">// ONE LINE = full model with equals, copy, toString</span>
+<span class="kw">data class</span> <span class="ty">Event</span>(
+    <span class="kw">val</span> id: <span class="ty">Long</span>,
+    <span class="kw">val</span> title: <span class="ty">String</span>,
+    <span class="kw">val</span> description: <span class="ty">String</span>,
+    <span class="kw">val</span> organizerId: <span class="ty">Long?</span> = <span class="num">null</span>,  <span class="cm">// ? = nullable</span>
+    <span class="kw">val</span> maxParticipants: <span class="ty">Int?</span> = <span class="num">null</span>
+)
+
+<span class="cm">// Kotlin lets you do this:</span>
+<span class="kw">val</span> updated = event.<span class="fn">copy</span>(title = <span class="st">"New Title"</span>)
+<span class="cm">// event == otherEvent  checks by VALUE, not reference</span>
+        </div>
+        <div class="card card-r" style="font-size:.72rem">
+          <strong style="color:var(--red-bright)">Bottom line</strong>
+          <p style="color:var(--text-sec);margin-top:.25rem">Kotlin lets me focus on business logic, not ceremony. Less code = fewer bugs = faster development. That's why Ktor (Kotlin server framework) is my choice.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="slide" id="s3">
+  <div class="blob" style="width:220px;height:220px;bottom:-50px;right:-40px;background:rgba(59,130,246,.1)"></div>
+  <div class="si" style="gap:.82rem">
+    <div class="tag">03 &middot; Tech Stack</div>
+    <h2 class="h1" style="font-size:1.85rem">Every Tool <span class="acc">Chosen for a Reason</span></h2>
+    <div class="g2" style="flex:1">
+      <div style="display:flex;flex-direction:column;gap:.52rem">
+        <div class="card" style="display:flex;gap:.72rem;align-items:center">
+          <span style="font-size:1.45rem">&#129431;</span>
+          <div><strong style="font-size:.81rem">Kotlin + Ktor</strong><br><span style="font-size:.7rem;color:var(--text-sec)">Async HTTP server. Routes are just functions — readable, testable, no magic annotations like Spring.</span></div>
+        </div>
+        <div class="card" style="display:flex;gap:.72rem;align-items:center">
+          <span style="font-size:1.45rem">&#128024;</span>
+          <div><strong style="font-size:.81rem">PostgreSQL + Flyway</strong><br><span style="font-size:.7rem;color:var(--text-sec)">Reliable relational DB. Flyway runs SQL migration scripts on startup — schema is always version-controlled.</span></div>
+        </div>
+        <div class="card" style="display:flex;gap:.72rem;align-items:center">
+          <span style="font-size:1.45rem">&#128007;</span>
+          <div><strong style="font-size:.81rem">RabbitMQ</strong><br><span style="font-size:.7rem;color:var(--text-sec)">Message queue. The API drops a message and moves on — no waiting for emails to send. Decoupled by design.</span></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.52rem">
+        <div class="card" style="display:flex;gap:.72rem;align-items:center">
+          <span style="font-size:1.45rem">&#127758;</span>
+          <div><strong style="font-size:.81rem">Vanilla JS SPA</strong><br><span style="font-size:.7rem;color:var(--text-sec)">No React, no Angular — pure JS. Served by Ktor from the <ic>static/</ic> folder. Zero frontend build step.</span></div>
+        </div>
+        <div class="card" style="display:flex;gap:.72rem;align-items:center">
+          <span style="font-size:1.45rem">&#128051;</span>
+          <div><strong style="font-size:.81rem">Docker Compose</strong><br><span style="font-size:.7rem;color:var(--text-sec)"><ic>docker compose up -d</ic> starts everything: DB, RabbitMQ, notification service, and the API. Same on every machine.</span></div>
+        </div>
+        <div class="card" style="display:flex;gap:.72rem;align-items:center">
+          <span style="font-size:1.45rem">&#129514;</span>
+          <div><strong style="font-size:.81rem">Gradle + kotlin.test</strong><br><span style="font-size:.7rem;color:var(--text-sec)"><ic>./gradlew test</ic> runs the full test suite — no Docker, no database, no extra setup needed at all.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="slide" id="s4">
+  <div class="blob" style="width:200px;height:200px;top:-40px;right:-30px;background:rgba(200,16,46,.15)"></div>
+  <div class="si" style="gap:.72rem">
+    <div class="tag">04 &middot; Architecture</div>
+    <h2 class="h1" style="font-size:1.82rem"><span class="acc">Hexagonal Architecture</span> &mdash; Think Onion Layers</h2>
+    <p class="sub" style="font-size:.76rem"><strong style="color:var(--text)">Core idea:</strong> business logic sits in the middle. Everything else (database, HTTP, emails) is plugged in around it. Your service doesn't know or care if data comes from a real DB or an in-memory fake.</p>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:.42rem">
+      <div style="display:flex;align-items:center;gap:.55rem">
+        <div style="width:58px;font-size:.6rem;color:var(--text-muted);text-align:right;flex-shrink:0">Browser</div>
+        <div style="flex:1;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.25);border-radius:var(--r-md);padding:.42rem .72rem;font-size:.72rem;color:#60a5fa;text-align:center;font-family:'Space Grotesk',sans-serif;font-weight:600">&#127758; Vanilla JS SPA &mdash; the user's browser</div>
+      </div>
+      <div style="text-align:center;margin-left:58px;color:var(--text-muted);font-size:.85rem">&darr; HTTP requests</div>
+      <div style="display:flex;align-items:center;gap:.55rem">
+        <div style="width:58px;font-size:.6rem;color:var(--text-muted);text-align:right;flex-shrink:0">HTTP</div>
+        <div style="flex:1;background:var(--red-dim);border:1px solid var(--border-accent);border-radius:var(--r-md);padding:.42rem .72rem;font-size:.71rem;color:var(--red-bright);text-align:center;font-family:'Space Grotesk',sans-serif;font-weight:600">&#128268; Controllers &mdash; translate HTTP &harr; service calls &mdash; Auth / Event / Registration / Admin</div>
+      </div>
+      <div style="text-align:center;margin-left:58px;color:var(--text-muted);font-size:.85rem">&darr; calls services</div>
+      <div style="display:flex;align-items:center;gap:.55rem">
+        <div style="width:58px;font-size:.6rem;color:var(--text-muted);text-align:right;flex-shrink:0">Domain &#11088;</div>
+        <div style="flex:1;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);border-radius:var(--r-md);padding:.42rem .72rem;text-align:center">
+          <span style="font-size:.72rem;color:#a78bfa;font-weight:700;font-family:'Space Grotesk',sans-serif">&#9881;&#65039; Services &mdash; ALL business rules live here</span>
+          <div style="font-size:.64rem;color:var(--text-muted);margin-top:.18rem">AuthService &middot; EventService &middot; RegistrationService &middot; CategoryService &middot; UserService</div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-left:58px;color:var(--text-muted);font-size:.85rem">&darr; through Port interfaces (just Kotlin interfaces)</div>
+      <div style="display:flex;align-items:center;gap:.55rem">
+        <div style="width:58px;font-size:.6rem;color:var(--text-muted);text-align:right;flex-shrink:0">Adapters</div>
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:.4rem">
+          <div style="background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.2);border-radius:var(--r-md);padding:.38rem .55rem;font-size:.69rem;color:#34d399;text-align:center;font-weight:600">&#128196; JdbcDao &rarr; PostgreSQL</div>
+          <div style="background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);border-radius:var(--r-md);padding:.38rem .55rem;font-size:.69rem;color:#fbbf24;text-align:center;font-weight:600">&#128232; RabbitMQPublisher &rarr; Queue</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.55rem;margin-top:.05rem">
+        <div style="width:58px;font-size:.6rem;color:var(--text-muted);text-align:right;flex-shrink:0">In Tests</div>
+        <div style="flex:1;background:var(--surface);border:1px dashed var(--border);border-radius:var(--r-md);padding:.32rem .72rem;font-size:.67rem;color:var(--text-muted);text-align:center">&#129514; FakeEventDao + FakeNotificationPublisher &mdash; services don't know they're in a test</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="slide" id="s5">
+  <div class="blob" style="width:200px;height:200px;bottom:-40px;right:-30px;background:rgba(200,16,46,.15)"></div>
+  <div class="si" style="gap:.78rem">
+    <div class="tag">05 &middot; Design Patterns</div>
+    <h2 class="h1" style="font-size:1.85rem">4 Patterns &mdash; Each Solving a <span class="acc">Real Problem</span></h2>
+    <div style="flex:1;display:flex;flex-direction:column;gap:.55rem">
+      <div class="card" style="display:grid;grid-template-columns:155px 1fr;gap:1rem;align-items:center">
+        <div><span class="b br">Ports &amp; Adapters</span><br><span style="font-size:.62rem;color:var(--text-muted);margin-top:.2rem;display:block">aka Hexagonal</span></div>
+        <p style="font-size:.73rem;color:var(--text-sec)"><strong style="color:var(--text)">Problem:</strong> if EventService called JDBC directly, you'd need a real database just to run a test. Fix: services depend on the <ic>EventDao</ic> <em>interface</em>. In tests a fake is injected, in prod the real one is used. <strong style="color:var(--text)">Zero code change.</strong></p>
+      </div>
+      <div class="card" style="display:grid;grid-template-columns:155px 1fr;gap:1rem;align-items:center">
+        <span class="b bp">Singleton</span>
+        <p style="font-size:.73rem;color:var(--text-sec)"><strong style="color:var(--text)">Problem:</strong> creating a new RabbitMQ connection for every single message would exhaust resources fast. Fix: <ic>RabbitMQConnectionFactory</ic> reads env vars once and holds a single shared config for the app's entire lifetime.</p>
+      </div>
+      <div class="card" style="display:grid;grid-template-columns:155px 1fr;gap:1rem;align-items:center">
+        <span class="b bb">Strategy</span>
+        <p style="font-size:.73rem;color:var(--text-sec)"><strong style="color:var(--text)">Problem:</strong> I need real emails in prod, console logs in dev, and captured messages in tests &mdash; without changing any service code. Fix: <ic>NotificationPublisher</ic> is an interface. Swap <ic>RabbitMQPublisher</ic> / <ic>LogPublisher</ic> / <ic>FakePublisher</ic> at wiring time.</p>
+      </div>
+      <div class="card" style="display:grid;grid-template-columns:155px 1fr;gap:1rem;align-items:center">
+        <span class="b bg">Template Method</span>
+        <p style="font-size:.73rem;color:var(--text-sec)"><strong style="color:var(--text)">Problem:</strong> two notification consumers share the same connect-listen loop &mdash; copy-pasting it is a maintenance nightmare. Fix: abstract <ic>NotificationConsumer</ic> defines the loop once. Subclasses just override <ic>handleMessage()</ic>.</p>
+      </div>
+    </div>
+    <p style="font-size:.7rem;color:var(--text-muted)">All four patterns serve the same goal: <strong style="color:var(--text)">write the same thing once, make it easy to test, make it easy to change.</strong></p>
+  </div>
+</div>
+
+
+<div class="slide" id="s6">
+  <div class="blob" style="width:180px;height:180px;top:-30px;left:-30px;background:rgba(200,16,46,.12)"></div>
+  <div class="si" style="gap:.72rem">
+    <div class="tag">06 &middot; Code Spotlight &mdash; Ports &amp; Adapters</div>
+    <h2 class="h1" style="font-size:1.75rem">The <span class="acc">Interface Trick</span> That Makes Tests Instant</h2>
+    <div class="g2" style="flex:1;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:.48rem">
+        <div class="cf">db/dao/EventDao.kt &mdash; The PORT (just an interface)</div>
+        <div class="cb">
+<span class="cm">// No SQL here. Just a contract.</span>
+<span class="kw">interface</span> <span class="ty">EventDao</span> {
+    <span class="kw">fun</span> <span class="fn">findAll</span>(): <span class="ty">List</span>&lt;<span class="ty">Event</span>&gt;
+    <span class="kw">fun</span> <span class="fn">findById</span>(id: <span class="ty">Long</span>): <span class="ty">Event?</span>
+    <span class="kw">fun</span> <span class="fn">create</span>(event: <span class="ty">Event</span>): <span class="ty">Event</span>
+    <span class="kw">fun</span> <span class="fn">update</span>(id: <span class="ty">Long</span>, event: <span class="ty">Event</span>): <span class="ty">Event?</span>
+    <span class="kw">fun</span> <span class="fn">delete</span>(id: <span class="ty">Long</span>): <span class="ty">Boolean</span>
+}
+        </div>
+        <div class="cf">service/EventService.kt &mdash; uses the PORT</div>
+        <div class="cb">
+<span class="kw">class</span> <span class="ty">EventService</span>(
+    <span class="cm">// depends on the interface, NOT the DB</span>
+    <span class="kw">private val</span> eventDao: <span class="ty">EventDao</span>
+) {
+    <span class="kw">fun</span> <span class="fn">createEvent</span>(req: <span class="ty">EventRequest</span>): <span class="ty">EventResponse</span> {
+        <span class="fn">validate</span>(req)  <span class="cm">// business rules first</span>
+        <span class="kw">val</span> created = eventDao.<span class="fn">create</span>(req.<span class="fn">toModel</span>())
+        <span class="kw">return</span> created.<span class="fn">toResponse</span>()
+    }
+}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.48rem">
+        <div class="cf">fake/FakeEventDao.kt &mdash; used in TESTS</div>
+        <div class="cb">
+<span class="kw">class</span> <span class="ty">FakeEventDao</span> : <span class="ty">EventDao</span> {
+    <span class="cm">// just a HashMap — zero DB needed!</span>
+    <span class="kw">private val</span> store = <span class="fn">mutableMapOf</span>&lt;<span class="ty">Long</span>, <span class="ty">Event</span>&gt;()
+    <span class="kw">private var</span> nextId = <span class="num">1L</span>
+
+    <span class="kw">override fun</span> <span class="fn">create</span>(event: <span class="ty">Event</span>): <span class="ty">Event</span> {
+        <span class="kw">val</span> saved = event.<span class="fn">copy</span>(id = nextId++)
+        store[saved.id] = saved
+        <span class="kw">return</span> saved
+    }
+    <span class="kw">override fun</span> <span class="fn">findAll</span>() = store.values.<span class="fn">toList</span>()
+    <span class="kw">override fun</span> <span class="fn">findById</span>(id) = store[id]
+    <span class="kw">override fun</span> <span class="fn">delete</span>(id) = store.<span class="fn">remove</span>(id) != <span class="num">null</span>
+}
+        </div>
+        <div class="card card-r" style="font-size:.72rem">
+          <strong style="color:var(--red-bright)">&#128161; Why this is powerful</strong>
+          <p style="color:var(--text-sec);margin-top:.25rem">EventService doesn't know if it's talking to PostgreSQL or a HashMap. Tests run in <strong style="color:var(--text)">milliseconds</strong> with no Docker, no DB setup, no cleanup.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="slide" id="s7">
+  <div class="blob" style="width:180px;height:180px;bottom:-30px;right:-30px;background:rgba(59,130,246,.1)"></div>
+  <div class="si" style="gap:.72rem">
+    <div class="tag">07 &middot; Code Spotlight &mdash; Strategy &amp; Template Method</div>
+    <h2 class="h1" style="font-size:1.75rem">One Interface, <span class="acc">Three Behaviours</span></h2>
+    <div class="g2" style="flex:1;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:.48rem">
+        <div class="cf">messaging/NotificationPublisher.kt &mdash; the Strategy</div>
+        <div class="cb">
+<span class="cm">// The interface is the "contract"</span>
+<span class="kw">interface</span> <span class="ty">NotificationPublisher</span> {
+    <span class="kw">suspend fun</span> <span class="fn">publish</span>(msg: <span class="ty">NotificationMessage</span>)
+}
+
+<span class="cm">// Production: sends to RabbitMQ</span>
+<span class="kw">class</span> <span class="ty">RabbitMQNotificationPublisher</span>(...) : <span class="ty">NotificationPublisher</span> {
+    <span class="kw">override suspend fun</span> <span class="fn">publish</span>(msg) {
+        channel.<span class="fn">basicPublish</span>(Json.<span class="fn">encode</span>(msg), routingKey)
+    }
+}
+
+<span class="cm">// Dev fallback: just logs to console</span>
+<span class="kw">class</span> <span class="ty">LogNotificationPublisher</span> : <span class="ty">NotificationPublisher</span> {
+    <span class="kw">override suspend fun</span> <span class="fn">publish</span>(msg) {
+        logger.<span class="fn">info</span>(<span class="st">"[NOTIFICATION] {}"</span>, msg.eventType)
+    }
+}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.48rem">
+        <div class="cf">notification-service/NotificationConsumer.kt &mdash; Template Method</div>
+        <div class="cb">
+<span class="cm">// Abstract class = fixed skeleton, variable step</span>
+<span class="kw">abstract class</span> <span class="ty">NotificationConsumer</span>(...) {
+
+    <span class="cm">// subclasses MUST fill this in</span>
+    <span class="kw">protected abstract fun</span> <span class="fn">handleMessage</span>(msg: <span class="ty">NotificationMessage</span>)
+
+    <span class="kw">suspend fun</span> <span class="fn">start</span>() {
+        <span class="cm">// this part is FIXED — connect, declare, loop</span>
+        channel.<span class="fn">basicConsume</span>(queue) { delivery ->
+            <span class="kw">val</span> msg = Json.<span class="fn">decode</span>(delivery.body)
+            <span class="fn">handleMessage</span>(msg)  <span class="cm">// calls subclass</span>
+        }
+        <span class="fn">awaitCancellation</span>()  <span class="cm">// keep running forever</span>
+    }
+}
+
+<span class="cm">// Subclass only writes what's different:</span>
+<span class="kw">class</span> <span class="ty">UserNotificationConsumer</span>(...) : <span class="ty">NotificationConsumer</span>(...) {
+    <span class="kw">override fun</span> <span class="fn">handleMessage</span>(msg) {
+        <span class="cm">// handle USER_REGISTERED event type</span>
+    }
+}
+        </div>
+        <div class="card card-g" style="font-size:.71rem">
+          <strong style="color:#34d399">Think of it like a recipe &#129379;</strong>
+          <p style="color:var(--text-sec);margin-top:.2rem">Template Method = the recipe steps are fixed (boil water, steep, pour). Strategy = you choose which tea. Both say: <em>write the varying part only once.</em></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="slide" id="s8">
+  <div class="blob" style="width:220px;height:220px;top:-30px;left:-50px;background:rgba(59,130,246,.1)"></div>
+  <div class="si" style="gap:.82rem">
+    <div class="tag">08 &middot; Microservices</div>
+    <h2 class="h1" style="font-size:1.85rem">Two Services, <span class="acc">One Mission</span></h2>
+    <div class="g2" style="flex:1;align-items:start">
+      <div class="card" style="display:flex;flex-direction:column;gap:.65rem">
+        <div style="display:flex;align-items:center;gap:.6rem"><span style="font-size:1.4rem">&#9889;</span><strong style="font-family:'Space Grotesk',sans-serif;font-size:.88rem">utcn-events-api</strong><span class="b br">:8080</span></div>
+        <ul style="padding-left:1.1rem;font-size:.74rem;color:var(--text-sec);line-height:2;list-style-type:'&rarr; '">
+          <li>Handles all HTTP requests (20+ REST endpoints)</li>
+          <li>Serves the whole frontend (JS / CSS / HTML)</li>
+          <li>JWT auth &mdash; cookie + Bearer header, same verifier</li>
+          <li>Role-based access (STUDENT / ORGANIZER / ADMIN)</li>
+          <li>Publishes notification events to RabbitMQ queue</li>
+          <li>Runs Flyway DB migrations automatically at startup</li>
+        </ul>
+        <div style="background:var(--bg-3);border-radius:var(--r-sm);padding:.45rem .65rem;font-family:'Space Grotesk',monospace;font-size:.67rem;color:var(--text-muted)">
+          GET &nbsp;/health &rarr; {&quot;status&quot;:&quot;ok&quot;}<br>
+          POST /api/auth/login &rarr; sets HttpOnly cookie<br>
+          GET &nbsp;/api/events &rarr; list all events<br>
+          GET &nbsp;/api/admin/stats &rarr; platform stats (admin only)
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.58rem">
+        <div class="card" style="display:flex;flex-direction:column;gap:.6rem">
+          <div style="display:flex;align-items:center;gap:.6rem"><span style="font-size:1.4rem">&#128236;</span><strong style="font-family:'Space Grotesk',sans-serif;font-size:.88rem">notification-service</strong><span class="b bg">Kotlin</span></div>
+          <ul style="padding-left:1.1rem;font-size:.74rem;color:var(--text-sec);line-height:2;list-style-type:'&rarr; '">
+            <li>Listens to RabbitMQ <ic>notifications</ic> queue</li>
+            <li>Completely decoupled &mdash; can be redeployed alone</li>
+            <li>If it goes down, messages queue up and process later</li>
+            <li>Uses Template Method for consumer classes</li>
+          </ul>
+        </div>
+        <div class="card card-r" style="font-size:.72rem">
+          <strong style="color:var(--red-bright)">&#128232; Message Flow</strong>
+          <div style="display:flex;align-items:center;gap:.35rem;margin-top:.4rem;font-size:.69rem;flex-wrap:wrap">
+            <div style="background:var(--surface-2);border-radius:var(--r-sm);padding:.2rem .45rem">API</div>
+            <span style="color:var(--red)">&rarr; publish &rarr;</span>
+            <div style="background:var(--red-dim);border:1px solid var(--border-accent);border-radius:var(--r-sm);padding:.2rem .45rem;color:var(--red-bright)">RabbitMQ queue</div>
+            <span style="color:var(--red)">&rarr; consume &rarr;</span>
+            <div style="background:var(--surface-2);border-radius:var(--r-sm);padding:.2rem .45rem">notification-service</div>
+            <span style="color:var(--red)">&rarr;</span>
+            <span>&#128231; email</span>
+          </div>
+          <div style="margin-top:.45rem;font-size:.69rem;color:var(--text-sec)">
+            <span class="b bg">USER_REGISTERED</span> &nbsp;
+            <span class="b bb">EVENT_REGISTRATION</span> &nbsp;
+            <span class="b by">REGISTRATION_CANCELLED</span>
+          </div>
+        </div>
+        <div class="card" style="font-size:.71rem;color:var(--text-sec)"><strong style="color:var(--text)">&#128274; Fallback:</strong> if RabbitMQ is down, <ic>LogNotificationPublisher</ic> logs the message. The API never crashes due to messaging failures.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="slide" id="s9">
+  <div class="blob" style="width:180px;height:180px;top:-30px;right:-30px;background:rgba(200,16,46,.15)"></div>
+  <div class="si" style="gap:.78rem">
+    <div class="tag">09 &middot; Auth &amp; Security</div>
+    <h2 class="h1" style="font-size:1.82rem">JWT in a <span class="acc">HttpOnly Cookie</span> &mdash; Simple &amp; XSS-Proof</h2>
+    <div class="g2" style="flex:1;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:.48rem">
+        <div class="cf">security/JwtManager.kt</div>
+        <div class="cb" style="font-size:.68rem">
+<span class="kw">class</span> <span class="ty">JwtManager</span>(
+    <span class="kw">private val</span> secret: <span class="ty">String</span> = System.<span class="fn">getenv</span>(<span class="st">"JWT_SECRET"</span>)
+) {
+    <span class="kw">fun</span> <span class="fn">generateToken</span>(userId, email, role): <span class="ty">String</span> =
+        JWT.<span class="fn">create</span>()
+            .<span class="fn">withSubject</span>(userId.<span class="fn">toString</span>())
+            .<span class="fn">withClaim</span>(<span class="st">"email"</span>, email)
+            .<span class="fn">withClaim</span>(<span class="st">"role"</span>, role.name)
+            .<span class="fn">withExpiresAt</span>(<span class="ty">Date</span>(now + <span class="num">24h</span>))
+            .<span class="fn">sign</span>(Algorithm.<span class="fn">HMAC256</span>(secret))
+
+    <span class="kw">fun</span> <span class="fn">verifyToken</span>(token: <span class="ty">String</span>): <span class="ty">JwtClaims?</span> =
+        <span class="kw">try</span> {
+            <span class="kw">val</span> decoded = verifier.<span class="fn">verify</span>(token)
+            <span class="ty">JwtClaims</span>(decoded.subject.<span class="fn">toLong</span>(), ...)
+        } <span class="kw">catch</span> (e: <span class="ty">JWTVerificationException</span>) { <span class="num">null</span> }
+}
+        </div>
+        <div class="cf">security/PasswordUtil.kt</div>
+        <div class="cb" style="font-size:.68rem">
+<span class="kw">object</span> <span class="ty">PasswordUtil</span> {
+    <span class="kw">fun</span> <span class="fn">hashPassword</span>(p: <span class="ty">String</span>) =
+        BCrypt.<span class="fn">hashpw</span>(p, BCrypt.<span class="fn">gensalt</span>(<span class="num">12</span>))
+    <span class="cm">// cost=12 = slow by design. Hard to brute-force.</span>
+
+    <span class="kw">fun</span> <span class="fn">verifyPassword</span>(plain, hash) =
+        BCrypt.<span class="fn">checkpw</span>(plain, hash)
+    <span class="cm">// plain-text password NEVER stored</span>
+}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.52rem">
+        <div class="card card-r" style="font-size:.72rem">
+          <strong style="color:var(--red-bright)">Why HttpOnly cookie?</strong>
+          <p style="color:var(--text-sec);margin-top:.28rem">If the JWT is in <ic>localStorage</ic>, malicious JavaScript on the page can steal it. <ic>HttpOnly</ic> means <ic>document.cookie</ic> returns nothing for it &mdash; <strong style="color:var(--text)">XSS-proof by default.</strong></p>
+        </div>
+        <table class="pt">
+          <thead><tr><th>Role</th><th>What they can do</th></tr></thead>
+          <tbody>
+            <tr><td><span class="b bg">STUDENT</span></td><td>Browse events, register, cancel, edit profile</td></tr>
+            <tr><td><span class="b bb">ORGANIZER</span></td><td>+ Create/edit/delete own events, see participants</td></tr>
+            <tr><td><span class="b br">ADMIN</span></td><td>+ Manage users, categories, departments, stats</td></tr>
+          </tbody>
+        </table>
+        <div class="card" style="font-size:.71rem">
+          <strong>Password Rules (enforced in AuthService)</strong>
+          <p style="color:var(--text-sec);margin-top:.28rem;line-height:1.85">Min 8 chars &middot; Uppercase &middot; Lowercase &middot; Digit &middot; Special char<br>Hashed with <strong style="color:var(--text)">bcrypt cost 12</strong> &mdash; irreversible even if the DB is leaked.</p>
+        </div>
+        <div class="card" style="font-size:.71rem;color:var(--text-sec)"><strong style="color:var(--text)">Dual-mode auth:</strong> browser uses the cookie automatically; API tests use <ic>Authorization: Bearer &lt;token&gt;</ic> header. Same JWT verifier for both.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="slide" id="s10">
+  <div class="blob" style="width:200px;height:200px;bottom:-40px;left:-40px;background:rgba(59,130,246,.1)"></div>
+  <div class="si" style="gap:.78rem">
+    <div class="tag">10 &middot; Database</div>
+    <h2 class="h1" style="font-size:1.85rem">PostgreSQL &mdash; <span class="acc">7 Flyway Migrations</span></h2>
+    <div class="g2" style="flex:1;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:.52rem">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem"><strong style="font-size:.79rem">users</strong><span class="b bp">ENUM role</span></div>
+          <div style="font-family:'Space Grotesk',monospace;font-size:.67rem;color:var(--text-muted);line-height:1.9">id &middot; email (UNIQUE) &middot; password_hash<br>first_name &middot; last_name &middot; role &middot; department_id (FK)<br>is_active &middot; created_at &middot; updated_at</div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem"><strong style="font-size:.79rem">events</strong><span class="b bb">FK &rarr; users, categories</span></div>
+          <div style="font-family:'Space Grotesk',monospace;font-size:.67rem;color:var(--text-muted);line-height:1.9">id &middot; title &middot; description &middot; date &middot; category<br>organizer_id &middot; location &middot; start_time &middot; end_time<br>max_participants &middot; created_at &middot; updated_at</div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem"><strong style="font-size:.79rem">registrations</strong><span class="b bg">UNIQUE (student, event)</span></div>
+          <div style="font-family:'Space Grotesk',monospace;font-size:.67rem;color:var(--text-muted);line-height:1.9">id &middot; student_id (FK) &middot; event_id (FK)<br>status: REGISTERED | CANCELLED<br>registered_at &middot; cancelled_at</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.52rem">
+        <div class="card">
+          <strong style="font-size:.79rem">categories &amp; departments</strong>
+          <div style="font-family:'Space Grotesk',monospace;font-size:.67rem;color:var(--text-muted);line-height:1.9;margin-top:.28rem">id &middot; name (UNIQUE) &middot; description &middot; created_at</div>
+        </div>
+        <div class="card card-r">
+          <strong style="font-size:.79rem;color:var(--red-bright)">reminder_outbox</strong>
+          <div style="font-family:'Space Grotesk',monospace;font-size:.67rem;color:var(--text-muted);line-height:1.9;margin-top:.28rem">id &middot; event_id &middot; student_id &middot; send_at &middot; sent</div>
+          <p style="font-size:.7rem;color:var(--text-sec);margin-top:.25rem">Outbox pattern &mdash; scheduled reminders stored here, polled async.</p>
+        </div>
+        <div class="card card-g" style="font-size:.72rem">
+          <strong style="color:#34d399">&#128260; Re-registration trick</strong>
+          <p style="color:var(--text-sec);margin-top:.22rem">UNIQUE constraint on (student_id, event_id) prevents duplicates. When re-registering after cancel, I <strong style="color:var(--text)">UPDATE the row back to REGISTERED</strong> instead of inserting &mdash; history preserved, constraint respected.</p>
+        </div>
+        <div class="card" style="font-size:.71rem;color:var(--text-sec)"><strong style="color:var(--text)">Flyway</strong> runs V1.sql &rarr; V7.sql automatically at startup. Schema changes version-controlled like code.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="slide" id="s11">
+  <div class="blob" style="width:220px;height:220px;top:-50px;right:-30px;background:rgba(200,16,46,.15)"></div>
+  <div class="si" style="gap:.78rem">
+    <div class="tag">11 &middot; Frontend</div>
+    <h2 class="h1" style="font-size:1.85rem">Vanilla JS SPA &mdash; <span class="acc">No Framework, Full UX</span></h2>
+    <div class="g2" style="flex:1;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:.52rem">
+        <div class="card" style="display:flex;gap:.6rem;align-items:flex-start"><span style="font-size:1.15rem">&#127942;</span><div><strong style="font-size:.79rem">Gamified Home Page</strong><p style="font-size:.7rem;color:var(--text-sec);margin-top:.15rem">Students earn ranks: <strong style="color:var(--text)">Newcomer &rarr; Explorer &rarr; Achiever &rarr; Champion &rarr; Legend</strong> based on registration count. Stat cards, countdown, category breakdown. Organizers see their event stats.</p></div></div>
+        <div class="card" style="display:flex;gap:.6rem;align-items:flex-start"><span style="font-size:1.15rem">&#128197;</span><div><strong style="font-size:.79rem">Upcoming / Past Tabs</strong><p style="font-size:.7rem;color:var(--text-sec);margin-top:.15rem">Events page auto-classifies by <ic>startTime</ic> vs now. Two tabs, no extra API calls &mdash; pure frontend logic.</p></div></div>
+        <div class="card" style="display:flex;gap:.6rem;align-items:flex-start"><span style="font-size:1.15rem">&#128273;</span><div><strong style="font-size:.79rem">Password Strength UX</strong><p style="font-size:.7rem;color:var(--text-sec);margin-top:.15rem">Live strength bar (Weak &rarr; Very Strong), show/hide toggle, inline hints on signup. 5 rules: length, upper, lower, digit, special char.</p></div></div>
+        <div class="card" style="display:flex;gap:.6rem;align-items:flex-start"><span style="font-size:1.15rem">&#127850;</span><div><strong style="font-size:.79rem">GDPR Cookie Banner</strong><p style="font-size:.7rem;color:var(--text-sec);margin-top:.15rem">Bottom-anchored modal on first visit. Expandable table, keyboard-accessible, saved to <ic>localStorage</ic>. Only strictly necessary cookies &mdash; no tracking.</p></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.5rem">
+        <strong style="font-size:.72rem;color:var(--text-sec);text-transform:uppercase;letter-spacing:.06em">Pages &amp; Access</strong>
+        <table class="pt">
+          <thead><tr><th>URL</th><th>Who sees it</th></tr></thead>
+          <tbody>
+            <tr><td><ic>/</ic> Home</td><td><span class="b bg">All (role-aware)</span></td></tr>
+            <tr><td><ic>/events</ic></td><td><span class="b bg">All</span></td></tr>
+            <tr><td><ic>/my-registrations</ic></td><td><span class="b bb">Student</span></td></tr>
+            <tr><td><ic>/profile</ic></td><td><span class="b bb">Authenticated</span></td></tr>
+            <tr><td><ic>/organizer-panel</ic></td><td><span class="b bp">Organizer</span></td></tr>
+            <tr><td><ic>/admin-dashboard</ic></td><td><span class="b br">Admin only</span></td></tr>
+            <tr><td><ic>/admin-taxonomy</ic></td><td><span class="b br">Admin only</span></td></tr>
+          </tbody>
+        </table>
+        <div class="card card-r" style="font-size:.71rem"><strong style="color:var(--red-bright)">Dark Cyber Theme</strong><p style="color:var(--text-sec);margin-top:.22rem">UTCN red <ic>#c8102e</ic> &middot; CSS grid background &middot; Space Grotesk + Inter &middot; Same design system as this presentation.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="slide" id="s12">
+  <div class="blob" style="width:200px;height:200px;bottom:-40px;left:-30px;background:rgba(59,130,246,.1)"></div>
+  <div class="si" style="gap:.72rem">
+    <div class="tag">12 &middot; Testing &mdash; Unit Tests</div>
+    <h2 class="h1" style="font-size:1.8rem">Testing <span class="acc">Business Logic</span> in Isolation</h2>
+    <p class="sub" style="font-size:.76rem">Unit tests check one service at a time. I inject <strong style="color:var(--text)">fake DAOs</strong> so tests are instant &mdash; no database, no Docker, no internet.</p>
+    <div class="g2" style="flex:1;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:.48rem">
+        <div class="cf">service/AuthServiceTest.kt</div>
+        <div class="cb" style="font-size:.67rem">
+<span class="kw">class</span> <span class="ty">AuthServiceTest</span> {
+    <span class="kw">private lateinit var</span> service: <span class="ty">AuthService</span>
+
+    <span class="an">@BeforeTest</span> <span class="kw">fun</span> <span class="fn">setUp</span>() {
+        <span class="cm">// inject FakeUserDao -- no real DB!</span>
+        service = <span class="ty">AuthService</span>(<span class="ty">FakeUserDao</span>(), <span class="ty">JwtManager</span>(<span class="st">"test-key"</span>))
+    }
+
+    <span class="an">@Test</span> <span class="kw">fun</span> <span class="fn">registerReturnsTokenAndUser</span>() {
+        <span class="kw">val</span> res = service.<span class="fn">register</span>(<span class="fn">validRegister</span>())
+        <span class="fn">assertTrue</span>(res.token.<span class="fn">isNotBlank</span>())
+        <span class="fn">assertEquals</span>(<span class="st">"test@example.com"</span>, res.user.email)
+    }
+
+    <span class="an">@Test</span> <span class="kw">fun</span> <span class="fn">registerFailsOnDuplicateEmail</span>() {
+        service.<span class="fn">register</span>(<span class="fn">validRegister</span>())
+        <span class="cm">// second register with same email must fail</span>
+        <span class="fn">assertFailsWith</span>&lt;<span class="ty">IllegalArgumentException</span>&gt; {
+            service.<span class="fn">register</span>(<span class="fn">validRegister</span>())
+        }
+    }
+
+    <span class="an">@Test</span> <span class="kw">fun</span> <span class="fn">registerPublishesWelcomeNotification</span>() {
+        <span class="kw">val</span> pub = <span class="ty">CapturingPublisher</span>()
+        service = <span class="ty">AuthService</span>(<span class="ty">FakeUserDao</span>(), <span class="ty">JwtManager</span>(...), pub)
+        service.<span class="fn">register</span>(<span class="fn">validRegister</span>())
+        <span class="fn">assertEquals</span>(<span class="st">"USER_REGISTERED"</span>, pub.messages[<span class="num">0</span>].eventType)
+    }
+}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.48rem">
+        <div class="cf">security/JwtManagerTest.kt</div>
+        <div class="cb" style="font-size:.67rem">
+<span class="kw">class</span> <span class="ty">JwtManagerTest</span> {
+    <span class="kw">private val</span> jwt = <span class="ty">JwtManager</span>(<span class="st">"test-secret"</span>)
+
+    <span class="an">@Test</span> <span class="kw">fun</span> <span class="fn">verifyTokenReturnsCorrectClaims</span>() {
+        <span class="kw">val</span> token = jwt.<span class="fn">generateToken</span>(<span class="num">42L</span>, <span class="st">"a@b.com"</span>, <span class="ty">ADMIN</span>)
+        <span class="kw">val</span> claims = jwt.<span class="fn">verifyToken</span>(token)
+        <span class="fn">assertEquals</span>(<span class="num">42L</span>, claims?.userId)
+        <span class="fn">assertEquals</span>(<span class="ty">UserRole.ADMIN</span>, claims?.role)
+    }
+
+    <span class="an">@Test</span> <span class="kw">fun</span> <span class="fn">wrongSecretReturnsNull</span>() {
+        <span class="kw">val</span> other = <span class="ty">JwtManager</span>(<span class="st">"different-secret"</span>)
+        <span class="kw">val</span> token = other.<span class="fn">generateToken</span>(<span class="num">1L</span>, <span class="st">"x@y.com"</span>, <span class="ty">STUDENT</span>)
+        <span class="cm">// my verifier must reject it</span>
+        <span class="fn">assertNull</span>(jwt.<span class="fn">verifyToken</span>(token))
+    }
+}
+        </div>
+        <div class="card card-g" style="font-size:.71rem">
+          <strong style="color:#34d399">7 service test files</strong>
+          <p style="color:var(--text-sec);margin-top:.22rem">AuthService &middot; EventService &middot; RegistrationService &middot; CategoryService &middot; DepartmentService &middot; UserService &middot; NotificationPublisher &mdash; every business rule has a test.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="slide" id="s13">
+  <div class="blob" style="width:200px;height:200px;top:-40px;right:-30px;background:rgba(200,16,46,.15)"></div>
+  <div class="si" style="gap:.72rem">
+    <div class="tag">13 &middot; Testing &mdash; Integration Tests</div>
+    <h2 class="h1" style="font-size:1.8rem">Real HTTP Requests &mdash; <span class="acc">Still No External Services</span></h2>
+    <p class="sub" style="font-size:.76rem">Integration tests send <strong style="color:var(--text)">actual HTTP requests</strong> through the full Ktor router using <ic>testApplication</ic>. Full pipeline: routing, auth plugin, JSON, status pages &mdash; but fake DAOs injected, so still no DB or Docker.</p>
+    <div class="g2" style="flex:1;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:.48rem">
+        <div class="cf">integration/AuthIntegrationTest.kt</div>
+        <div class="cb" style="font-size:.67rem">
+<span class="an">@Test</span>
+<span class="kw">fun</span> <span class="fn">registerEndpointReturns201WithToken</span>() =
+    <span class="fn">testApplication</span> {
+        <span class="fn">setupTestApplication</span>()  <span class="cm">// wires fake DAOs</span>
+        <span class="kw">val</span> client = <span class="fn">createClient</span> { <span class="fn">install</span>(<span class="ty">ContentNegotiation</span>) { <span class="fn">json</span>() } }
+        <span class="kw">val</span> res = client.<span class="fn">post</span>(<span class="st">"/api/auth/register"</span>) {
+            <span class="fn">contentType</span>(<span class="ty">ContentType.Application.Json</span>)
+            <span class="fn">setBody</span>(<span class="ty">RegisterRequest</span>(email=<span class="st">"s@s.com"</span>, password=<span class="st">"Pass1!"</span>,...))
+        }
+        <span class="fn">assertEquals</span>(<span class="ty">HttpStatusCode.Created</span>, res.status)
+        <span class="fn">assertTrue</span>(res.<span class="fn">body</span>&lt;<span class="ty">AuthResponse</span>&gt;().token.<span class="fn">isNotBlank</span>())
+    }
+
+<span class="an">@Test</span>
+<span class="kw">fun</span> <span class="fn">loginWithWrongPasswordReturns400</span>() = <span class="fn">testApplication</span> {
+    <span class="fn">setupTestApplication</span>()
+    <span class="kw">val</span> client = <span class="fn">createClient</span> { <span class="fn">install</span>(<span class="ty">ContentNegotiation</span>) { <span class="fn">json</span>() } }
+    client.<span class="fn">post</span>(<span class="st">"/api/auth/register"</span>) { <span class="fn">setBody</span>(<span class="fn">registerRequest</span>()) }
+    <span class="kw">val</span> res = client.<span class="fn">post</span>(<span class="st">"/api/auth/login"</span>) {
+        <span class="fn">setBody</span>(<span class="ty">LoginRequest</span>(email=<span class="st">"s@s.com"</span>, password=<span class="st">"WrongPass1!"</span>))
+    }
+    <span class="fn">assertEquals</span>(<span class="ty">HttpStatusCode.BadRequest</span>, res.status)
+}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.52rem">
+        <div class="card card-r">
+          <strong style="font-size:.79rem;color:var(--red-bright)">7 Integration Test Files</strong>
+          <div style="display:flex;flex-direction:column;gap:.18rem;margin-top:.38rem;font-size:.69rem;color:var(--text-sec)">
+            <div><span class="b br">AuthIntegrationTest</span> &mdash; register, login, /me, wrong password</div>
+            <div><span class="b bb">EventIntegrationTest</span> &mdash; CRUD, auth guards, ownership</div>
+            <div><span class="b bp">RegistrationIntegrationTest</span> &mdash; register, cancel, re-register</div>
+            <div><span class="b bg">AdminStatsIntegrationTest</span> &mdash; stats, admin-only guard</div>
+            <div><span class="b by">AdminTaxonomyIntegrationTest</span> &mdash; category/department CRUD</div>
+            <div><span class="b bg">AdminUserIntegrationTest</span> &mdash; user listing, organiser creation</div>
+            <div><span class="b bb">ProfileUpdateIntegrationTest</span> &mdash; profile changes, auth guard</div>
+          </div>
+        </div>
+        <div class="card card-g" style="font-size:.71rem">
+          <strong style="color:#34d399">&#128161; The key insight</strong>
+          <p style="color:var(--text-sec);margin-top:.22rem">Same app wiring as production, just with in-memory fakes injected via <ic>TestApplicationSetup.kt</ic>. <strong style="color:var(--text)">No test database. No Docker. Runs in seconds.</strong></p>
+        </div>
+        <div style="display:flex;gap:.5rem">
+          <div class="card" style="flex:1;text-align:center"><div style="font-size:1.3rem">&#9889;</div><div style="font-size:.7rem;font-weight:600;margin-top:.18rem">&lt; 10s</div><div style="font-size:.62rem;color:var(--text-muted)">full suite</div></div>
+          <div class="card" style="flex:1;text-align:center"><div style="font-size:1.3rem">&#128230;</div><div style="font-size:.7rem;font-weight:600;margin-top:.18rem">Zero deps</div><div style="font-size:.62rem;color:var(--text-muted)">to run tests</div></div>
+          <div class="card card-g" style="flex:1;text-align:center"><div style="font-size:1.3rem">&#9989;</div><div style="font-size:.7rem;font-weight:600;margin-top:.18rem;color:#34d399">All green</div><div style="font-size:.62rem;color:var(--text-muted)">./gradlew test</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="slide" id="s14">
+  <div class="blob" style="width:200px;height:200px;bottom:-40px;right:-30px;background:rgba(59,130,246,.1)"></div>
+  <div class="si" style="gap:.72rem">
+    <div class="tag">14 &middot; Code Spotlight &mdash; Registration Flow</div>
+    <h2 class="h1" style="font-size:1.75rem">What Happens When a Student <span class="acc">Registers for an Event</span></h2>
+    <div class="g2" style="flex:1;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:.48rem">
+        <div class="cf">service/RegistrationService.kt (simplified)</div>
+        <div class="cb" style="font-size:.67rem">
+<span class="kw">fun</span> <span class="fn">registerStudent</span>(studentId: <span class="ty">Long</span>, eventId: <span class="ty">Long</span>) {
+
+    <span class="cm">// 1. Does the event exist?</span>
+    <span class="kw">val</span> event = eventDao.<span class="fn">findById</span>(eventId)
+        ?: <span class="kw">throw</span> <span class="ty">IllegalArgumentException</span>(<span class="st">"Event not found"</span>)
+
+    <span class="cm">// 2. Already registered? Throw, not silent.</span>
+    <span class="kw">val</span> existing = regDao.<span class="fn">findByStudentAndEvent</span>(studentId, eventId)
+    <span class="kw">if</span> (existing?.status == <span class="st">"REGISTERED"</span>)
+        <span class="kw">throw</span> <span class="ty">IllegalArgumentException</span>(<span class="st">"Already registered"</span>)
+
+    <span class="cm">// 3. Capacity check</span>
+    event.maxParticipants?.<span class="fn">let</span> { max ->
+        <span class="kw">if</span> (regDao.<span class="fn">countActive</span>(eventId) >= max)
+            <span class="kw">throw</span> <span class="ty">IllegalArgumentException</span>(<span class="st">"Event is full"</span>)
+    }
+
+    <span class="cm">// 4. Re-register or create?</span>
+    <span class="kw">return if</span> (existing != <span class="num">null</span>) {
+        regDao.<span class="fn">reactivate</span>(existing.id).<span class="fn">toResponse</span>()
+    } <span class="kw">else</span> {
+        regDao.<span class="fn">create</span>(<span class="ty">Registration</span>(studentId, eventId)).<span class="fn">toResponse</span>()
+    }
+}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.48rem">
+        <div class="cf">service/RegistrationServiceTest.kt</div>
+        <div class="cb" style="font-size:.67rem">
+<span class="an">@Test</span> <span class="kw">fun</span> <span class="fn">registerStudentSucceeds</span>() {
+    <span class="kw">val</span> res = service.<span class="fn">registerStudent</span>(<span class="num">10L</span>, <span class="num">1L</span>)
+    <span class="fn">assertEquals</span>(<span class="st">"REGISTERED"</span>, res.status)
+}
+
+<span class="an">@Test</span> <span class="kw">fun</span> <span class="fn">registerFailsOnDuplicate</span>() {
+    service.<span class="fn">registerStudent</span>(<span class="num">10L</span>, <span class="num">1L</span>)
+    <span class="fn">assertFailsWith</span>&lt;<span class="ty">IllegalArgumentException</span>&gt; {
+        service.<span class="fn">registerStudent</span>(<span class="num">10L</span>, <span class="num">1L</span>)  <span class="cm">// must throw</span>
+    }
+}
+
+<span class="an">@Test</span> <span class="kw">fun</span> <span class="fn">cancelFailsForWrongStudent</span>() {
+    service.<span class="fn">registerStudent</span>(<span class="num">10L</span>, <span class="num">1L</span>)
+    <span class="fn">assertFailsWith</span>&lt;<span class="ty">IllegalArgumentException</span>&gt; {
+        <span class="cm">// student 20 can't cancel student 10's registration</span>
+        service.<span class="fn">cancelRegistration</span>(<span class="num">20L</span>, <span class="num">1L</span>)
+    }
+}
+
+<span class="an">@Test</span> <span class="kw">fun</span> <span class="fn">registerFailsOnMissingEvent</span>() {
+    <span class="fn">assertFailsWith</span>&lt;<span class="ty">IllegalArgumentException</span>&gt; {
+        service.<span class="fn">registerStudent</span>(<span class="num">10L</span>, <span class="num">999L</span>)  <span class="cm">// no such event</span>
+    }
+}
+        </div>
+        <div class="card card-r" style="font-size:.71rem">
+          <strong style="color:var(--red-bright)">Every business rule has a test</strong>
+          <p style="color:var(--text-sec);margin-top:.22rem">Duplicate &#10003; &nbsp;Capacity &#10003; &nbsp;Wrong student cancel &#10003; &nbsp;Missing event &#10003; &nbsp;Re-registration &#10003; &nbsp;Empty list &#10003;</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="slide" id="s15">
+  <div class="blob" style="width:200px;height:200px;top:-30px;right:-30px;background:rgba(200,16,46,.15)"></div>
+  <div class="si" style="gap:.82rem">
+    <div class="tag">15 &middot; Deployment</div>
+    <h2 class="h1" style="font-size:1.85rem"><span class="acc">One Command</span> to Run Everything</h2>
+    <div class="g2" style="flex:1;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:.55rem">
+        <div class="cb" style="font-size:.75rem;line-height:2">
+<span class="cm"># Start the full stack</span>
+<span class="kw">docker compose up</span> -d
+
+<span class="cm"># App lives at:</span>
+<span class="st">http://localhost:8080</span>
+
+<span class="cm"># Verify it's running:</span>
+curl http://localhost:8080/health
+<span class="cm">-&gt; {"status":"ok"}</span>
+
+<span class="cm"># Run all tests (no Docker needed):</span>
+./gradlew test
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.38rem">
+          <strong style="font-size:.72rem;color:var(--text-sec);text-transform:uppercase;letter-spacing:.06em">What starts up, in order</strong>
+          <div class="step"><div class="stepn">1</div><div class="stept"><strong>db</strong> &mdash; PostgreSQL 16, data persisted in Docker volume</div></div>
+          <div class="step"><div class="stepn">2</div><div class="stept"><strong>rabbitmq</strong> &mdash; message broker + management UI on :15672</div></div>
+          <div class="step"><div class="stepn">3</div><div class="stept"><strong>notification-service</strong> &mdash; waits for RabbitMQ healthcheck, then starts consuming</div></div>
+          <div class="step"><div class="stepn">4</div><div class="stept"><strong>backend</strong> &mdash; waits for DB, runs Flyway migrations, starts serving on :8080</div></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.55rem">
+        <div class="card">
+          <strong style="font-size:.79rem">Environment Variables</strong>
+          <div style="font-family:'Space Grotesk',monospace;font-size:.67rem;color:var(--text-muted);line-height:2;margin-top:.3rem">
+            DB_HOST &middot; DB_PORT &middot; DB_NAME<br>
+            DB_USER &middot; DB_PASS<br>
+            RABBITMQ_HOST &middot; RABBITMQ_PORT<br>
+            RABBITMQ_USER &middot; RABBITMQ_PASS<br>
+            JWT_SECRET
+          </div>
+        </div>
+        <div class="card">
+          <strong style="font-size:.79rem">3 Docker Compose Files</strong>
+          <ul style="padding-left:1rem;font-size:.7rem;color:var(--text-sec);line-height:2;margin-top:.28rem">
+            <li><ic>docker-compose.yml</ic> &mdash; full production stack</li>
+            <li><ic>docker-compose.simple.yml</ic> &mdash; no notification service</li>
+            <li><ic>docker-compose.test.yml</ic> &mdash; isolated test environment</li>
+          </ul>
+        </div>
+        <div class="card card-g" style="font-size:.71rem">
+          <strong style="color:#34d399">&#9989; Health Check</strong>
+          <p style="color:var(--text-sec);margin-top:.2rem"><ic>GET /health</ic> &rarr; <ic>{"status":"ok"}</ic> &mdash; used by Docker Compose healthchecks to know when the backend is ready before dependent services start.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="slide" id="s16">
+  <div class="blob" style="width:300px;height:300px;top:-70px;right:-60px;background:rgba(200,16,46,.18)"></div>
+  <div class="blob" style="width:220px;height:220px;bottom:-50px;left:-40px;background:rgba(59,130,246,.1)"></div>
+  <div class="si" style="justify-content:center;gap:.95rem">
+    <div class="tag">Summary</div>
+    <h2 class="h1" style="font-size:2rem;text-align:center">What I <span class="acc">Built &amp; Why It Matters</span></h2>
+    <div class="g4">
+      <div class="card" style="text-align:center;display:flex;flex-direction:column;gap:.28rem"><div style="font-size:1.55rem">&#127963;</div><strong style="font-size:.75rem">Hexagonal Arch</strong><span class="b bp" style="margin:0 auto;font-size:.6rem">Ports &amp; Adapters</span></div>
+      <div class="card" style="text-align:center;display:flex;flex-direction:column;gap:.28rem"><div style="font-size:1.55rem">&#128268;</div><strong style="font-size:.75rem">2 Microservices</strong><span class="b bb" style="margin:0 auto;font-size:.6rem">API + Notifications</span></div>
+      <div class="card" style="text-align:center;display:flex;flex-direction:column;gap:.28rem"><div style="font-size:1.55rem">&#127912;</div><strong style="font-size:.75rem">4 GoF Patterns</strong><span class="b br" style="margin:0 auto;font-size:.6rem">Applied to real code</span></div>
+      <div class="card" style="text-align:center;display:flex;flex-direction:column;gap:.28rem"><div style="font-size:1.55rem">&#128274;</div><strong style="font-size:.75rem">JWT + bcrypt</strong><span class="b bg" style="margin:0 auto;font-size:.6rem">RBAC + HttpOnly</span></div>
+    </div>
+    <div class="g4">
+      <div class="card" style="text-align:center;display:flex;flex-direction:column;gap:.28rem"><div style="font-size:1.55rem">&#128007;</div><strong style="font-size:.75rem">Async Emails</strong><span class="b by" style="margin:0 auto;font-size:.6rem">RabbitMQ</span></div>
+      <div class="card" style="text-align:center;display:flex;flex-direction:column;gap:.28rem"><div style="font-size:1.55rem">&#129514;</div><strong style="font-size:.75rem">Full Tests</strong><span class="b bg" style="margin:0 auto;font-size:.6rem">Unit + Integration</span></div>
+      <div class="card" style="text-align:center;display:flex;flex-direction:column;gap:.28rem"><div style="font-size:1.55rem">&#127942;</div><strong style="font-size:.75rem">Gamified UI</strong><span class="b bp" style="margin:0 auto;font-size:.6rem">Ranks + Stats</span></div>
+      <div class="card card-r" style="text-align:center;display:flex;flex-direction:column;gap:.28rem"><div style="font-size:1.55rem">&#128051;</div><strong style="font-size:.75rem;color:var(--red-bright)">1 Command</strong><span class="b br" style="margin:0 auto;font-size:.6rem">docker compose up</span></div>
+    </div>
+    <div class="card card-r" style="text-align:center;padding:.82rem 1.1rem">
+      <p style="font-size:.8rem;color:var(--text-sec);max-width:640px;margin:0 auto;line-height:1.72">
+        A <strong style="color:var(--text)">production-ready platform</strong> built with clean architecture, proven design patterns, meaningful tests, and a UI that students actually want to use &mdash; solving a real problem at UTCN.
+      </p>
+    </div>
+  </div>
+</div>
+
+</div><!-- /.slide-wrap -->
+</div><!-- /#stage -->
+
+<div id="controls">
+  <button id="btn-prev">&larr; Prev</button>
+  <div id="slide-dots"></div>
+  <span id="slide-counter">1 / 17</span>
+  <button id="btn-next" class="primary">Next &rarr;</button>
+  <span style="color:var(--text-muted);font-size:.7rem;margin-left:.4rem">or <kbd>&larr;</kbd><kbd>&rarr;</kbd> keys</span>
+  <button id="btn-fs" title="Fullscreen" style="margin-left:.5rem">&#x26F6;</button>
+</div>
+</div>
+
+<script>
+const slides = Array.from(document.querySelectorAll('.slide'));
+const counter = document.getElementById('slide-counter');
+const bar = document.getElementById('progress-bar');
+const dotsWrap = document.getElementById('slide-dots');
+const wrap = document.querySelector('.slide-wrap');
+const SLIDE_W = 960, SLIDE_H = 540;
+let cur = 0, busy = false;
+
+// ---- Scale to fill stage ----
+function scaleSlides() {
+  const stage = document.getElementById('stage');
+  const sw = stage.clientWidth;
+  const sh = stage.clientHeight;
+  const scale = Math.min(sw / SLIDE_W, sh / SLIDE_H);
+  wrap.style.transform = 'scale(' + scale + ')';
+}
+scaleSlides();
+window.addEventListener('resize', scaleSlides);
+
+// ---- Fullscreen ----
+document.getElementById('btn-fs').addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen().catch(() => {});
+  }
+});
+document.addEventListener('fullscreenchange', () => {
+  const btn = document.getElementById('btn-fs');
+  btn.textContent = document.fullscreenElement ? '✕' : '⛶';
+  scaleSlides();
+});
+
+slides.forEach((_, i) => {
+  const d = document.createElement('button');
+  d.className = 'dot-btn' + (i === 0 ? ' active' : '');
+  d.title = 'Slide ' + (i + 1);
+  d.addEventListener('click', () => goto(i));
+  dotsWrap.appendChild(d);
+});
+
+function updateUI() {
+  counter.textContent = (cur + 1) + ' / ' + slides.length;
+  bar.style.width = ((cur + 1) / slides.length * 100) + '%';
+  dotsWrap.querySelectorAll('.dot-btn').forEach((d, i) => d.classList.toggle('active', i === cur));
+}
+
+function goto(n) {
+  if (n === cur || busy) return;
+  busy = true;
+  const prev = cur;
+  cur = n;
+  updateUI();
+
+  const outDir = n > prev ? 'out-left' : 'out-right';
+
+  // animate OUT the current slide
+  slides[prev].classList.add(outDir);
+  setTimeout(() => {
+    slides[prev].classList.remove('active', outDir);
+  }, 320);
+
+  // prepare incoming slide: place it off-screen instantly (no transition)
+  const enterFrom = n > prev ? 'translateX(60px)' : 'translateX(-60px)';
+  slides[n].style.transition = 'none';
+  slides[n].style.opacity = '0';
+  slides[n].style.transform = enterFrom;
+  slides[n].classList.add('active');
+
+  // force reflow so the browser registers the start position
+  slides[n].getBoundingClientRect();
+
+  // now animate IN
+  slides[n].style.transition = 'opacity .35s ease, transform .35s ease';
+  slides[n].style.opacity = '1';
+  slides[n].style.transform = 'translateX(0)';
+
+  // clean up inline styles AFTER animation finishes
+  slides[n].addEventListener('transitionend', function cleanup() {
+    slides[n].removeEventListener('transitionend', cleanup);
+    slides[n].style.transition = '';
+    slides[n].style.opacity = '';
+    slides[n].style.transform = '';
+    busy = false;
+  }, { once: true });
+
+  // fallback in case transitionend doesn't fire
+  setTimeout(() => { busy = false; }, 500);
+}
+
+document.getElementById('btn-next').addEventListener('click', () => { if (cur < slides.length - 1) goto(cur + 1); });
+document.getElementById('btn-prev').addEventListener('click', () => { if (cur > 0) goto(cur - 1); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { if (cur < slides.length - 1) goto(cur + 1); }
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { if (cur > 0) goto(cur - 1); }
+});
+updateUI();
+</script>
+</body>
+</html>
