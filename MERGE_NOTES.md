@@ -12,7 +12,7 @@ This is a service integration, not an iframe and not a full data-model migration
 - `notification-service`: RabbitMQ notification consumer.
 - `postgres`: UTCN PostgreSQL database with Flyway migrations.
 - `rabbitmq`: notification broker.
-- `hackcontrol`: Next.js Hackcontrol service exposed on `http://localhost:3000`.
+- `hackcontrol`: embedded Next.js Hackcontrol service in `./hackcontrol`, exposed on `http://localhost:3000`.
 - `hackcontrol-cockroach`: CockroachDB for Hackcontrol's existing Prisma schema.
 
 ## Routes Added
@@ -80,11 +80,19 @@ For GitHub OAuth in Hackcontrol, set:
 - `GITHUB_CLIENT_ID`
 - `GITHUB_CLIENT_SECRET`
 
+The embedded Hackcontrol service also accepts the legacy names `GITHUB_ID` and `GITHUB_SECRET`. In the GitHub OAuth app, configure the callback URL as:
+
+```text
+http://localhost:3000/api/auth/callback/github
+```
+
+For production, replace the host with the deployed Hackcontrol origin and keep the `/api/auth/callback/github` path.
+
 GitHub OAuth is optional for the UTCN JWT bridge, but still required if you want the original Hackcontrol GitHub login flow.
 
 ## Limitations and TODOs
 
-- The integration is cross-service. Hackcontrol URLs currently use `localhost:3000`; a production deployment should put both apps behind one reverse proxy and public origin.
+- The integration is cross-service but self-contained in this repository. Hackcontrol URLs currently use `localhost:3000`; a production deployment should put both apps behind one reverse proxy and public origin.
 - The UTCN JWT bridge upserts Hackcontrol users by email, but does not yet synchronize profile edits after first login beyond role/access updates.
 - Hackcontrol still has NextAuth pages for legacy OAuth users. A future pass can remove or hide that login once UTCN-only auth is accepted.
 - A future full merge could migrate Hackcontrol schema to PostgreSQL and expose hackathon APIs from Ktor, but that should be handled with dedicated data migrations and regression tests.

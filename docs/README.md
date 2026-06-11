@@ -4,7 +4,7 @@ A full-stack web application for managing extracurricular events at the Technica
 Students can browse, register for, and track events. Organizers can create and manage their events. Admins manage users, categories, and departments.
 Built with Kotlin and Ktor (backend), vanilla JavaScript and CSS (frontend), backed by PostgreSQL with RabbitMQ for async notifications.
 
-The platform now integrates Hackcontrol as the hackathon management module. See `MERGE_NOTES.md` for the merged architecture, auth bridge, Docker services, and limitations.
+The platform now integrates an embedded Hackcontrol service as the hackathon management module. See `MERGE_NOTES.md` for the merged architecture, auth bridge, Docker services, GitHub OAuth callback URL, and limitations.
 
 ## Table of Contents
 

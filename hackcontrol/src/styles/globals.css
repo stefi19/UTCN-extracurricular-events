@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
+@font-face {
+  font-family: "Satoshi";
+  src: url("/fonts/Satoshi-Variable.woff2") format("woff2");
+  font-weight: 300 900;
+  font-display: swap;
+  font-style: normal;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  --utcn-red: #c8102e;
+  --utcn-red-bright: #e8203e;
+  --utcn-red-glow: rgba(200, 16, 46, 0.35);
+  --bg: #0a0a0c;
+  --surface: #181820;
+  --surface-alt: #1e1e28;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-soft: rgba(255, 255, 255, 0.05);
+  --text-primary: #f0f0f5;
+  --text-secondary: #8888a0;
+  --text-muted: #555568;
+  --grid-line: rgba(255, 255, 255, 0.035);
+  --grid-size: 44px;
+  --sb-track-color: #101014;
+  --sb-thumb-color: #2a2a35;
+  --sb-size: 10px;
+
+  min-height: 100vh;
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
+  color: var(--text-primary);
+  font-family: "Inter", "Satoshi", system-ui, sans-serif;
+  line-height: 1.65;
+  scrollbar-color: var(--sb-thumb-color) var(--sb-track-color);
+}
+
+h1,
+h2,
+h3 {
+  font-family: "Space Grotesk", "Inter", system-ui, sans-serif;
+  letter-spacing: 0;
+}
+
+a {
+  text-underline-offset: 4px;
+}
+
+body::-webkit-scrollbar {
+  width: var(--sb-size);
+}
+
+body::-webkit-scrollbar-track {
+  background: var(--sb-track-color);
+  border-radius: 2px;
+}
+
+body::-webkit-scrollbar-thumb {
+  background: var(--sb-thumb-color);
+  border-radius: 2px;
+}
