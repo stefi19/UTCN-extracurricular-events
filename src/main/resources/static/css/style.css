@@ -321,6 +321,7 @@ main h3 {
 .badge-admin    { background: var(--utcn-red-dim); color: var(--utcn-red-bright); border-color: var(--border-accent); }
 .badge-organizer{ background: rgba(139,92,246,0.12); color: #a78bfa; border-color: rgba(139,92,246,0.28); }
 .badge-pending  { background: rgba(245,158,11,0.1); color: #fbbf24; border-color: rgba(245,158,11,0.28); }
+.badge-waitlisted{ background: rgba(245,158,11,0.12); color: #fbbf24; border-color: rgba(245,158,11,0.32); }
 .badge-cancelled{ background: rgba(239,68,68,0.1); color: #f87171; border-color: rgba(239,68,68,0.25); }
 .badge-registered{ background: rgba(59,130,246,0.1); color: #60a5fa; border-color: rgba(59,130,246,0.25); }
 .badge-no-show  { background: var(--surface-2); color: var(--text-muted); border-color: var(--border); }
@@ -555,6 +556,11 @@ textarea:focus { outline: none; border-color: var(--utcn-red); box-shadow: 0 0 0
     font-weight: 600;
     letter-spacing: 0.01em;
     cursor: default;
+}
+.already-waitlisted-badge {
+    border-color: rgba(245,158,11,0.32);
+    background: rgba(245,158,11,0.12);
+    color: #fbbf24;
 }
 .manage-panel {
     background: var(--surface); border: 1px solid var(--border);

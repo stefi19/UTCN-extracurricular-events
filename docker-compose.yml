@@ -137,11 +137,11 @@ services:
       RABBITMQ_PORT: "5672"
       RABBITMQ_USER: guest
       RABBITMQ_PASS: guest
-      SMTP_HOST: ${SMTP_HOST:-smtp.office365.com}
-      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_HOST: ${SMTP_HOST:-mailhog}
+      SMTP_PORT: ${SMTP_PORT:-1025}
       SMTP_FROM: ${SMTP_FROM:-noreply@utcn-events.local}
-      SMTP_AUTH: ${SMTP_AUTH:-true}
-      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      SMTP_AUTH: ${SMTP_AUTH:-false}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       REMINDER_HOURS_BEFORE: ${REMINDER_HOURS_BEFORE:-3}

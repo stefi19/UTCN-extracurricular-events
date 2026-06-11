@@ -44,7 +44,7 @@ fun ApplicationTestBuilder.setupTestApplication(
     val jwtManager = JwtManager(TEST_JWT_SECRET)
     val authService = AuthService(userDao, jwtManager, publisher)
     val userService = UserService(userDao)
-    val eventService = EventService(eventDao, userDao)
+    val eventService = EventService(eventDao, userDao, registrationDao)
     val registrationService = RegistrationService(
         registrationDao = registrationDao,
         eventDao = eventDao,

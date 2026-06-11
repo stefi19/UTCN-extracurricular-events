@@ -81,6 +81,7 @@ function renderRegistrationsPage() {
                     <select id="status-filter">
                         <option value="ALL" ${selectedStatusFilter === 'ALL' ? 'selected' : ''}>All</option>
                         <option value="REGISTERED" ${selectedStatusFilter === 'REGISTERED' ? 'selected' : ''}>Registered</option>
+                        <option value="WAITLISTED" ${selectedStatusFilter === 'WAITLISTED' ? 'selected' : ''}>Waiting List</option>
                         <option value="CONFIRMED" ${selectedStatusFilter === 'CONFIRMED' ? 'selected' : ''}>Confirmed</option>
                         <option value="PENDING" ${selectedStatusFilter === 'PENDING' ? 'selected' : ''}>Pending</option>
                         <option value="CANCELLED" ${selectedStatusFilter === 'CANCELLED' ? 'selected' : ''}>Cancelled</option>
@@ -139,7 +140,7 @@ function applyFiltersAndSorting(registrations) {
     return statusFiltered.sort((left, right) => sortByEventName(right, left));
 }
 function calculateSummary(registrations) {
-    const isActiveStatus = status => status === 'REGISTERED' || status === 'CONFIRMED' || status === 'PENDING';
+    const isActiveStatus = status => status === 'REGISTERED' || status === 'WAITLISTED' || status === 'CONFIRMED' || status === 'PENDING';
     const isCompletedStatus = status => status === 'ATTENDED' || status === 'NO_SHOW';
     return {
         total: registrations.length,
@@ -185,7 +186,7 @@ function renderRegistrationCards(registrations) {
                 day: 'numeric'
             })
             : 'Unknown';
-        const cancelButton = registration.status === 'REGISTERED' || registration.status === 'CONFIRMED'
+        const cancelButton = registration.status === 'REGISTERED' || registration.status === 'WAITLISTED' || registration.status === 'CONFIRMED'
             ? `<button class="btn btn-manage-cancel" onclick="cancelRegistration(${registration.id})">Cancel Registration</button>`
             : '';
         return `
@@ -230,6 +231,7 @@ function attachManagePanelListeners() {
 function getStatusBadge(status) {
     const badgeConfig = {
         REGISTERED: 'badge-registered',
+        WAITLISTED: 'badge-waitlisted',
         CONFIRMED: 'badge-confirmed',
         PENDING: 'badge-pending',
         CANCELLED: 'badge-cancelled',

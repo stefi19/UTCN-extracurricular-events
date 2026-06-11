@@ -1,5 +1,6 @@
 package com.example.service
 import com.example.db.dao.EventDao
+import com.example.db.dao.RegistrationDao
 import com.example.db.dao.UserDao
 import com.example.dto.EventRequest
 import com.example.dto.EventResponse
@@ -7,7 +8,8 @@ import com.example.model.Event
 import org.slf4j.LoggerFactory
 class EventService(
     private val eventDao: EventDao,
-    private val userDao: UserDao? = null
+    private val userDao: UserDao? = null,
+    private val registrationDao: RegistrationDao? = null
 ) {
     private val logger = LoggerFactory.getLogger(EventService::class.java)
     fun listEvents(): List<EventResponse> {
@@ -86,13 +88,20 @@ class EventService(
             require(it.length <= 255) { "location must not exceed 255 characters" }
         }
     }
-    private fun Event.toResponse(organizerCache: MutableMap<Long, String?>) = EventResponse(
-        id = id, title = title, description = description, date = date,
-        category = category, department = department, organizerId = organizerId,
-        organizerName = resolveOrganizerName(organizerId, organizerCache),
-        categoryId = categoryId, location = location, startTime = startTime,
-        endTime = endTime, maxParticipants = maxParticipants
-    )
+    private fun Event.toResponse(organizerCache: MutableMap<Long, String?>): EventResponse {
+        val registeredCount = registrationDao?.countByEventIdAndStatus(id, "REGISTERED") ?: 0
+        val waitlistedCount = registrationDao?.countByEventIdAndStatus(id, "WAITLISTED") ?: 0
+        val availableSeats = maxParticipants?.let { (it - registeredCount).coerceAtLeast(0) }
+        return EventResponse(
+            id = id, title = title, description = description, date = date,
+            category = category, department = department, organizerId = organizerId,
+            organizerName = resolveOrganizerName(organizerId, organizerCache),
+            categoryId = categoryId, location = location, startTime = startTime,
+            endTime = endTime, maxParticipants = maxParticipants,
+            registeredCount = registeredCount, waitlistedCount = waitlistedCount,
+            availableSeats = availableSeats
+        )
+    }
     private fun resolveOrganizerName(
         organizerId: Long?,
         organizerCache: MutableMap<Long, String?>

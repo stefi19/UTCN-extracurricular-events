@@ -75,7 +75,7 @@ class JdbcRegistrationDao(private val dataSource: DataSource) : RegistrationDao 
             """
             SELECT id, student_id, event_id, status, registered_at, cancelled_at
             FROM registrations
-            WHERE event_id = ? AND status = 'REGISTERED'
+            WHERE event_id = ?
             ORDER BY registered_at
             """.trimIndent()
         ).use { statement ->
@@ -121,26 +121,60 @@ class JdbcRegistrationDao(private val dataSource: DataSource) : RegistrationDao 
                 }
             }
         }
-    override fun reactivate(id: Long): Registration? = dataSource.connection.use { connection ->
+    override fun reactivate(id: Long, status: String): Registration? = dataSource.connection.use { connection ->
         connection.prepareStatement(
             """
             UPDATE registrations
-            SET status = 'REGISTERED', cancelled_at = NULL, registered_at = CURRENT_TIMESTAMP
+            SET status = ?, cancelled_at = NULL, registered_at = CURRENT_TIMESTAMP
             WHERE id = ?
             RETURNING id, student_id, event_id, status, registered_at, cancelled_at
             """.trimIndent()
         ).use { statement ->
-            statement.setLong(1, id)
+            statement.setString(1, status)
+            statement.setLong(2, id)
             statement.executeQuery().use { rs ->
                 if (rs.next()) rs.toRegistration() else null
             }
         }
     }
+    override fun countByEventIdAndStatus(eventId: Long, status: String): Int = dataSource.connection.use { connection ->
+        connection.prepareStatement(
+            """
+            SELECT COUNT(*) AS total
+            FROM registrations
+            WHERE event_id = ? AND status = ?
+            """.trimIndent()
+        ).use { statement ->
+            statement.setLong(1, eventId)
+            statement.setString(2, status)
+            statement.executeQuery().use { rs ->
+                if (rs.next()) rs.getInt("total") else 0
+            }
+        }
+    }
+    override fun findFirstByEventIdAndStatus(eventId: Long, status: String): Registration? =
+        dataSource.connection.use { connection ->
+            connection.prepareStatement(
+                """
+                SELECT id, student_id, event_id, status, registered_at, cancelled_at
+                FROM registrations
+                WHERE event_id = ? AND status = ?
+                ORDER BY registered_at ASC, id ASC
+                LIMIT 1
+                """.trimIndent()
+            ).use { statement ->
+                statement.setLong(1, eventId)
+                statement.setString(2, status)
+                statement.executeQuery().use { rs ->
+                    if (rs.next()) rs.toRegistration() else null
+                }
+            }
+        }
     override fun updateStatus(id: Long, status: String): Boolean = dataSource.connection.use { connection ->
         connection.prepareStatement(
             """
             UPDATE registrations
-            SET status = ?, cancelled_at = CASE WHEN ? = 'CANCELLED' THEN CURRENT_TIMESTAMP ELSE cancelled_at END
+            SET status = ?, cancelled_at = CASE WHEN ? = 'CANCELLED' THEN CURRENT_TIMESTAMP ELSE NULL END
             WHERE id = ?
             """.trimIndent()
         ).use { statement ->

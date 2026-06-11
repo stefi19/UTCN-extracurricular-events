@@ -38,6 +38,7 @@ data class EventStats(
 data class RegistrationStats(
     val total: Int,
     val registered: Int,
+    val waitlisted: Int,
     val attended: Int,
     val cancelled: Int,
     val noShow: Int
@@ -73,6 +74,7 @@ class AdminStatsController(
                 val registrations = registrationService.getAllRegistrations()
                 val totalRegs = registrations.size
                 val regRegistered = registrations.count { reg -> reg.status == "REGISTERED" }
+                val regWaitlisted = registrations.count { reg -> reg.status == "WAITLISTED" }
                 val regAttended = registrations.count { reg -> reg.status == "ATTENDED" }
                 val regCancelled = registrations.count { reg -> reg.status == "CANCELLED" }
                 val regNoShow = registrations.count { reg -> reg.status == "NO_SHOW" }
@@ -83,7 +85,7 @@ class AdminStatsController(
                         users = UserStats(totalUsers, students, organizers, admins),
                         events = EventStats(totalEvents, upcomingEvents, byCategory),
                         registrations = RegistrationStats(
-                            totalRegs, regRegistered, regAttended, regCancelled, regNoShow
+                            totalRegs, regRegistered, regWaitlisted, regAttended, regCancelled, regNoShow
                         ),
                         taxonomy = TaxonomyStats(categories, departments)
                     )

@@ -77,7 +77,7 @@ function renderStatCards(stats) {
         },
         {
             icon: 'check', label: 'Total Registrations', value: stats.registrations.total,
-            sub: `${stats.registrations.registered} active · ${stats.registrations.attended} attended`,
+            sub: `${stats.registrations.registered} active · ${stats.registrations.waitlisted || 0} waiting`,
             color: 'purple'
         },
         {
@@ -111,6 +111,7 @@ function renderCharts(stats, events) {
         <h3 class="dash-chart-title">Registrations by Status</h3>
         ${barChart([
             { label: 'Registered',  value: stats.registrations.registered, color: '#10b981' },
+            { label: 'Waiting',     value: stats.registrations.waitlisted || 0, color: '#f59e0b' },
             { label: 'Attended',    value: stats.registrations.attended,   color: '#3b82f6' },
             { label: 'Cancelled',   value: stats.registrations.cancelled,  color: '#ef4444' },
             { label: 'No-show',     value: stats.registrations.noShow,     color: '#6b7280' },

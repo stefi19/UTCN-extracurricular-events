@@ -31,45 +31,26 @@ class RegistrationService(
     }
     fun registerStudent(studentId: Long, eventId: Long): RegistrationResponse {
         logger.info("Registering student={} for event={}", studentId, eventId)
+        val event = eventDao.findById(eventId)
+            ?: throw IllegalArgumentException("Event not found")
+        val student = userDao?.findById(studentId)
+        val registrationStatus = nextRegistrationStatus(eventId)
         val existing = registrationDao.findByStudentAndEventAny(studentId, eventId)
         if (existing != null) {
             if (existing.status == "CANCELLED") {
                 logger.info("Re-activating cancelled registration id={} for student={} event={}", existing.id, studentId, eventId)
-                val reactivated = registrationDao.reactivate(existing.id)
+                val reactivated = registrationDao.reactivate(existing.id, registrationStatus)
                     ?: throw IllegalStateException("Failed to reactivate registration")
+                handleRegistrationNotification(reactivated, event, student)
                 return reactivated.toResponse()
             }
             logger.warn("Duplicate registration: student={} event={}", studentId, eventId)
             throw IllegalArgumentException("You are already registered for this event")
         }
-        val event = eventDao.findById(eventId)
-            ?: throw IllegalArgumentException("Event not found")
-        val student = userDao?.findById(studentId)
-        val registration = Registration(id = 0, studentId = studentId, eventId = eventId, status = "REGISTERED")
+        val registration = Registration(id = 0, studentId = studentId, eventId = eventId, status = registrationStatus)
         val created = registrationDao.create(registration).toResponse()
         logger.info("Created registration id={}", created.id)
-    scheduleReminderOutbox(created.id, studentId, eventId, event, student)
-        runBlocking {
-            notificationPublisher?.publish(
-                NotificationMessage(
-                    eventType = "EVENT_REGISTRATION",
-                    userId = studentId,
-                    userEmail = student?.email.orEmpty(),
-                    payload = mapOf(
-                        "eventId" to eventId.toString(),
-                        "registrationId" to created.id.toString(),
-                        "eventTitle" to event.title,
-                        "eventDate" to event.date,
-                        "eventStartTime" to (event.startTime ?: ""),
-                        "eventLocation" to (event.location ?: ""),
-                        "eventCategory" to event.category,
-                        "eventDepartment" to event.department,
-                        "studentFirstName" to (student?.firstName ?: ""),
-                        "studentLastName" to (student?.lastName ?: "")
-                    )
-                )
-            )
-        }
+        handleRegistrationNotification(registrationDao.findById(created.id) ?: registration.copy(id = created.id), event, student)
         return created
     }
     fun getStudentRegistrations(studentId: Long): List<RegistrationResponse> {
@@ -122,8 +103,66 @@ class RegistrationService(
                     )
                 )
             }
+            if (registration.status == "REGISTERED") {
+                promoteNextWaitlisted(registration.eventId)
+            }
         }
         return result
+    }
+    private fun nextRegistrationStatus(eventId: Long): String {
+        val event = eventDao.findById(eventId) ?: throw IllegalArgumentException("Event not found")
+        val maxParticipants = event.maxParticipants ?: return "REGISTERED"
+        val registeredCount = registrationDao.countByEventIdAndStatus(eventId, "REGISTERED")
+        return if (registeredCount >= maxParticipants) "WAITLISTED" else "REGISTERED"
+    }
+    private fun handleRegistrationNotification(
+        registration: Registration,
+        event: com.example.model.Event,
+        student: com.example.model.User?
+    ) {
+        if (registration.status == "REGISTERED") {
+            scheduleReminderOutbox(registration.id, registration.studentId, registration.eventId, event, student)
+            publishRegistrationMessage("EVENT_REGISTRATION", registration, event, student)
+        } else if (registration.status == "WAITLISTED") {
+            publishRegistrationMessage("EVENT_WAITLISTED", registration, event, student)
+        }
+    }
+    private fun promoteNextWaitlisted(eventId: Long) {
+        val waitlisted = registrationDao.findFirstByEventIdAndStatus(eventId, "WAITLISTED") ?: return
+        val promoted = registrationDao.reactivate(waitlisted.id, "REGISTERED") ?: return
+        val event = eventDao.findById(eventId) ?: return
+        val student = userDao?.findById(promoted.studentId)
+        scheduleReminderOutbox(promoted.id, promoted.studentId, promoted.eventId, event, student)
+        publishRegistrationMessage("WAITLIST_PROMOTED", promoted, event, student)
+        logger.info("Promoted waitlisted registration={} for event={}", promoted.id, eventId)
+    }
+    private fun publishRegistrationMessage(
+        eventType: String,
+        registration: Registration,
+        event: com.example.model.Event,
+        student: com.example.model.User?
+    ) {
+        runBlocking {
+            notificationPublisher?.publish(
+                NotificationMessage(
+                    eventType = eventType,
+                    userId = registration.studentId,
+                    userEmail = student?.email.orEmpty(),
+                    payload = mapOf(
+                        "eventId" to registration.eventId.toString(),
+                        "registrationId" to registration.id.toString(),
+                        "eventTitle" to event.title,
+                        "eventDate" to event.date,
+                        "eventStartTime" to (event.startTime ?: ""),
+                        "eventLocation" to (event.location ?: ""),
+                        "eventCategory" to event.category,
+                        "eventDepartment" to event.department,
+                        "studentFirstName" to (student?.firstName ?: ""),
+                        "studentLastName" to (student?.lastName ?: "")
+                    )
+                )
+            )
+        }
     }
     private fun scheduleReminderOutbox(
         registrationId: Long,
@@ -202,11 +241,32 @@ class RegistrationService(
         if (userRole !in listOf("ADMIN", "ORGANIZER")) {
             throw IllegalArgumentException("You don't have permission to update registration status")
         }
-        val validStatuses = setOf("REGISTERED", "CANCELLED", "ATTENDED", "NO_SHOW")
+        val validStatuses = setOf("REGISTERED", "WAITLISTED", "CANCELLED", "ATTENDED", "NO_SHOW")
         if (status !in validStatuses) {
             throw IllegalArgumentException("Invalid status: $status")
         }
-        return registrationDao.updateStatus(registrationId, status)
+        val registration = registrationDao.findById(registrationId)
+            ?: throw IllegalArgumentException("Registration not found")
+        if (status == "REGISTERED" && registration.status != "REGISTERED") {
+            val event = eventDao.findById(registration.eventId)
+                ?: throw IllegalArgumentException("Event not found")
+            val maxParticipants = event.maxParticipants
+            if (maxParticipants != null &&
+                registrationDao.countByEventIdAndStatus(registration.eventId, "REGISTERED") >= maxParticipants
+            ) {
+                throw IllegalStateException("Event is full; free a seat before moving this participant to registered")
+            }
+        }
+        val updated = registrationDao.updateStatus(registrationId, status)
+        if (updated) {
+            if (status == "CANCELLED") {
+                reminderOutboxDao?.markCancelledByRegistrationId(registrationId)
+            }
+            if (registration.status == "REGISTERED" && status == "CANCELLED") {
+                promoteNextWaitlisted(registration.eventId)
+            }
+        }
+        return updated
     }
     private fun Registration.toResponse() = RegistrationResponse(
         id = id, studentId = studentId, eventId = eventId,

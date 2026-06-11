@@ -3,6 +3,8 @@
 This service consumes messages from the RabbitMQ `notifications` queue and sends emails for:
 
 - event registration confirmation (`EVENT_REGISTRATION`)
+- waiting-list confirmation (`EVENT_WAITLISTED`)
+- waiting-list promotion confirmation (`WAITLIST_PROMOTED`)
 - reminder N hours before an event (`EVENT_REMINDER_DUE`)
 - registration cancellation confirmation (`REGISTRATION_CANCELLED`)
 - welcome email on account creation (`USER_REGISTERED`)
@@ -26,11 +28,11 @@ This service consumes messages from the RabbitMQ `notifications` queue and sends
 
 ### SMTP
 
-- `SMTP_HOST` (default: `smtp.office365.com`)
-- `SMTP_PORT` (default: `587`)
+- `SMTP_HOST` (default in Docker Compose: `mailhog`; standalone default: `localhost`)
+- `SMTP_PORT` (default in Docker Compose: `1025`; standalone default: `1025`)
 - `SMTP_FROM` (default: `noreply@utcn-events.local`)
-- `SMTP_AUTH` (`true`/`false`, default: `true`)
-- `SMTP_STARTTLS` (`true`/`false`, default: `true`)
+- `SMTP_AUTH` (`true`/`false`, default in Docker Compose: `false`)
+- `SMTP_STARTTLS` (`true`/`false`, default in Docker Compose: `false`)
 - `SMTP_USER` (required for Outlook)
 - `SMTP_PASS` (required for Outlook)
 

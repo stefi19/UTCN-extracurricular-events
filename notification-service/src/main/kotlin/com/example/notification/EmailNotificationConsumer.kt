@@ -21,6 +21,8 @@ class EmailNotificationConsumer(
         when (message.eventType) {
             "USER_REGISTERED" -> sendWelcome(message)
             "EVENT_REGISTRATION" -> sendRegistrationConfirmation(message)
+            "EVENT_WAITLISTED" -> sendWaitlistNotice(message)
+            "WAITLIST_PROMOTED" -> sendWaitlistPromotion(message)
             "EVENT_REMINDER_DUE" -> sendReminder(message)
             "REGISTRATION_CANCELLED" -> sendCancellationNotice(message)
             else -> logger.debug("Skipping unsupported eventType={}", message.eventType)
@@ -114,6 +116,64 @@ class EmailNotificationConsumer(
 
         runCatching { emailSender.send(recipient, subject, body) }
             .onFailure { logger.error("Failed to send reminder to={}: {}", recipient, it.message) }
+    }
+    private fun sendWaitlistNotice(message: NotificationMessage) {
+        val recipient = message.userEmail
+        if (recipient.isBlank()) return
+
+        val eventTitle = message.payload["eventTitle"].orUnknown("eveniment")
+        val eventDate = message.payload["eventDate"].orUnknown("data neprecizată")
+        val eventStartTime = message.payload["eventStartTime"].orUnknown("ora neprecizată")
+        val eventLocation = message.payload["eventLocation"].orUnknown("locație neprecizată")
+        val firstName = message.payload["studentFirstName"].orUnknown("student")
+
+        val subject = "Lista de așteptare: $eventTitle"
+        val body = """
+            Salut, $firstName!
+
+            Evenimentul "$eventTitle" este momentan complet, iar tu ai fost adăugat pe lista de așteptare.
+
+            Detalii:
+            - Data: $eventDate
+            - Ora start: $eventStartTime
+            - Locație: $eventLocation
+
+            Dacă se eliberează un loc, vei fi promovat automat și vei primi o confirmare pe email.
+
+            Echipa UTCN Events
+        """.trimIndent()
+
+        runCatching { emailSender.send(recipient, subject, body) }
+            .onFailure { logger.error("Failed to send waitlist notice to={}: {}", recipient, it.message) }
+    }
+    private fun sendWaitlistPromotion(message: NotificationMessage) {
+        val recipient = message.userEmail
+        if (recipient.isBlank()) return
+
+        val eventTitle = message.payload["eventTitle"].orUnknown("eveniment")
+        val eventDate = message.payload["eventDate"].orUnknown("data neprecizată")
+        val eventStartTime = message.payload["eventStartTime"].orUnknown("ora neprecizată")
+        val eventLocation = message.payload["eventLocation"].orUnknown("locație neprecizată")
+        val firstName = message.payload["studentFirstName"].orUnknown("student")
+
+        val subject = "Ai primit un loc: $eventTitle"
+        val body = """
+            Salut, $firstName!
+
+            S-a eliberat un loc la "$eventTitle", iar înscrierea ta este acum confirmată.
+
+            Detalii:
+            - Data: $eventDate
+            - Ora start: $eventStartTime
+            - Locație: $eventLocation
+
+            Vei primi și un reminder cu câteva ore înainte de eveniment.
+
+            Echipa UTCN Events
+        """.trimIndent()
+
+        runCatching { emailSender.send(recipient, subject, body) }
+            .onFailure { logger.error("Failed to send waitlist promotion email to={}: {}", recipient, it.message) }
     }
 
     private fun sendCancellationNotice(message: NotificationMessage) {

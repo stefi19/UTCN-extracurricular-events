@@ -19,20 +19,26 @@ class FakeRegistrationDao : RegistrationDao {
         registrations.values.find { it.studentId == studentId && it.eventId == eventId && it.status != "CANCELLED" }
     override fun findByStudentAndEventAny(studentId: Long, eventId: Long): Registration? =
         registrations.values.find { it.studentId == studentId && it.eventId == eventId }
-    override fun reactivate(id: Long): Registration? {
+    override fun reactivate(id: Long, status: String): Registration? {
         val reg = registrations[id] ?: return null
-        val reactivated = reg.copy(status = "REGISTERED", cancelledAt = null)
+        val reactivated = reg.copy(status = status, cancelledAt = null)
         registrations[id] = reactivated
         return reactivated
     }
+    override fun countByEventIdAndStatus(eventId: Long, status: String): Int =
+        registrations.values.count { it.eventId == eventId && it.status == status }
+    override fun findFirstByEventIdAndStatus(eventId: Long, status: String): Registration? =
+        registrations.values
+            .filter { it.eventId == eventId && it.status == status }
+            .sortedWith(compareBy<Registration> { it.registeredAt ?: "" }.thenBy { it.id })
+            .firstOrNull()
     override fun updateStatus(id: Long, status: String): Boolean {
         val reg = registrations[id] ?: return false
         registrations[id] = reg.copy(
             status = status,
-            cancelledAt = if (status == "CANCELLED") java.time.LocalDateTime.now().toString() else reg.cancelledAt
+            cancelledAt = if (status == "CANCELLED") java.time.LocalDateTime.now().toString() else null
         )
         return true
     }
     override fun delete(id: Long): Boolean = registrations.remove(id) != null
 }
-

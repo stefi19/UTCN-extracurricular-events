@@ -39,6 +39,7 @@ The merge is intentionally not a full rewrite. Moving all Hackcontrol features i
 
 - Register or log in through the UTCN platform.
 - Browse and register for extracurricular events.
+- Join the waiting list automatically when an event reaches its seat limit.
 - Track registrations at `/my-registrations`.
 - Open `/hackathons` and participate in hackathons.
 - Join teams and submit projects through Hackcontrol.
@@ -128,7 +129,7 @@ Hackcontrol accepts both naming styles. If no GitHub credentials are configured,
 | `/api/auth/me` | Current authenticated user |
 | `/api/auth/profile` | Profile update |
 | `/api/events` | Event CRUD/listing |
-| `/api/registrations` | Event registrations |
+| `/api/registrations` | Event registrations, waiting list joins, cancellations |
 | `/api/categories` | Category management |
 | `/api/departments` | Department management |
 | `/api/users` | Admin user management |
@@ -205,7 +206,7 @@ The local Docker Compose file includes development defaults for required interna
 | `HACKCONTROL_PUBLIC_URL` | UTCN backend | URL used by `/hackathons` links |
 | `GITHUB_CLIENT_ID` / `GITHUB_ID` | Hackcontrol | GitHub OAuth client id |
 | `GITHUB_CLIENT_SECRET` / `GITHUB_SECRET` | Hackcontrol | GitHub OAuth client secret |
-| `SMTP_*` | notification service | Email notification delivery |
+| `SMTP_*` | notification service | Email notification delivery. Docker defaults to Mailhog; override for real SMTP. |
 | `REMINDER_HOURS_BEFORE` | notification service | Reminder scheduling |
 
 ## Local Development

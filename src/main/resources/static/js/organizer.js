@@ -378,6 +378,7 @@ function renderParticipantsPanel() {
             <div class="manage-summary-grid">
                 <div class="manage-summary-card"><strong>${summary.total}</strong><span>Total</span></div>
                 <div class="manage-summary-card"><strong>${summary.registered}</strong><span>Registered</span></div>
+                <div class="manage-summary-card"><strong>${summary.waitlisted}</strong><span>Waiting List</span></div>
                 <div class="manage-summary-card"><strong>${summary.attended}</strong><span>Attended</span></div>
                 <div class="manage-summary-card"><strong>${summary.noShow}</strong><span>No Show</span></div>
                 <div class="manage-summary-card"><strong>${summary.cancelled}</strong><span>Cancelled</span></div>
@@ -390,7 +391,7 @@ function renderParticipantsPanel() {
                 <div class="manage-control-group">
                     <label for="participant-status-filter">Status</label>
                     <select id="participant-status-filter">
-                        ${['ALL', 'REGISTERED', 'ATTENDED', 'NO_SHOW', 'CANCELLED']
+                        ${['ALL', 'REGISTERED', 'WAITLISTED', 'ATTENDED', 'NO_SHOW', 'CANCELLED']
                             .map(status => `<option value="${status}" ${status === participantStatusFilter ? 'selected' : ''}>${status === 'ALL' ? 'All statuses' : status.replace('_', ' ')}</option>`)
                             .join('')}
                     </select>
@@ -448,7 +449,7 @@ function renderParticipantsTable(participants) {
                                 <div class="participant-status-cell">
                                     <span class="badge ${statusBadgeClass(participant.status)}">${participant.status.replace('_', ' ')}</span>
                                     <select id="status-${participant.id}">
-                                        ${['REGISTERED', 'ATTENDED', 'NO_SHOW', 'CANCELLED']
+                                        ${['REGISTERED', 'WAITLISTED', 'ATTENDED', 'NO_SHOW', 'CANCELLED']
                                             .map(status => `<option value="${status}" ${participant.status === status ? 'selected' : ''}>${status.replace('_', ' ')}</option>`)
                                             .join('')}
                                     </select>
@@ -518,6 +519,7 @@ function summarizeParticipants(participants) {
     return {
         total: participants.length,
         registered: participants.filter(item => item.status === 'REGISTERED').length,
+        waitlisted: participants.filter(item => item.status === 'WAITLISTED').length,
         attended: participants.filter(item => item.status === 'ATTENDED').length,
         noShow: participants.filter(item => item.status === 'NO_SHOW').length,
         cancelled: participants.filter(item => item.status === 'CANCELLED').length
@@ -526,6 +528,7 @@ function summarizeParticipants(participants) {
 function statusBadgeClass(status) {
     const map = {
         REGISTERED: 'badge-registered',
+        WAITLISTED: 'badge-waitlisted',
         ATTENDED: 'badge-attended',
         NO_SHOW: 'badge-no-show',
         CANCELLED: 'badge-cancelled'

@@ -215,7 +215,9 @@ Events published to the `notifications` queue:
 | Event type | Published when |
 |---|---|
 | `USER_REGISTERED` | A new user registers |
-| `EVENT_REGISTRATION` | A student registers for an event |
+| `EVENT_REGISTRATION` | A student receives a confirmed event seat |
+| `EVENT_WAITLISTED` | A student joins the waiting list for a full event |
+| `WAITLIST_PROMOTED` | A cancelled seat is assigned to the first waiting-list student |
 | `REGISTRATION_CANCELLED` | A student cancels a registration |
 
 ## Design Patterns
@@ -418,7 +420,7 @@ location.reload();
 | registered_at | TIMESTAMP   | DEFAULT now()              |
 | cancelled_at  | TIMESTAMP   | nullable                   |
 
-UNIQUE constraint on `(student_id, event_id)`. Re-registration after cancellation reactivates the existing row instead of inserting a new one.
+UNIQUE constraint on `(student_id, event_id)`. Re-registration after cancellation reactivates the existing row instead of inserting a new one. When `events.max_participants` is reached, new registrations are stored as `WAITLISTED`; cancelling a `REGISTERED` row promotes the oldest `WAITLISTED` row to `REGISTERED`.
 
 ### reminder_outbox
 | Column     | Type      | Constraints   |
@@ -465,8 +467,8 @@ UNIQUE constraint on `(student_id, event_id)`. Re-registration after cancellatio
 | Method | Path                                       | Auth | Description                            |
 |--------|--------------------------------------------|------|----------------------------------------|
 | GET    | /api/registrations                         | JWT  | List current user's registrations      |
-| POST   | /api/registrations                         | JWT  | Register for an event (or re-register) |
-| DELETE | /api/registrations/{registrationId}        | JWT  | Cancel a registration                  |
+| POST   | /api/registrations                         | JWT  | Register for an event, join waiting list, or re-register |
+| DELETE | /api/registrations/{registrationId}        | JWT  | Cancel a registration and promote next waiting student when a seat opens |
 | GET    | /api/registrations/event/{eventId}         | JWT  | List participant IDs of an event       |
 | GET    | /api/registrations/event/{eventId}/details | JWT  | List participant details of an event   |
 | PUT    | /api/registrations/{registrationId}/status | JWT  | Update registration status             |
@@ -712,8 +714,10 @@ Response `201 Created`:
 
 ### Registrations
 - Students cannot register for the same event twice (re-registration after cancellation is allowed)
+- If `maxParticipants` is reached, registration creates a `WAITLISTED` entry instead of a confirmed seat
+- Cancelling a confirmed registration promotes the oldest waiting-list entry and publishes a promotion email event
 - Only the student who registered can cancel
-- Status updates accept: `REGISTERED`, `CANCELLED`, `WAITLISTED`, `ATTENDED`
+- Status updates accept: `REGISTERED`, `WAITLISTED`, `CANCELLED`, `ATTENDED`, `NO_SHOW`
 
 ---
 

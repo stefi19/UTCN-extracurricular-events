@@ -10,10 +10,12 @@ import kotlin.test.assertTrue
 class RegistrationServiceTest {
     private lateinit var service: RegistrationService
     private lateinit var eventDao: FakeEventDao
+    private lateinit var registrationDao: FakeRegistrationDao
     @BeforeTest
     fun setUp() {
         eventDao = FakeEventDao()
-        service = RegistrationService(FakeRegistrationDao(), eventDao)
+        registrationDao = FakeRegistrationDao()
+        service = RegistrationService(registrationDao, eventDao)
         eventDao.create(Event(id = 0, title = "Event", description = "Desc", date = "2026-06-01", category = "C", department = "D"))
     }
     @Test
@@ -129,5 +131,63 @@ class RegistrationServiceTest {
         val reactivated = service.registerStudent(10L, 1L)
         assertEquals("REGISTERED", reactivated.status)
         assertEquals(1, service.getStudentRegistrations(10L).count { it.status == "REGISTERED" })
+    }
+    @Test
+    fun registerStudentJoinsWaitingListWhenEventIsFull() {
+        val cappedEvent = eventDao.create(
+            Event(
+                id = 0,
+                title = "Limited",
+                description = "Desc",
+                date = "2026-08-01",
+                category = "C",
+                department = "D",
+                maxParticipants = 1
+            )
+        )
+        val first = service.registerStudent(10L, cappedEvent.id)
+        val second = service.registerStudent(20L, cappedEvent.id)
+        assertEquals("REGISTERED", first.status)
+        assertEquals("WAITLISTED", second.status)
+    }
+    @Test
+    fun cancelRegistrationPromotesFirstWaitlistedStudent() {
+        val cappedEvent = eventDao.create(
+            Event(
+                id = 0,
+                title = "Limited",
+                description = "Desc",
+                date = "2026-08-01",
+                category = "C",
+                department = "D",
+                maxParticipants = 1
+            )
+        )
+        val first = service.registerStudent(10L, cappedEvent.id)
+        val second = service.registerStudent(20L, cappedEvent.id)
+        assertEquals("WAITLISTED", second.status)
+        service.cancelRegistration(10L, first.id)
+        val promoted = service.getStudentRegistrations(20L).single { it.eventId == cappedEvent.id }
+        assertEquals("REGISTERED", promoted.status)
+    }
+    @Test
+    fun cancellingWaitlistedRegistrationDoesNotPromoteAnotherWaitlistedStudent() {
+        val cappedEvent = eventDao.create(
+            Event(
+                id = 0,
+                title = "Limited",
+                description = "Desc",
+                date = "2026-08-01",
+                category = "C",
+                department = "D",
+                maxParticipants = 1
+            )
+        )
+        service.registerStudent(10L, cappedEvent.id)
+        val second = service.registerStudent(20L, cappedEvent.id)
+        service.registerStudent(30L, cappedEvent.id)
+        service.cancelRegistration(20L, second.id)
+        val third = service.getStudentRegistrations(30L).single { it.eventId == cappedEvent.id }
+        assertEquals("WAITLISTED", third.status)
     }
 }

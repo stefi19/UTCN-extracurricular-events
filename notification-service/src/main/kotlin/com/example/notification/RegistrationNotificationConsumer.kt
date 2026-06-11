@@ -5,7 +5,7 @@ import kotlinx.coroutines.CoroutineScope
 import org.slf4j.LoggerFactory
 
 /**
- * Handles EVENT_REGISTRATION and REGISTRATION_CANCELLED events.
+ * Handles registration lifecycle events.
  */
 class RegistrationNotificationConsumer(
     scope: CoroutineScope,
@@ -20,6 +20,20 @@ class RegistrationNotificationConsumer(
                 val eventId = message.payload["eventId"] ?: "?"
                 logger.info(
                     "Registration confirmation → userId={} eventId={}",
+                    message.userId, eventId
+                )
+            }
+            "EVENT_WAITLISTED" -> {
+                val eventId = message.payload["eventId"] ?: "?"
+                logger.info(
+                    "Waiting-list join → userId={} eventId={}",
+                    message.userId, eventId
+                )
+            }
+            "WAITLIST_PROMOTED" -> {
+                val eventId = message.payload["eventId"] ?: "?"
+                logger.info(
+                    "Waiting-list promotion → userId={} eventId={}",
                     message.userId, eventId
                 )
             }

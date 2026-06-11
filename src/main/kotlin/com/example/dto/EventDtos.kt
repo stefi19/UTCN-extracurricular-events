@@ -28,5 +28,8 @@ data class EventResponse(
     val location: String? = null,
     val startTime: String? = null,
     val endTime: String? = null,
-    val maxParticipants: Int? = null
+    val maxParticipants: Int? = null,
+    val registeredCount: Int = 0,
+    val waitlistedCount: Int = 0,
+    val availableSeats: Int? = null
 )

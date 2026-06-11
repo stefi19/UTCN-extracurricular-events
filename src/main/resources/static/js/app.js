@@ -10,6 +10,7 @@ const API_URL = 'http://localhost:8080';
 
 let allEvents = [];
 let myRegisteredEventIds = new Set(); 
+let myRegistrationStatusByEventId = new Map();
 let activeEventsTab = 'upcoming'; 
 const EVENT_FILTERS_STORAGE_KEY = 'events_filters_v2';
 const ORGANIZER_LABEL_ASSIGNED = 'Assigned Organizer';
@@ -71,18 +72,31 @@ async function fetchMyRegistrations() {
     const token = getToken();
     if (!token || getCurrentRole() !== 'STUDENT') {
         myRegisteredEventIds = new Set();
+        myRegistrationStatusByEventId = new Map();
         return;
     }
     try {
         const res = await fetch(`${API_URL}/api/registrations`, {
             headers: { Authorization: `Bearer ${token}` }
         });
-        if (!res.ok) { myRegisteredEventIds = new Set(); return; }
+        if (!res.ok) {
+            myRegisteredEventIds = new Set();
+            myRegistrationStatusByEventId = new Map();
+            return;
+        }
         const regs = await res.json();
-        myRegisteredEventIds = new Set(regs.filter(r => r.status !== 'CANCELLED').map(r => r.eventId));
+        setMyRegistrationState(regs);
     } catch {
         myRegisteredEventIds = new Set();
+        myRegistrationStatusByEventId = new Map();
     }
+}
+function setMyRegistrationState(registrations) {
+    const activeRegistrations = registrations.filter(registration => registration.status !== 'CANCELLED');
+    myRegisteredEventIds = new Set(activeRegistrations.map(registration => registration.eventId));
+    myRegistrationStatusByEventId = new Map(
+        activeRegistrations.map(registration => [registration.eventId, registration.status])
+    );
 }
 async function fetchEvents() {
     const container = document.getElementById('events-container');
@@ -378,10 +392,14 @@ function normalizePersistedOrganizerFilters(values) {
 function buildRegisterButton(event, loggedIn, userRole, context) {
     const fullWidth = context === 'modal' ? ' style="width:100%;"' : ' style="margin-top:1rem;width:100%;"';
     if (loggedIn && userRole === 'STUDENT') {
-        if (myRegisteredEventIds.has(event.id)) {
-            return `<div class="already-registered-badge"${fullWidth}>✓ Already Registered</div>`;
+        const currentStatus = myRegistrationStatusByEventId.get(event.id);
+        if (currentStatus) {
+            const label = currentStatus === 'WAITLISTED' ? 'On Waiting List' : 'Already Registered';
+            return `<div class="already-registered-badge ${currentStatus === 'WAITLISTED' ? 'already-waitlisted-badge' : ''}"${fullWidth}>${escapeHtml(label)}</div>`;
         }
-        return `<button class="btn btn-primary" onclick="registerForEvent(${event.id})"${fullWidth}>Register for Event</button>`;
+        const isFull = event.maxParticipants != null && event.availableSeats === 0;
+        const label = isFull ? 'Join Waiting List' : 'Register for Event';
+        return `<button class="btn btn-primary" onclick="registerForEvent(${event.id})"${fullWidth}>${label}</button>`;
     }
     if (loggedIn && (userRole === 'ORGANIZER' || userRole === 'ADMIN')) {
         return `<a href="/organizer-panel" class="btn btn-secondary"${fullWidth}>Manage from Organizer Panel</a>`;
@@ -436,7 +454,7 @@ function openEventModal(eventId) {
         ['Department', event.department],
         ['Location',   event.location],
         ['Organizer',  getOrganizerLabel(event)],
-        ['Max seats',  event.maxParticipants != null ? String(event.maxParticipants) : null],
+        ['Seats',      formatSeats(event)],
     ].filter(([, v]) => v);
     document.getElementById('event-modal-body').innerHTML = `
         <div class="event-modal-header">
@@ -497,10 +515,18 @@ function displayEvents(events, isPastTab = false) {
                 ${event.category ? `<div class="meta" style="margin-top:.4rem;"><span>Type: ${escapeHtml(event.category)}</span></div>` : ''}
                 ${event.department ? `<div class="meta" style="margin-top:.4rem;"><span>Department: ${escapeHtml(event.department)}</span></div>` : ''}
                 <div class="meta" style="margin-top:.4rem;"><span>Organizer: ${escapeHtml(getOrganizerLabel(event))}</span></div>
+                ${event.maxParticipants != null ? `<div class="meta" style="margin-top:.4rem;"><span>Seats: ${escapeHtml(formatSeats(event))}</span></div>` : ''}
                 ${registerButton ? `<div onclick="event.stopPropagation()">${registerButton}</div>` : ''}
             </div>
         `;
     }).join('');
+}
+function formatSeats(event) {
+    if (event.maxParticipants == null) return null;
+    const available = event.availableSeats ?? Math.max(event.maxParticipants - (event.registeredCount || 0), 0);
+    const waitlisted = event.waitlistedCount || 0;
+    const waitlistText = waitlisted > 0 ? ` · ${waitlisted} waiting` : '';
+    return `${available}/${event.maxParticipants} seats available${waitlistText}`;
 }
 async function registerForEvent(eventId) {
     const token = getToken();
@@ -523,24 +549,34 @@ async function registerForEvent(eventId) {
         const data = await response.json();
         if (response.ok) {
             myRegisteredEventIds.add(eventId);
-            const badge = `<div class="already-registered-badge" style="width:100%;">✓ Already Registered</div>`;
+            const status = data.status || 'REGISTERED';
+            myRegistrationStatusByEventId.set(eventId, status);
+            const isWaitlisted = status === 'WAITLISTED';
+            const badgeText = isWaitlisted ? 'On Waiting List' : 'Already Registered';
+            const badgeClass = `already-registered-badge${isWaitlisted ? ' already-waitlisted-badge' : ''}`;
+            const badge = `<div class="${badgeClass}" style="width:100%;">${badgeText}</div>`;
             if (btn) {
                 const badgeEl = document.createElement('div');
-                badgeEl.className = 'already-registered-badge';
+                badgeEl.className = badgeClass;
                 badgeEl.style.width = '100%';
-                badgeEl.textContent = '✓ Already Registered';
+                badgeEl.textContent = badgeText;
                 btn.replaceWith(badgeEl);
             }
             const modalAction = document.getElementById(`event-modal-action-${eventId}`);
             if (modalAction) modalAction.innerHTML = badge;
+            if (isWaitlisted) {
+                alert('This event is full, so you were added to the waiting list.');
+            }
         } else {
             alert(`Registration failed: ${data.error || data.message || 'Unknown error'}`);
-            if (btn) { btn.disabled = false; btn.textContent = 'Register for Event'; }
+            const event = allEvents.find(ev => ev.id === eventId);
+            if (btn) { btn.disabled = false; btn.textContent = event?.availableSeats === 0 ? 'Join Waiting List' : 'Register for Event'; }
         }
     } catch (error) {
         console.error('Registration error:', error);
         alert('An error occurred while registering. Please try again.');
-        if (btn) { btn.disabled = false; btn.textContent = 'Register for Event'; }
+        const event = allEvents.find(ev => ev.id === eventId);
+        if (btn) { btn.disabled = false; btn.textContent = event?.availableSeats === 0 ? 'Join Waiting List' : 'Register for Event'; }
     }
 }
 function escapeHtml(text) {
@@ -584,9 +620,7 @@ async function loadHomePage() {
         let registrations = [];
         if (results[1] && results[1].ok) {
             registrations = await results[1].json();
-            myRegisteredEventIds = new Set(
-                registrations.filter(r => r.status !== 'CANCELLED').map(r => r.eventId)
-            );
+            setMyRegistrationState(registrations);
         }
         if (loggedIn && role === 'STUDENT') {
             renderStudentHome(container, registrations);
