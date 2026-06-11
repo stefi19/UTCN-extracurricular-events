@@ -397,14 +397,18 @@ function buildRegisterButton(event, loggedIn, userRole, context) {
             const label = currentStatus === 'WAITLISTED' ? 'On Waiting List' : 'Already Registered';
             return `<div class="already-registered-badge ${currentStatus === 'WAITLISTED' ? 'already-waitlisted-badge' : ''}"${fullWidth}>${escapeHtml(label)}</div>`;
         }
-        const isFull = event.maxParticipants != null && event.availableSeats === 0;
-        const label = isFull ? 'Join Waiting List' : 'Register for Event';
-        return `<button class="btn btn-primary" onclick="registerForEvent(${event.id})"${fullWidth}>${label}</button>`;
+        return `<button class="btn btn-primary" onclick="registerForEvent(${event.id})"${fullWidth}>${getRegisterActionLabel(event)}</button>`;
     }
     if (loggedIn && (userRole === 'ORGANIZER' || userRole === 'ADMIN')) {
         return `<a href="/organizer-panel" class="btn btn-secondary"${fullWidth}>Manage from Organizer Panel</a>`;
     }
     return `<a href="/login" class="btn"${fullWidth}>Login to Register</a>`;
+}
+function isEventFull(event) {
+    return event.maxParticipants != null && event.availableSeats === 0;
+}
+function getRegisterActionLabel(event) {
+    return isEventFull(event) ? 'Join Waiting List' : 'Register for Event';
 }
 function formatEventDate(event) {
     let formattedDate = 'TBA';
@@ -467,7 +471,7 @@ function openEventModal(eventId) {
             ${rows.map(([label, value]) => `
                 <div class="event-modal-meta-row">
                     <span class="event-modal-meta-label">${label}</span>
-                    <span class="event-modal-meta-value">${escapeHtml(value)}</span>
+                    <span class="event-modal-meta-value"${label === 'Seats' ? ` data-event-seats="${event.id}"` : ''}>${escapeHtml(value)}</span>
                 </div>`).join('')}
         </div>
         ${actionArea}`;
@@ -515,7 +519,7 @@ function displayEvents(events, isPastTab = false) {
                 ${event.category ? `<div class="meta" style="margin-top:.4rem;"><span>Type: ${escapeHtml(event.category)}</span></div>` : ''}
                 ${event.department ? `<div class="meta" style="margin-top:.4rem;"><span>Department: ${escapeHtml(event.department)}</span></div>` : ''}
                 <div class="meta" style="margin-top:.4rem;"><span>Organizer: ${escapeHtml(getOrganizerLabel(event))}</span></div>
-                ${event.maxParticipants != null ? `<div class="meta" style="margin-top:.4rem;"><span>Seats: ${escapeHtml(formatSeats(event))}</span></div>` : ''}
+                ${event.maxParticipants != null ? `<div class="meta" style="margin-top:.4rem;"><span data-event-seats="${event.id}" data-seat-prefix="Seats: ">Seats: ${escapeHtml(formatSeats(event))}</span></div>` : ''}
                 ${registerButton ? `<div onclick="event.stopPropagation()">${registerButton}</div>` : ''}
             </div>
         `;
@@ -527,6 +531,31 @@ function formatSeats(event) {
     const waitlisted = event.waitlistedCount || 0;
     const waitlistText = waitlisted > 0 ? ` · ${waitlisted} waiting` : '';
     return `${available}/${event.maxParticipants} seats available${waitlistText}`;
+}
+async function refreshEventSeatState(eventId) {
+    try {
+        const response = await fetch(`${API_URL}/api/events/${eventId}`);
+        if (!response.ok) return null;
+        const updatedEvent = await response.json();
+        const index = allEvents.findIndex(event => event.id === eventId);
+        if (index >= 0) {
+            allEvents[index] = { ...allEvents[index], ...updatedEvent };
+        } else {
+            allEvents.push(updatedEvent);
+        }
+        updateVisibleSeatLabels(updatedEvent);
+        return updatedEvent;
+    } catch (error) {
+        console.error('Could not refresh event seat state:', error);
+        return null;
+    }
+}
+function updateVisibleSeatLabels(event) {
+    const seatsText = formatSeats(event);
+    if (!seatsText) return;
+    document.querySelectorAll(`[data-event-seats="${event.id}"]`).forEach(element => {
+        element.textContent = `${element.dataset.seatPrefix || ''}${seatsText}`;
+    });
 }
 async function registerForEvent(eventId) {
     const token = getToken();
@@ -564,19 +593,20 @@ async function registerForEvent(eventId) {
             }
             const modalAction = document.getElementById(`event-modal-action-${eventId}`);
             if (modalAction) modalAction.innerHTML = badge;
+            await refreshEventSeatState(eventId);
             if (isWaitlisted) {
                 alert('This event is full, so you were added to the waiting list.');
             }
         } else {
             alert(`Registration failed: ${data.error || data.message || 'Unknown error'}`);
             const event = allEvents.find(ev => ev.id === eventId);
-            if (btn) { btn.disabled = false; btn.textContent = event?.availableSeats === 0 ? 'Join Waiting List' : 'Register for Event'; }
+            if (btn) { btn.disabled = false; btn.textContent = event ? getRegisterActionLabel(event) : 'Register for Event'; }
         }
     } catch (error) {
         console.error('Registration error:', error);
         alert('An error occurred while registering. Please try again.');
         const event = allEvents.find(ev => ev.id === eventId);
-        if (btn) { btn.disabled = false; btn.textContent = event?.availableSeats === 0 ? 'Join Waiting List' : 'Register for Event'; }
+        if (btn) { btn.disabled = false; btn.textContent = event ? getRegisterActionLabel(event) : 'Register for Event'; }
     }
 }
 function escapeHtml(text) {
@@ -790,10 +820,11 @@ function renderStudentHome(container, registrations) {
                         <span class="home-disc-cat">${escapeHtml(ev.category || 'Event')}</span>
                         <h4 class="home-disc-title">${escapeHtml(ev.title)}</h4>
                         <p class="home-disc-desc">${escapeHtml((ev.description || '').slice(0, 100))}…</p>
+                        ${ev.maxParticipants != null ? `<div class="meta" style="margin-top:.6rem;"><span data-event-seats="${ev.id}" data-seat-prefix="Seats: ">Seats: ${escapeHtml(formatSeats(ev))}</span></div>` : ''}
                         <div class="home-disc-footer">
                             <span class="home-disc-loc">📍 ${escapeHtml(ev.location || 'TBA')}</span>
                             <div onclick="event.stopPropagation()">
-                                <button class="btn btn-primary home-disc-btn" onclick="registerForEvent(${ev.id})">Register</button>
+                                <button class="btn btn-primary home-disc-btn" onclick="registerForEvent(${ev.id})">${getRegisterActionLabel(ev)}</button>
                             </div>
                         </div>
                     </div>`).join('')}

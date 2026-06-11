@@ -149,6 +149,13 @@ function calculateSummary(registrations) {
         completed: registrations.filter(registration => isCompletedStatus(registration.status)).length
     };
 }
+function formatSeats(event) {
+    if (!event || event.maxParticipants == null) return null;
+    const available = event.availableSeats ?? Math.max(event.maxParticipants - (event.registeredCount || 0), 0);
+    const waitlisted = event.waitlistedCount || 0;
+    const waitlistText = waitlisted > 0 ? ` · ${waitlisted} waiting` : '';
+    return `${available}/${event.maxParticipants} seats available${waitlistText}`;
+}
 function renderRegistrationCards(registrations) {
     if (registrations.length === 0) {
         return `
@@ -186,6 +193,7 @@ function renderRegistrationCards(registrations) {
                 day: 'numeric'
             })
             : 'Unknown';
+        const seatsText = formatSeats(event);
         const cancelButton = registration.status === 'REGISTERED' || registration.status === 'WAITLISTED' || registration.status === 'CONFIRMED'
             ? `<button class="btn btn-manage-cancel" onclick="cancelRegistration(${registration.id})">Cancel Registration</button>`
             : '';
@@ -204,6 +212,7 @@ function renderRegistrationCards(registrations) {
                         ${event?.category ? `<div class="reg-meta-item"><span class="reg-meta-label">Category</span><span>${escapeHtml(event.category)}</span></div>` : ''}
                         ${event?.department ? `<div class="reg-meta-item"><span class="reg-meta-label">Department</span><span>${escapeHtml(event.department)}</span></div>` : ''}
                         ${event?.location ? `<div class="reg-meta-item"><span class="reg-meta-label">Location</span><span>${escapeHtml(event.location)}</span></div>` : ''}
+                        ${seatsText ? `<div class="reg-meta-item"><span class="reg-meta-label">Seats</span><span>${escapeHtml(seatsText)}</span></div>` : ''}
                         <div class="reg-meta-item"><span class="reg-meta-label">Registered on</span><span>${registeredDate}</span></div>
                     </div>
                     ${cancelButton ? `<div class="reg-card-actions">${cancelButton}</div>` : ''}
