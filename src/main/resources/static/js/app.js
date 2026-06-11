@@ -918,6 +918,17 @@ function renderGuestHome(container) {
 function updateNavigation() {
     const navUl = document.querySelector('nav ul');
     if (!navUl) return;
+    if (!document.getElementById('nav-hackathons-link') && !navUl.querySelector('a[href="/hackathons"]')) {
+        const hackathonsLi = document.createElement('li');
+        hackathonsLi.id = 'nav-hackathons-link';
+        hackathonsLi.innerHTML = '<a href="/hackathons">Hackathons</a>';
+        const loginLi = Array.from(navUl.querySelectorAll('li')).find(li => li.querySelector('a[href="/login"]'));
+        if (loginLi) {
+            navUl.insertBefore(hackathonsLi, loginLi);
+        } else {
+            navUl.appendChild(hackathonsLi);
+        }
+    }
     if (isLoggedIn()) {
         const userEmail = localStorage.getItem('user_email');
         const userRole = getCurrentRole();

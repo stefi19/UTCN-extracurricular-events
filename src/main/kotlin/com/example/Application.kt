@@ -668,6 +668,82 @@ fun Application.module() {
                 }
             }
         }
+        get("/hackathons") {
+            val hackcontrolUrl = System.getenv("HACKCONTROL_PUBLIC_URL") ?: "http://localhost:3000"
+            call.respondHtml {
+                head {
+                    meta(charset = "UTF-8")
+                    meta(name = "viewport", content = "width=device-width, initial-scale=1.0")
+                    title { +"Hackathons - UTCN Events" }
+                    link(rel = "stylesheet", href = "/static/css/style.css")
+                }
+                body {
+                    header {
+                        div(classes = "container") {
+                            nav {
+                                h1 { +"UTCN Events" }
+                                ul {
+                                    li { a(href = "/") { +"Home" } }
+                                    li { a(href = "/events") { +"Events" } }
+                                    li { a(href = "/my-registrations") { +"My Registrations" } }
+                                    li { a(href = "/profile") { +"Profile" } }
+                                    li { a(href = "/hackathons") { +"Hackathons" } }
+                                    li { a(href = "/login") { +"Login" } }
+                                }
+                            }
+                        }
+                    }
+                    main {
+                        div(classes = "container") {
+                            div(classes = "hackathons-shell") {
+                                section(classes = "hackathons-panel") {
+                                    p(classes = "hackathons-kicker") { +"UTCN innovation programs" }
+                                    h2(classes = "hackathons-title") { +"Hackathons live alongside campus events." }
+                                    p(classes = "section-intro") {
+                                        +"Browse public hackathons, join as a participant, submit projects with your team, or manage judging and winner selection from the dedicated Hackcontrol module."
+                                    }
+                                    div(classes = "hackathons-actions") {
+                                        a(href = hackcontrolUrl, classes = "btn btn-primary") { +"Open Hackathons" }
+                                        a(href = "$hackcontrolUrl/app", classes = "btn btn-secondary") { +"Manage Hackathons" }
+                                    }
+                                    div(classes = "hackathons-role-grid") {
+                                        div(classes = "hackathons-role-card") {
+                                            strong { +"Students" }
+                                            span { +"Join hackathons, collaborate in teams, and submit projects." }
+                                        }
+                                        div(classes = "hackathons-role-card") {
+                                            strong { +"Organizers" }
+                                            span { +"Create hackathons, publish announcements, and review submissions." }
+                                        }
+                                        div(classes = "hackathons-role-card") {
+                                            strong { +"Admins" }
+                                            span { +"Manage hackathons, judges, scoring requirements, and winners." }
+                                        }
+                                    }
+                                }
+                                aside(classes = "hackathons-side") {
+                                    h3 { +"Unified access" }
+                                    p(classes = "section-intro") {
+                                        +"This module uses the UTCN login cookie as the canonical session. Roles are mapped automatically when Hackcontrol receives the request."
+                                    }
+                                    ul {
+                                        li { +"STUDENT becomes Participant" }
+                                        li { +"ORGANIZER becomes Organizer" }
+                                        li { +"ADMIN becomes Admin" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    footer {
+                        div(classes = "container") {
+                            p { +"© 2026 Technical University of Cluj-Napoca. All rights reserved." }
+                        }
+                    }
+                    script(src = "/static/js/app.js") {}
+                }
+            }
+        }
         get("/health") {
             call.respond(mapOf("status" to "ok"))
         }

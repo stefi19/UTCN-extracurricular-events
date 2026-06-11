@@ -71,6 +71,7 @@ services:
       JWT_ISSUER: utcn-events
       JWT_AUDIENCE: utcn-events-users
       JWT_REALM: utcn-events
+      HACKCONTROL_PUBLIC_URL: http://localhost:3000
     ports:
       - "8080:8080"
     depends_on:
@@ -86,6 +87,44 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+
+  hackcontrol-cockroach:
+    image: cockroachdb/cockroach:v23.2.4
+    container_name: utcn-hackcontrol-db
+    restart: unless-stopped
+    command: start-single-node --insecure
+    ports:
+      - "26257:26257"
+      - "8081:8080"
+    volumes:
+      - hackcontrol_crdb:/cockroach/cockroach-data
+    networks:
+      - utcn-network
+    healthcheck:
+      test: ["CMD", "cockroach", "sql", "--insecure", "--execute", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  hackcontrol:
+    build: ../hackcontrol
+    container_name: utcn-hackcontrol
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://root@hackcontrol-cockroach:26257/defaultdb?sslmode=disable
+      NEXTAUTH_SECRET: your-secret-key-change-in-production
+      NEXTAUTH_URL: http://localhost:3000
+      UTCN_JWT_SECRET: your-secret-key-change-in-production
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+    ports:
+      - "3000:3000"
+    depends_on:
+      hackcontrol-cockroach:
+        condition: service_healthy
+    networks:
+      - utcn-network
 
   notification-service:
     build: ./notification-service
@@ -123,8 +162,9 @@ services:
 volumes:
   utcnevents_pgdata:
     driver: local
+  hackcontrol_crdb:
+    driver: local
 
 networks:
   utcn-network:
     driver: bridge
-

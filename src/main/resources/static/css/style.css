@@ -1188,6 +1188,68 @@ textarea:focus { outline: none; border-color: var(--utcn-red); box-shadow: 0 0 0
 .home-guest-lbl { font-size: .72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
 .home-guest-tagline { font-size: 1rem; color: var(--text-secondary); max-width: 520px; line-height: 1.6; margin: 0; }
 .home-guest-ctas { display: flex; gap: .75rem; flex-wrap: wrap; justify-content: center; }
+.hackathons-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, .85fr);
+    gap: 1.2rem;
+    align-items: stretch;
+    margin-top: 1.5rem;
+}
+.hackathons-panel,
+.hackathons-side {
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(30,30,40,.86), rgba(16,16,20,.92));
+    box-shadow: var(--shadow-md);
+    border-radius: var(--radius-md);
+    padding: 1.4rem;
+}
+.hackathons-kicker {
+    color: var(--utcn-red-bright);
+    font-size: .78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+}
+.hackathons-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    line-height: 1.05;
+    margin: .45rem 0 .8rem;
+}
+.hackathons-actions {
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+    margin-top: 1.2rem;
+}
+.hackathons-role-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .75rem;
+    margin-top: 1.2rem;
+}
+.hackathons-role-card {
+    border: 1px solid var(--border-soft);
+    background: rgba(255,255,255,.03);
+    border-radius: var(--radius-sm);
+    padding: .9rem;
+}
+.hackathons-role-card strong {
+    display: block;
+    color: var(--text-primary);
+    margin-bottom: .25rem;
+}
+.hackathons-role-card span,
+.hackathons-side li {
+    color: var(--text-secondary);
+    font-size: .9rem;
+}
+.hackathons-side ul {
+    margin: .8rem 0 0 1rem;
+}
+.hackathons-side li + li {
+    margin-top: .45rem;
+}
 footer {
     margin-top: 4rem;
     background: var(--bg-2); border-top: 1px solid var(--border);
@@ -1212,6 +1274,8 @@ footer {
     .home-panels    { grid-template-columns: 1fr; }
     .home-discover-grid { grid-template-columns: 1fr; }
     .home-guest-stats { flex-wrap: wrap; }
+    .hackathons-shell { grid-template-columns: 1fr; }
+    .hackathons-role-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 540px) {
     .container    { width: calc(100% - 1.5rem); }
